@@ -1,0 +1,60 @@
+@if (submitted()) {
+  <div class="success-message" role="status" tabindex="-1">
+    <span aria-hidden="true">✓</span>
+    <div>
+      <h3>You’re on the early-access list.</h3>
+      <p>Thank you. We’ll use your details to follow up as the first practice program develops.</p>
+    </div>
+  </div>
+} @else {
+  <form [formGroup]="waitlistForm" (ngSubmit)="submit()" novalidate>
+    <div class="form-row">
+      <label>
+        <span>Name</span>
+        <input type="text" formControlName="name" autocomplete="name" placeholder="Your name" />
+        @if (waitlistForm.controls.name.touched && waitlistForm.controls.name.invalid) {
+          <small>Name is required.</small>
+        }
+      </label>
+      <label>
+        <span>Practice name</span>
+        <input
+          type="text"
+          formControlName="practice"
+          autocomplete="organization"
+          placeholder="Clinic or practice"
+        />
+        @if (waitlistForm.controls.practice.touched && waitlistForm.controls.practice.invalid) {
+          <small>Practice name is required.</small>
+        }
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>
+        <span>Professional email</span>
+        <input
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          placeholder="you@practice.com"
+        />
+        @if (waitlistForm.controls.email.touched && waitlistForm.controls.email.invalid) {
+          <small>Enter a valid email address.</small>
+        }
+      </label>
+      <label>
+        <span>Phone <em>Optional</em></span>
+        <input type="tel" formControlName="phone" autocomplete="tel" placeholder="+216" />
+      </label>
+    </div>
+
+    <div class="form-actions">
+      <p>Short form. No spam. Early access will be offered in small cohorts.</p>
+      <button class="button" type="submit">
+        Request early access
+        <span aria-hidden="true">↗</span>
+      </button>
+    </div>
+  </form>
+}

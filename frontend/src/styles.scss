@@ -1,0 +1,45 @@
+@use '@fontsource-variable/manrope';
+@use 'styles/tokens';
+@use 'styles/typography';
+@use 'styles/utilities';
+@use 'styles/animations';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
+}
+
+body {
+  min-width: 20rem;
+  margin: 0;
+  color: var(--color-ink);
+  background: var(--color-porcelain);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-copper-600) 58%, transparent);
+  outline-offset: 3px;
+}
+
+::selection {
+  color: var(--color-white);
+  background: var(--color-pine-700);
+}

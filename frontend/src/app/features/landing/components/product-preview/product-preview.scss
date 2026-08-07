@@ -1,0 +1,408 @@
+:host {
+  display: block;
+}
+
+.product-window {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-pine-700) 20%, var(--color-line));
+  border-radius: var(--radius-lg);
+  color: var(--color-ink);
+  background: var(--color-white);
+  box-shadow: var(--shadow-lg);
+}
+
+.window-bar {
+  display: flex;
+  min-height: 3.25rem;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: var(--space-4);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.mini-brand,
+.window-bar__context,
+.patient-panel__head,
+.payment-note,
+.parent-status {
+  display: flex;
+  align-items: center;
+}
+
+.mini-brand {
+  gap: var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.mini-brand__mark {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border-radius: 0.4rem;
+  color: var(--color-white);
+  background: var(--color-pine-700);
+  font-size: 0.65rem;
+}
+
+.window-bar__context {
+  gap: var(--space-2);
+  color: var(--color-muted);
+  font-size: 0.66rem;
+}
+
+.avatar {
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-pine-900);
+  background: var(--color-pine-100);
+  font-size: 0.55rem;
+  font-weight: 700;
+}
+
+.workspace {
+  display: grid;
+  min-height: 30rem;
+  grid-template-columns: 3.5rem minmax(21rem, 1.45fr) minmax(14rem, 0.85fr);
+}
+
+.workspace-nav {
+  display: flex;
+  align-items: center;
+  padding-top: var(--space-4);
+  border-right: 1px solid var(--color-line);
+  background: #fbfaf6;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.workspace-nav__item {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  place-items: center;
+  border-radius: 0.55rem;
+  color: var(--color-muted);
+}
+
+.workspace-nav__item--active {
+  color: var(--color-white);
+  background: var(--color-pine-700);
+}
+
+.workspace-nav svg {
+  width: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.4;
+}
+
+.agenda {
+  min-width: 0;
+  padding: var(--space-6);
+}
+
+.agenda__header,
+.progress-block > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ui-label {
+  color: var(--color-muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.agenda h2 {
+  margin-top: 0.15rem;
+  font-size: 1.1rem;
+  letter-spacing: -0.025em;
+}
+
+.date-control {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-slate);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.day-summary {
+  display: flex;
+  padding: var(--space-4) 0;
+  margin-block: var(--space-5);
+  border-block: 1px solid var(--color-line);
+  gap: var(--space-6);
+  color: var(--color-muted);
+  font-size: 0.65rem;
+}
+
+.day-summary strong {
+  color: var(--color-ink);
+}
+
+.schedule {
+  display: grid;
+  align-items: stretch;
+  grid-template-columns: 2.75rem 1fr;
+  row-gap: var(--space-3);
+}
+
+.time {
+  padding-top: var(--space-3);
+  color: var(--color-muted);
+  font-size: 0.6rem;
+}
+
+.appointment {
+  display: grid;
+  min-width: 0;
+  min-height: 4.3rem;
+  align-items: center;
+  padding: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  grid-template-columns: 0.25rem 1fr auto;
+  gap: var(--space-3);
+}
+
+.appointment--active {
+  border-color: color-mix(in srgb, var(--color-pine-700) 35%, var(--color-line));
+  background: var(--color-sage);
+}
+
+.appointment--open {
+  border-style: dashed;
+  color: var(--color-muted);
+  background: #fcfbf8;
+  grid-template-columns: 1fr auto;
+}
+
+.appointment__marker {
+  width: 0.25rem;
+  height: 2rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-pine-700);
+}
+
+.appointment__marker--copper {
+  background: var(--color-copper-600);
+}
+
+.appointment strong,
+.appointment span,
+.patient-panel strong,
+.patient-panel span,
+.patient-panel small {
+  display: block;
+}
+
+.appointment strong {
+  overflow: hidden;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appointment div > span {
+  margin-top: 0.2rem;
+  color: var(--color-muted);
+  font-size: 0.6rem;
+}
+
+.status {
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-pill);
+  color: var(--color-pine-700);
+  background: var(--color-pine-100);
+  font-size: 0.55rem;
+  font-weight: 700;
+}
+
+.status--soft {
+  color: var(--color-copper-700);
+  background: var(--color-copper-100);
+}
+
+.plus {
+  display: grid !important;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-pine-700);
+  background: var(--color-sage);
+}
+
+.patient-panel {
+  min-width: 0;
+  padding: var(--space-6);
+  border-left: 1px solid var(--color-line);
+  background: #fbfaf6;
+}
+
+.patient-panel__head {
+  gap: var(--space-3);
+}
+
+.patient-avatar {
+  display: grid !important;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-pine-900);
+  background: var(--color-pine-100);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.patient-panel__head strong,
+.clinical-note strong {
+  font-size: 0.72rem;
+}
+
+.patient-panel__head div span,
+.clinical-note > span:last-child {
+  margin-top: 0.2rem;
+  color: var(--color-muted);
+  font-size: 0.58rem;
+  line-height: 1.5;
+}
+
+.progress-block {
+  padding-block: var(--space-5);
+  margin-block: var(--space-5);
+  border-block: 1px solid var(--color-line);
+  font-size: 0.62rem;
+}
+
+.progress-track {
+  height: 0.3rem;
+  margin-top: var(--space-2);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-mist);
+}
+
+.progress-track span {
+  width: 44%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-copper-600);
+}
+
+.clinical-note {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.payment-note {
+  padding: var(--space-4);
+  margin-top: var(--space-6);
+  border-radius: var(--radius-sm);
+  color: var(--color-white);
+  background: var(--color-pine-700);
+  gap: var(--space-3);
+}
+
+.payment-note__icon {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-pine-900);
+  background: var(--color-white);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.payment-note span,
+.payment-note small {
+  color: color-mix(in srgb, var(--color-white) 66%, transparent);
+  font-size: 0.52rem;
+}
+
+.payment-note strong {
+  margin-block: 0.15rem;
+  font-size: 0.9rem;
+}
+
+.parent-status {
+  justify-content: space-between;
+  padding-top: var(--space-4);
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--color-line);
+  font-size: 0.58rem;
+}
+
+.parent-status span {
+  color: var(--color-muted);
+}
+
+.parent-status strong {
+  color: var(--color-success);
+}
+
+@media (max-width: 62rem) {
+  .workspace {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+  }
+
+  .patient-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 36rem) {
+  .workspace {
+    min-height: 25rem;
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-nav,
+  .window-bar__context,
+  .day-summary span:last-child,
+  .schedule > .time:nth-of-type(2),
+  .appointment:nth-of-type(2) {
+    display: none;
+  }
+
+  .agenda {
+    padding: var(--space-4);
+  }
+
+  .day-summary {
+    gap: var(--space-4);
+  }
+
+  .schedule {
+    grid-template-columns: 2.5rem 1fr;
+  }
+
+  .appointment {
+    grid-template-columns: 0.2rem 1fr;
+  }
+
+  .appointment--open {
+    grid-template-columns: 1fr auto;
+  }
+
+  .appointment .status {
+    display: none;
+  }
+}

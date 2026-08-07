@@ -1,0 +1,273 @@
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero__grid"></div>
+  <div class="container hero__content">
+    <div class="hero__copy reveal">
+      <span class="eyebrow">Practice management, rethought</span>
+      <h1 id="hero-title">Run your orthodontic practice with clarity.</h1>
+      <p>
+        Bring appointments, treatments, patients, and physical-payment records into one calm,
+        connected workspace built for orthodontic teams.
+      </p>
+      <div class="hero__actions">
+        <a class="button button--primary" href="#waitlist">
+          Join the waitlist
+          <span aria-hidden="true">↗</span>
+        </a>
+        <a class="text-link" href="#how-it-works">
+          <span class="play" aria-hidden="true">▶</span>
+          See how it works
+        </a>
+      </div>
+      <div class="hero__signals" aria-label="Product positioning">
+        <span>Built with real practice workflows</span>
+        <span>Early access in small cohorts</span>
+      </div>
+    </div>
+
+    <div class="hero__preview reveal">
+      <app-product-preview />
+      <div class="preview-caption">
+        <span class="preview-caption__line"></span>
+        <p>
+          <strong>A single operational view</strong> from arrival to treatment update and cash
+          record.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="positioning" id="why-orthoflow" aria-labelledby="positioning-title">
+  <div class="container positioning__inner">
+    <span class="positioning__number">01 / Built for the work</span>
+    <div>
+      <h2 id="positioning-title">Built around the way orthodontic practices actually work.</h2>
+      <p>
+        OrthoFlow is being shaped around recurring controls, long treatment timelines, guardian
+        communication, and the practical realities of a busy front desk—not retrofitted from a
+        generic booking tool.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="problems" id="solutions" aria-labelledby="problems-title">
+  <div class="container">
+    <div class="section-heading section-heading--split">
+      <div>
+        <span class="eyebrow">The operational gap</span>
+        <h2 id="problems-title">When the system is fragmented, the team carries the complexity.</h2>
+      </div>
+      <p>
+        Paper, spreadsheets, and message threads each hold one piece. The clinic needs the whole
+        story in the moment a patient arrives.
+      </p>
+    </div>
+
+    <div class="problem-list">
+      @for (problem of problems; track problem.number) {
+        <article class="problem-item">
+          <span>{{ problem.number }}</span>
+          <h3>{{ problem.title }}</h3>
+          <p>{{ problem.description }}</p>
+        </article>
+      }
+    </div>
+  </div>
+</section>
+
+<section class="capabilities" id="product" aria-labelledby="capabilities-title">
+  <div class="container">
+    <div class="section-heading">
+      <span class="eyebrow">One connected practice</span>
+      <h2 id="capabilities-title">Everything important stays connected to the patient journey.</h2>
+      <p>
+        Start with the daily work. Keep the details precise. Give each team member the context they
+        need without adding noise.
+      </p>
+    </div>
+
+    <div class="capability-grid">
+      @for (capability of capabilities; track capability.name; let index = $index) {
+        <article class="capability capability--{{ capability.tone }}">
+          <div class="capability__meta">
+            <span>0{{ index + 1 }}</span>
+            <span>{{ capability.name }}</span>
+          </div>
+          <div>
+            <h3>{{ capability.summary }}</h3>
+            <p>{{ capability.detail }}</p>
+          </div>
+          @if (index === 0) {
+            <div class="mini-schedule" aria-hidden="true">
+              <span>09:00 <strong>Control</strong></span>
+              <span>09:45 <strong>New patient</strong></span>
+              <span>10:30 <strong>Opening</strong></span>
+            </div>
+          }
+          @if (index === 1) {
+            <div class="treatment-strip" aria-hidden="true">
+              <span class="active">Consult</span><i></i><span class="active">Braces</span><i></i
+              ><span>Retention</span>
+            </div>
+          }
+          @if (index === 2) {
+            <div class="receipt-chip" aria-hidden="true">
+              <span>Recorded today</span>
+              <strong>200 TND</strong>
+              <small>Receipt #OF-284</small>
+            </div>
+          }
+          @if (index === 3) {
+            <div class="role-list" aria-hidden="true">
+              <span>Owner</span><span>Doctor</span><span>Assistant</span><span>Front desk</span>
+            </div>
+          }
+        </article>
+      }
+    </div>
+  </div>
+</section>
+
+<section class="cash-story" aria-labelledby="cash-title">
+  <div class="container cash-story__grid">
+    <div class="cash-story__copy">
+      <span class="eyebrow">Financial traceability</span>
+      <h2 id="cash-title">Cash handed over. Recorded clearly. Visible to the right people.</h2>
+      <p>
+        OrthoFlow does not need to process online payments to create accountability. When cash is
+        received at the clinic, the record connects the amount to the patient, guardian, staff
+        member, treatment, receipt, and remaining balance.
+      </p>
+      <ul class="check-list">
+        <li>Know exactly who recorded a payment and when.</li>
+        <li>Keep a complete history instead of overwriting totals.</li>
+        <li>Prepare a transparent view for parents and guardians.</li>
+      </ul>
+    </div>
+
+    <div class="cash-record" aria-label="Example of a physical cash payment record">
+      <div class="cash-record__top">
+        <div>
+          <span class="record-status"><i></i> Payment recorded</span>
+          <strong>200.000 <small>TND</small></strong>
+        </div>
+        <span class="receipt-number">#OF-284</span>
+      </div>
+
+      <dl>
+        <div>
+          <dt>Patient</dt>
+          <dd>Lina Ben Amor</dd>
+        </div>
+        <div>
+          <dt>Guardian</dt>
+          <dd>Samira Ben Amor</dd>
+        </div>
+        <div>
+          <dt>Received by</dt>
+          <dd>Amira · Front desk</dd>
+        </div>
+        <div>
+          <dt>Date & time</dt>
+          <dd>12 May · 09:38</dd>
+        </div>
+        <div>
+          <dt>Treatment</dt>
+          <dd>Fixed braces</dd>
+        </div>
+        <div>
+          <dt>Balance after payment</dt>
+          <dd>1,450 TND</dd>
+        </div>
+      </dl>
+
+      <div class="record-history">
+        <span>Audit history</span>
+        <div>
+          <i></i>
+          <p><strong>09:38</strong> Payment created by Amira K.</p>
+        </div>
+        <div>
+          <i></i>
+          <p><strong>09:39</strong> Receipt generated</p>
+        </div>
+        <div>
+          <i></i>
+          <p><strong>Ready</strong> Guardian confirmation</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="workflow" id="how-it-works" aria-labelledby="workflow-title">
+  <div class="container">
+    <div class="section-heading section-heading--center">
+      <span class="eyebrow">From booking to next visit</span>
+      <h2 id="workflow-title">A clear handoff at every step.</h2>
+      <p>Each action advances the same patient story, so the next person never starts from zero.</p>
+    </div>
+
+    <ol class="workflow-track">
+      @for (step of workflow; track step; let index = $index) {
+        <li>
+          <span>{{ index + 1 }}</span>
+          <strong>{{ step }}</strong>
+        </li>
+      }
+    </ol>
+  </div>
+</section>
+
+<section class="security" id="security" aria-labelledby="security-title">
+  <div class="container security__grid">
+    <div class="security__intro">
+      <span class="eyebrow">Trust by design</span>
+      <h2 id="security-title">Sensitive practice data deserves deliberate access.</h2>
+      <p>
+        Security is designed into the product architecture from the beginning, without making
+        unsupported certification claims before they are earned.
+      </p>
+    </div>
+
+    <div class="security__principles">
+      <article>
+        <span>01</span>
+        <h3>Role-based access</h3>
+        <p>Each team member sees the information appropriate to their responsibilities.</p>
+      </article>
+      <article>
+        <span>02</span>
+        <h3>Complete audit history</h3>
+        <p>Important financial and operational changes retain accountable context.</p>
+      </article>
+      <article>
+        <span>03</span>
+        <h3>Controlled data handling</h3>
+        <p>Patient and guardian information is treated as sensitive throughout the experience.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="waitlist" id="waitlist" aria-labelledby="waitlist-title">
+  <div class="container waitlist__shell">
+    <div class="waitlist__copy">
+      <span class="eyebrow">Early access</span>
+      <h2 id="waitlist-title">Help shape the future of orthodontic practice management.</h2>
+      <p>
+        We’re inviting a small group of orthodontic and dental practices to share their workflow and
+        influence what OrthoFlow becomes.
+      </p>
+      <div class="waitlist__note">
+        <span>01</span>
+        <p>
+          <strong>Built alongside practitioners.</strong> Early conversations focus on real clinic
+          operations, not feature theatre.
+        </p>
+      </div>
+    </div>
+    <app-waitlist-form />
+  </div>
+</section>

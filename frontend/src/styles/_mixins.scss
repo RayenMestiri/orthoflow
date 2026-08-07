@@ -1,0 +1,13 @@
+@mixin container {
+  width: min(calc(100% - (2 * var(--gutter))), var(--container));
+  margin-inline: auto;
+}
+
+@mixin focus-ring {
+  outline: 3px solid color-mix(in srgb, var(--color-copper-600) 55%, transparent);
+  outline-offset: 3px;
+}
+
+@mixin section-space {
+  padding-block: clamp(4.5rem, 9vw, 7.5rem);
+}

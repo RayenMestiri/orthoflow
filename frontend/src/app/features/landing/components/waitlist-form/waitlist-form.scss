@@ -1,0 +1,134 @@
+:host {
+  display: block;
+}
+
+form {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+label {
+  display: grid;
+  color: color-mix(in srgb, var(--color-white) 82%, transparent);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  gap: var(--space-2);
+}
+
+label span {
+  display: flex;
+  justify-content: space-between;
+}
+
+label em {
+  color: color-mix(in srgb, var(--color-white) 42%, transparent);
+  font-style: normal;
+  font-weight: 500;
+}
+
+input {
+  width: 100%;
+  min-height: 3.2rem;
+  padding-inline: var(--space-4);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: var(--radius-sm);
+  outline: none;
+  color: var(--color-white);
+  background: rgb(255 255 255 / 0.07);
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+input::placeholder {
+  color: color-mix(in srgb, var(--color-white) 36%, transparent);
+}
+
+input:hover,
+input:focus {
+  border-color: rgb(255 255 255 / 0.45);
+  background: rgb(255 255 255 / 0.1);
+}
+
+small {
+  color: #ffc7b7;
+  font-weight: 600;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.form-actions p {
+  max-width: 20rem;
+  color: var(--color-copper-100);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+}
+
+.form-actions .button {
+  flex: 0 0 auto;
+  color: var(--color-pine-900);
+  background: var(--color-white);
+}
+
+.form-actions .button:hover {
+  background: var(--color-copper-100);
+}
+
+.success-message {
+  display: flex;
+  min-height: 15rem;
+  align-items: center;
+  padding: var(--space-8);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: var(--radius-lg);
+  background: rgb(255 255 255 / 0.06);
+  gap: var(--space-5);
+}
+
+.success-message > span {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-pine-900);
+  background: var(--color-white);
+  font-weight: 700;
+}
+
+.success-message h3 {
+  color: var(--color-white);
+}
+
+.success-message p {
+  max-width: 30rem;
+  margin-top: var(--space-2);
+  color: color-mix(in srgb, var(--color-white) 64%, transparent);
+}
+
+@media (max-width: 40rem) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .form-actions .button {
+    width: 100%;
+  }
+}
