@@ -8,7 +8,7 @@ OrthoFlow is practice-management software for orthodontic and dental teams—not
 
 ## Current Scope
 
-The current development phase is **LANDING PAGE ONLY. Do not prematurely implement dashboard functionality.** Build the marketing experience, responsive navigation, reusable public components, and waitlist flow. Do not add authentication, patient CRUD, backend/API integrations, online payments, or invented testimonials, metrics, certifications, or clinic logos. Future scope includes scheduling, patient and guardian records, treatment timelines, cash receipts, reminders, staff roles, audit logs, analytics, portals, and multi-clinic tenancy.
+The current phase includes the established landing page plus the authenticated foundation: clinic-owner registration, email verification, login, password recovery, protected routing, role-aware navigation, and a shared dashboard shell. Do not expand the dashboard into patient, appointment, treatment, cash-record, analytics, portal, or administration functionality until those domains receive their own milestone. Preserve the landing page’s visual system and never invent testimonials, metrics, certifications, or clinic logos.
 
 ## Structure & Commands
 

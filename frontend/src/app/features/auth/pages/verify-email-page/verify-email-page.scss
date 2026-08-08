@@ -1,0 +1,53 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.verification__code {
+  display: grid;
+  margin-top: 0.2rem;
+}
+
+.verification__code > label {
+  margin-bottom: 0.6rem;
+  color: var(--color-ink);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.verification__resend {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  color: var(--color-slate);
+  font-size: 0.78rem;
+}
+
+.verification__resend button {
+  min-height: 2.75rem;
+  border: 0;
+  color: var(--color-pine-700);
+  background: transparent;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+.verification__resend button:disabled {
+  color: var(--color-muted);
+  cursor: default;
+}
+
+.verification__back {
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+}
+
+.verification__back .material-icons {
+  font-size: 1rem;
+}

@@ -1,0 +1,56 @@
+:host {
+  display: block;
+}
+
+.otp {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(2.65rem, 1fr));
+  gap: clamp(0.35rem, 1.5vw, 0.65rem);
+}
+
+.otp__digit {
+  width: 100%;
+  min-width: 0;
+  height: 3.75rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  outline: 0;
+  color: var(--color-pine-900);
+  background: var(--color-white);
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  caret-color: var(--color-copper-600);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.otp__digit:focus {
+  border-color: var(--color-pine-600);
+  box-shadow: 0 0 0 3px rgb(36 86 77 / 0.1);
+  transform: translateY(-1px);
+}
+
+.otp__digit:disabled {
+  opacity: 0.65;
+}
+
+@media (max-width: 23rem) {
+  .otp {
+    grid-template-columns: repeat(6, minmax(2.3rem, 1fr));
+    gap: 0.25rem;
+  }
+
+  .otp__digit {
+    height: 3.35rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otp__digit {
+    transition: none;
+  }
+}

@@ -306,6 +306,14 @@
   font-size: 0.68rem;
 }
 
+@media (min-width: 48.0625rem) {
+  .auth-frame__story {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+  }
+}
+
 @media (max-width: 64rem) {
   .auth-frame {
     grid-template-columns: minmax(20rem, 0.82fr) minmax(26rem, 1fr);
