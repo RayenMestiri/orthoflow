@@ -1,0 +1,89 @@
+import type { Types } from 'mongoose';
+
+export const CLINIC_STATUSES = {
+  ACTIVE: 'ACTIVE',
+  /** Billing or compliance hold — data is retained, access is blocked. */
+  SUSPENDED: 'SUSPENDED',
+  /** Closed practice. Retained for financial and legal traceability. */
+  ARCHIVED: 'ARCHIVED',
+} as const;
+
+export type ClinicStatus = (typeof CLINIC_STATUSES)[keyof typeof CLINIC_STATUSES];
+
+export const CLINIC_STATUS_VALUES = Object.values(CLINIC_STATUSES) as [
+  ClinicStatus,
+  ...ClinicStatus[],
+];
+
+export interface ClinicAddress {
+  line1: string | null;
+  line2: string | null;
+  city: string | null;
+  postalCode: string | null;
+  country: string | null;
+}
+
+/**
+ * The tenant root.
+ *
+ * Every business document in OrthoFlow carries a `clinicId` pointing here, and
+ * every query is filtered by it. A clinic is the boundary that guarantees one
+ * practice can never read another practice's patients or money.
+ */
+export interface ClinicAttributes {
+  name: string;
+  /** Stable, human-friendly identifier. Unique across the platform. */
+  slug: string;
+  legalName: string | null;
+  email: string | null;
+  phone: string | null;
+  address: ClinicAddress;
+  /** IANA timezone — appointments are stored in UTC and displayed in this zone. */
+  timezone: string;
+  /** ISO-4217 code used for every monetary amount recorded for this clinic. */
+  currency: string;
+  status: ClinicStatus;
+  createdBy: Types.ObjectId;
+  archivedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type ClinicRecord = ClinicAttributes & { _id: Types.ObjectId };
+
+export interface CreateClinicInput {
+  name: string;
+  slug: string;
+  createdBy: string;
+  legalName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: Partial<ClinicAddress>;
+  timezone?: string;
+  currency?: string;
+}
+
+export interface UpdateClinicInput {
+  name?: string;
+  legalName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: Partial<ClinicAddress>;
+  timezone?: string;
+  currency?: string;
+}
+
+export interface ClinicDto {
+  id: string;
+  name: string;
+  slug: string;
+  legalName: string | null;
+  email: string | null;
+  phone: string | null;
+  address: ClinicAddress;
+  timezone: string;
+  currency: string;
+  status: ClinicStatus;
+  createdAt: string;
+  updatedAt: string;
+}
