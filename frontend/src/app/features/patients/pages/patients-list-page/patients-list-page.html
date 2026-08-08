@@ -1,94 +1,147 @@
 <section class="patients-page" aria-labelledby="patients-title">
+  <!-- Top Page Header -->
   <header class="patients-page__header">
-    <div>
-      <p class="patients-page__eyebrow">Patient directory</p>
-      <h1 id="patients-title">Patients</h1>
-      <p>Find the right record quickly, then continue the clinic workflow with confidence.</p>
+    <div class="patients-page__header-left">
+      <p class="patients-page__eyebrow">Clinical Directory</p>
+      <h1 id="patients-title">Patients Directory</h1>
+      <p class="patients-page__subtitle">
+        Search, filter, and manage patient records with live medical history and guardian connections.
+      </p>
     </div>
-    @if (canCreate) {
+    @if (canCreate()) {
       <a class="patients-page__primary" routerLink="/app/patients/new">
         <span class="material-icons" aria-hidden="true">person_add</span>
-        Add patient
+        <span>+ Add Patient</span>
       </a>
     }
   </header>
 
+  <!-- Metric Overview Cards -->
+  <div class="patients-metrics" aria-label="Directory statistics">
+    <div class="patient-card-metric">
+      <div class="patient-card-metric__icon">
+        <span class="material-icons">groups</span>
+      </div>
+      <div class="patient-card-metric__info">
+        <span class="patient-card-metric__value">{{ store.total() }}</span>
+        <span class="patient-card-metric__label">Total Directory</span>
+      </div>
+    </div>
+
+    <div class="patient-card-metric patient-card-metric--active">
+      <div class="patient-card-metric__icon">
+        <span class="material-icons">verified_user</span>
+      </div>
+      <div class="patient-card-metric__info">
+        <span class="patient-card-metric__value">{{ store.query().status }}</span>
+        <span class="patient-card-metric__label">Active Filter</span>
+      </div>
+    </div>
+
+    <div class="patient-card-metric">
+      <div class="patient-card-metric__icon">
+        <span class="material-icons">pages</span>
+      </div>
+      <div class="patient-card-metric__info">
+        <span class="patient-card-metric__value">{{ store.query().page }} / {{ store.pages() }}</span>
+        <span class="patient-card-metric__label">Current Page</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
   <div class="patients-toolbar" aria-label="Patient filters">
-    <label class="patients-toolbar__search">
-      <span class="sr-only">Search patients</span>
-      <span class="material-icons" aria-hidden="true">search</span>
+    <div class="patients-toolbar__search">
+      <span class="material-icons search-icon" aria-hidden="true">search</span>
       <input
+        #searchInput
         type="search"
         autocomplete="off"
-        placeholder="Search name, phone, or reference"
+        placeholder="Search patient name, phone, or reference (Ctrl+K)..."
         [formControl]="search"
       />
       @if (search.value) {
-        <button type="button" aria-label="Clear patient search" (click)="clearSearch()">
+        <button type="button" class="clear-btn" aria-label="Clear search" (click)="clearSearch()">
           <span class="material-icons" aria-hidden="true">close</span>
         </button>
+      } @else {
+        <kbd class="search-kbd">Ctrl+K</kbd>
       }
-    </label>
-    <label>
-      <span>Status</span>
-      <select [value]="store.query().status" (change)="setStatus($event)">
-        <option value="ACTIVE">Active</option>
-        <option value="INACTIVE">Inactive</option>
-        <option value="ARCHIVED">Archived</option>
-      </select>
-    </label>
-    <label>
-      <span>Sort</span>
-      <select
-        [value]="store.query().sortBy + ':' + store.query().sortOrder"
-        (change)="setSort($event)"
-      >
-        <option value="name:asc">Name A–Z</option>
-        <option value="name:desc">Name Z–A</option>
-        <option value="createdAt:desc">Newest first</option>
-        <option value="createdAt:asc">Oldest first</option>
-        <option value="birthDate:desc">Youngest first</option>
-      </select>
-    </label>
+    </div>
+
+    <div class="patients-toolbar__filter">
+      <span class="material-icons filter-icon" aria-hidden="true">filter_alt</span>
+      <div class="filter-select-wrapper">
+        <span class="filter-label">Status</span>
+        <select [value]="store.query().status" (change)="setStatus($event)">
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+          <option value="ARCHIVED">Archived</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="patients-toolbar__filter">
+      <span class="material-icons filter-icon" aria-hidden="true">swap_vert</span>
+      <div class="filter-select-wrapper">
+        <span class="filter-label">Sort By</span>
+        <select
+          [value]="store.query().sortBy + ':' + store.query().sortOrder"
+          (change)="setSort($event)"
+        >
+          <option value="name:asc">Name (A–Z)</option>
+          <option value="name:desc">Name (Z–A)</option>
+          <option value="createdAt:desc">Newest Added</option>
+          <option value="createdAt:asc">Oldest Added</option>
+          <option value="birthDate:desc">Youngest First</option>
+        </select>
+      </div>
+    </div>
   </div>
 
+  <!-- Workspace Table & Empty States -->
   <div class="patients-workspace" [attr.aria-busy]="store.loading()">
     <div class="patients-workspace__summary">
-      <span
-        ><strong>{{ store.total() }}</strong>
-        {{ store.query().status.toLowerCase() }} patients</span
-      >
+      <span>
+        Showing <strong>{{ store.items().length }}</strong> of <strong>{{ store.total() }}</strong> {{ store.query().status.toLowerCase() }} patients
+      </span>
       <span>Page {{ store.query().page }} of {{ store.pages() }}</span>
     </div>
 
     @if (store.loading()) {
       <div class="patients-state patients-state--loading" role="status">
         <span class="patients-state__spinner" aria-hidden="true"></span>
-        <strong>Loading patient records</strong>
-        <small>Retrieving the selected clinic’s secure directory.</small>
+        <strong>Loading patient records...</strong>
+        <small>Retrieving clinic directory from secure cloud database.</small>
       </div>
     } @else if (store.error()) {
       <div class="patients-state" role="alert">
-        <span class="material-icons" aria-hidden="true">cloud_off</span>
-        <strong>Patient records could not be loaded</strong>
+        <span class="material-icons error-icon" aria-hidden="true">cloud_off</span>
+        <strong>Failed to load patient directory</strong>
         <small>{{ store.error() }}</small>
-        <button type="button" (click)="store.load()">Try again</button>
+        <button type="button" class="btn-retry" (click)="store.load()">
+          <span class="material-icons" aria-hidden="true">refresh</span>
+          <span>Try again</span>
+        </button>
       </div>
     } @else if (!store.hasResults()) {
       <div class="patients-state">
-        <span class="material-icons" aria-hidden="true">person_search</span>
-        <strong>{{ search.value ? 'No matching patients' : 'No patients in this view' }}</strong>
+        <span class="material-icons empty-icon" aria-hidden="true">person_search</span>
+        <strong>{{ search.value ? 'No matching patients found' : 'No patient records found' }}</strong>
         <small>
           {{
             search.value
-              ? 'Try a different name, phone number, or patient reference.'
-              : 'Change the status filter or add the clinic’s first patient.'
+              ? 'Check the spelling or try searching by phone number or reference ID.'
+              : 'Adjust your status filter or create your clinic’s first patient record.'
           }}
         </small>
         @if (search.value) {
-          <button type="button" (click)="clearSearch()">Clear search</button>
-        } @else if (canCreate && store.query().status === 'ACTIVE') {
-          <a routerLink="/app/patients/new">Add first patient</a>
+          <button type="button" class="btn-retry" (click)="clearSearch()">Clear search query</button>
+        } @else if (canCreate() && store.query().status === 'ACTIVE') {
+          <a class="patients-page__primary" routerLink="/app/patients/new">
+            <span class="material-icons">person_add</span>
+            <span>Add First Patient</span>
+          </a>
         }
       </div>
     } @else {
@@ -96,58 +149,73 @@
         <table>
           <thead>
             <tr>
-              <th>Patient</th>
-              <th>Guardian</th>
+              <th>Patient Identity</th>
+              <th>Guardian / Contact</th>
               <th>Age</th>
-              <th>Phone</th>
+              <th>Phone Number</th>
               <th>Status</th>
-              <th>Last visit</th>
-              <th>Next visit</th>
-              <th>Treatment</th>
-              <th>Balance</th>
-              <th><span class="sr-only">Actions</span></th>
+              <th>Last Visit</th>
+              <th>Next Visit</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
             @for (patient of store.items(); track patient.id) {
               <tr>
-                <td data-label="Patient">
+                <td data-label="Patient Identity">
                   <a class="patient-identity" [routerLink]="['/app/patients', patient.id]">
-                    <span class="patient-avatar">{{
-                      initials(patient.firstName, patient.lastName)
-                    }}</span>
-                    <span>
-                      <strong>{{ patient.fullName }}</strong>
-                      <small>{{ patient.referenceNumber ?? 'No reference' }}</small>
+                    <span class="patient-avatar">
+                      {{ initials(patient.firstName, patient.lastName) }}
                     </span>
+                    <div class="patient-identity__text">
+                      <strong class="patient-name">{{ patient.fullName }}</strong>
+                      <span class="patient-ref">{{ patient.referenceNumber || 'REF-NEW' }}</span>
+                    </div>
                   </a>
                 </td>
-                <td data-label="Guardian">
+                <td data-label="Guardian / Contact">
                   @if (patient.primaryGuardian) {
-                    <span class="patient-guardian">
-                      <strong>{{ patient.primaryGuardian.fullName }}</strong>
-                      <small>{{ relationshipLabel(patient.primaryGuardian.relationship) }}</small>
+                    <div class="patient-guardian">
+                      <strong class="guardian-name">{{ patient.primaryGuardian.fullName }}</strong>
+                      <span class="guardian-rel">{{ relationshipLabel(patient.primaryGuardian.relationship) }}</span>
+                    </div>
+                  } @else {
+                    <span class="patient-placeholder">—</span>
+                  }
+                </td>
+                <td data-label="Age">
+                  @if (patient.age !== null) {
+                    <span class="patient-age-badge">{{ patient.age }} yrs</span>
+                  } @else {
+                    <span class="patient-placeholder">—</span>
+                  }
+                </td>
+                <td data-label="Phone Number">
+                  @if (patient.phone) {
+                    <span class="patient-phone">
+                      <span class="material-icons" aria-hidden="true">phone</span>
+                      {{ patient.phone }}
                     </span>
                   } @else {
                     <span class="patient-placeholder">—</span>
                   }
                 </td>
-                <td data-label="Age">{{ patient.age ?? '—' }}</td>
-                <td data-label="Phone">{{ patient.phone ?? '—' }}</td>
                 <td data-label="Status">
                   <span class="patient-status" [attr.data-status]="patient.status">
-                    <i aria-hidden="true"></i>{{ patient.status.toLowerCase() }}
+                    <i aria-hidden="true"></i>
+                    <span>{{ patient.status.toLowerCase() }}</span>
                   </span>
                 </td>
-                <td data-label="Last visit" class="patient-placeholder">—</td>
-                <td data-label="Next visit" class="patient-placeholder">—</td>
-                <td data-label="Treatment" class="patient-placeholder">—</td>
-                <td data-label="Balance" class="patient-placeholder">—</td>
+                <td data-label="Last Visit" class="patient-placeholder">—</td>
+                <td data-label="Next Visit" class="patient-placeholder">—</td>
                 <td class="patient-action">
                   <a
+                    class="btn-open-patient"
                     [routerLink]="['/app/patients', patient.id]"
-                    [attr.aria-label]="'Open ' + patient.fullName"
+                    [attr.aria-label]="'Open file of ' + patient.fullName"
+                    title="View patient file"
                   >
+                    <span>View Profile</span>
                     <span class="material-icons" aria-hidden="true">arrow_forward</span>
                   </a>
                 </td>
@@ -157,26 +225,32 @@
         </table>
       </div>
 
-      <nav class="patients-pagination" aria-label="Patient pages">
+      <!-- Pagination Navigation -->
+      <nav class="patients-pagination" aria-label="Patient directory pagination">
         <button
           type="button"
+          class="btn-page"
           [disabled]="store.query().page === 1"
           (click)="goToPage(store.query().page - 1)"
         >
-          <span class="material-icons" aria-hidden="true">arrow_back</span> Previous
+          <span class="material-icons" aria-hidden="true">arrow_back</span>
+          <span>Previous</span>
         </button>
-        <span
-          >{{ (store.query().page - 1) * store.query().limit + 1 }}–{{
+
+        <span class="pagination-count">
+          Showing <strong>{{ (store.query().page - 1) * store.query().limit + 1 }}</strong>–<strong>{{
             (store.query().page - 1) * store.query().limit + store.items().length
-          }}
-          of {{ store.total() }}</span
-        >
+          }}</strong> of <strong>{{ store.total() }}</strong> patients
+        </span>
+
         <button
           type="button"
+          class="btn-page"
           [disabled]="store.query().page === store.pages()"
           (click)="goToPage(store.query().page + 1)"
         >
-          Next <span class="material-icons" aria-hidden="true">arrow_forward</span>
+          <span>Next</span>
+          <span class="material-icons" aria-hidden="true">arrow_forward</span>
         </button>
       </nav>
     }

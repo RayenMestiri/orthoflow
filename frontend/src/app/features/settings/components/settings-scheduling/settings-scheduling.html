@@ -1,0 +1,118 @@
+<form class="settings-section" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <header class="settings-section__header">
+    <div>
+      <h2>Scheduling</h2>
+      <p>
+        Defaults the appointment calendar starts from. Individual appointments can still differ.
+      </p>
+    </div>
+  </header>
+
+  <div class="settings-grid">
+    <div class="settings-field">
+      <label for="slot-interval">Schedule grid precision</label>
+      <select id="slot-interval" formControlName="slotIntervalMinutes" aria-describedby="slot-hint">
+        @for (minutes of slotOptions; track minutes) {
+          <option [value]="minutes">{{ minutes }} min</option>
+        }
+      </select>
+      <p id="slot-hint" class="settings-field__hint">
+        The smallest step the calendar snaps to. This is not the appointment length.
+      </p>
+    </div>
+
+    <div class="settings-field">
+      <label for="default-duration">Default appointment duration</label>
+      <input
+        id="default-duration"
+        type="number"
+        min="5"
+        max="480"
+        step="5"
+        formControlName="defaultAppointmentDurationMinutes"
+        aria-describedby="duration-hint"
+      />
+      <p id="duration-hint" class="settings-field__hint">
+        Used when an appointment type does not define its own duration.
+      </p>
+      <p class="settings-field__error" aria-live="polite">
+        @if (
+          form.controls.defaultAppointmentDurationMinutes.touched &&
+          form.controls.defaultAppointmentDurationMinutes.invalid
+        ) {
+          Enter a duration between 5 and 480 minutes.
+        } @else if (durationOffGrid()) {
+          <span class="settings-field__notice">
+            <span class="material-icons" aria-hidden="true">info</span>
+            This duration is not a multiple of the grid precision.
+          </span>
+        }
+      </p>
+    </div>
+
+    <div class="settings-field settings-field--wide">
+      <label for="capacity">Recommended simultaneous appointments</label>
+      <select
+        id="capacity"
+        formControlName="defaultConcurrentCapacity"
+        aria-describedby="capacity-hint"
+      >
+        @for (value of capacityOptions; track value) {
+          <option [value]="value">{{ value }} {{ value === 1 ? 'patient' : 'patients' }}</option>
+        }
+      </select>
+      <p id="capacity-hint" class="settings-field__hint">
+        How many patients can normally be scheduled during overlapping time periods. The clinic may
+        still intentionally overbook when authorized.
+      </p>
+    </div>
+
+    <div class="settings-field settings-field--wide">
+      <div class="settings-switch">
+        <button
+          type="button"
+          role="switch"
+          class="settings-switch__control"
+          [attr.aria-checked]="form.controls.allowOwnerOverbooking.value"
+          [disabled]="!canEdit()"
+          aria-labelledby="overbooking-label"
+          aria-describedby="overbooking-hint"
+          (click)="toggleOverbooking()"
+        >
+          <span class="settings-switch__track" aria-hidden="true">
+            <span class="settings-switch__thumb"></span>
+          </span>
+        </button>
+        <div class="settings-switch__copy">
+          <span id="overbooking-label" class="settings-switch__label">
+            Allow intentional overbooking
+            <strong>{{ form.controls.allowOwnerOverbooking.value ? 'On' : 'Off' }}</strong>
+          </span>
+          <p id="overbooking-hint" class="settings-field__hint">
+            When on, the owner-doctor may deliberately exceed the recommended capacity.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (canEdit()) {
+    <footer class="settings-actions">
+      @if (justSaved()) {
+        <span class="settings-actions__saved" role="status">
+          <span class="material-icons" aria-hidden="true">check_circle</span> Saved
+        </span>
+      }
+      <button type="button" class="settings-btn" [disabled]="!isDirty()" (click)="reset()">
+        Reset
+      </button>
+      <button
+        type="submit"
+        class="settings-btn settings-btn--primary"
+        [disabled]="!isDirty() || isSaving()"
+      >
+        {{ isSaving() ? 'Saving…' : 'Save scheduling' }}
+      </button>
+    </footer>
+  }
+</form>

@@ -1,0 +1,113 @@
+<section class="schedule-page" aria-labelledby="schedule-title">
+  <!-- Header & Metric Cards -->
+  <header class="schedule-page__header">
+    <div class="schedule-page__header-left">
+      <h1 id="schedule-title">Schedule</h1>
+      <p class="schedule-page__today-date">{{ todayLabel }} · {{ summary() }}</p>
+    </div>
+
+    <!-- Live Metric Chips -->
+    <div class="schedule-metrics" aria-label="Today's appointment stats">
+      <div class="metric-chip">
+        <span class="material-icons metric-chip__icon">event</span>
+        <div class="metric-chip__content">
+          <span class="metric-chip__value">{{ store.todayCount() }}</span>
+          <span class="metric-chip__label">Today</span>
+        </div>
+      </div>
+
+      <div class="metric-chip metric-chip--waiting">
+        <span class="material-icons metric-chip__icon">hour_glass_empty</span>
+        <div class="metric-chip__content">
+          <span class="metric-chip__value">{{ store.waitingCount() }}</span>
+          <span class="metric-chip__label">Waiting</span>
+        </div>
+      </div>
+
+      <div class="metric-chip metric-chip--arrived">
+        <span class="material-icons metric-chip__icon">login</span>
+        <div class="metric-chip__content">
+          <span class="metric-chip__value">{{ store.arrivedCount() }}</span>
+          <span class="metric-chip__label">Arrived</span>
+        </div>
+      </div>
+
+      <div class="metric-chip metric-chip--treatment">
+        <span class="material-icons metric-chip__icon">medical_services</span>
+        <div class="metric-chip__content">
+          <span class="metric-chip__value">{{ store.inTreatmentCount() }}</span>
+          <span class="metric-chip__label">In Treatment</span>
+        </div>
+      </div>
+
+      <div class="metric-chip metric-chip--completed">
+        <span class="material-icons metric-chip__icon">task_alt</span>
+        <div class="metric-chip__content">
+          <span class="metric-chip__value">{{ store.completedCount() }}</span>
+          <span class="metric-chip__label">Done</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Interactive Calendar Toolbar -->
+  <app-schedule-toolbar
+    [title]="title()"
+    [activeView]="store.activeView()"
+    [isLoading]="store.isLoading()"
+    (previous)="calendar()?.goToPrevious()"
+    (next)="calendar()?.goToNext()"
+    (today)="calendar()?.goToToday()"
+    (viewChange)="changeView($event)"
+    (newAppointment)="onNewAppointment()"
+  />
+
+  @if (store.error(); as message) {
+    <div class="schedule-page__alert" role="alert">
+      <span class="material-icons" aria-hidden="true">error_outline</span>
+      <span>{{ message }}</span>
+      <button type="button" aria-label="Dismiss message" (click)="store.dismissError()">
+        <span class="material-icons" aria-hidden="true">close</span>
+      </button>
+    </div>
+  }
+
+  @if (!store.isLoading() && !store.hasAppointmentsInView()) {
+    <div class="schedule-page__empty" role="status">
+      <span class="material-icons" aria-hidden="true">event_available</span>
+      No appointments in this period. Select a time on the calendar to book.
+    </div>
+  }
+
+  <!-- Main Workspace Grid -->
+  <div
+    class="schedule-page__workspace"
+    [class.schedule-page__workspace--drawer]="store.drawerMode()"
+  >
+    <div class="schedule-page__calendar" [attr.aria-busy]="store.isLoading()">
+      <app-schedule-calendar
+        [appointments]="store.appointments()"
+        [clinicSchedule]="store.clinicSchedule()"
+        [initialView]="initialView"
+        [canEdit]="canEdit()"
+        (rangeChanged)="store.rangeChanged($event)"
+        (slotSelected)="onSlotSelected($event)"
+        (appointmentOpened)="store.openEdit($event)"
+        (rescheduleRequested)="onReschedule($event)"
+      />
+    </div>
+
+    @if (store.drawerMode()) {
+      <aside class="schedule-page__drawer">
+        <app-appointment-drawer />
+      </aside>
+    }
+  </div>
+
+  @if (store.notice(); as notice) {
+    <p class="schedule-page__notice" role="status">
+      <span class="material-icons">info</span>
+      <span>{{ notice }}</span>
+    </p>
+  }
+</section>

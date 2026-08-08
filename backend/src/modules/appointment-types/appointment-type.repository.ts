@@ -27,13 +27,15 @@ export class AppointmentTypeRepository {
       filter.isActive = filters.isActive;
     }
 
-    return AppointmentTypeModel.find(filter)
-      .sort({ name: 1 })
-      // A clinic offering more than 100 visit kinds is a data problem, not a
-      // paging problem — but the query still must not be unbounded.
-      .limit(100)
-      .lean<AppointmentTypeRecord[]>()
-      .exec();
+    return (
+      AppointmentTypeModel.find(filter)
+        .sort({ name: 1 })
+        // A clinic offering more than 100 visit kinds is a data problem, not a
+        // paging problem — but the query still must not be unbounded.
+        .limit(100)
+        .lean<AppointmentTypeRecord[]>()
+        .exec()
+    );
   }
 
   async findByIdInClinic(

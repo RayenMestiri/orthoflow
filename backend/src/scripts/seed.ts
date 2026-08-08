@@ -3,6 +3,7 @@ import { buildUniqueSlug } from '../common/utils/slug.js';
 import { env, isProduction } from '../config/env.js';
 import { connectDatabase, disconnectDatabase } from '../infrastructure/database/connection.js';
 import { passwordService } from '../infrastructure/security/password.service.js';
+import { appointmentTypeService } from '../modules/appointment-types/appointment-type.service.js';
 import { clinicRepository } from '../modules/clinics/clinic.repository.js';
 import { membershipRepository } from '../modules/memberships/membership.repository.js';
 import { patientRepository } from '../modules/patients/patient.repository.js';
@@ -57,8 +58,20 @@ async function seed(): Promise<void> {
   await connectDatabase();
 
   const owner = STAFF[0];
-  if (await userRepository.findByEmail(owner.email)) {
-    console.warn('Seed data already present — nothing to do.');
+  const existingOwner = await userRepository.findByEmail(owner.email);
+  if (existingOwner) {
+    // Idempotent top-up: newer seed responsibilities (appointment types) still
+    // run for a database that was seeded before they existed.
+    const [membership] = await membershipRepository.findActiveByUser(existingOwner._id.toString());
+    if (membership) {
+      const types = await appointmentTypeService.seedDefaults(
+        membership.clinicId.toString(),
+        existingOwner._id.toString(),
+      );
+      console.warn(`Seed data already present — ensured ${types.length} appointment types.`);
+    } else {
+      console.warn('Seed data already present — nothing to do.');
+    }
     return;
   }
 
@@ -126,6 +139,9 @@ async function seed(): Promise<void> {
       gender: patient.gender,
     });
   }
+
+  const appointmentTypes = await appointmentTypeService.seedDefaults(clinicId, ownerId);
+  console.warn(`  Appointment types: ${appointmentTypes.length}`);
 
   console.warn('\nSeed complete.');
   console.warn(`  Clinic:   ${clinic.name} (${clinicId})`);

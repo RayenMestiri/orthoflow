@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, HostListener, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { getApiProblem } from '../../../../core/http/api-error';
 import { PatientsApiService } from '../../data-access/patients-api.service';
 import type {
@@ -75,8 +76,82 @@ export class PatientEditorPage {
     }),
   });
 
+  // Track form value updates via signal
+  readonly formValue = toSignal(this.form.valueChanges, {
+    initialValue: this.form.getRawValue(),
+  });
+
+  // Calculate Patient Age and Minor Status
+  readonly computedAge = computed(() => {
+    const dobStr = this.formValue().birthDate;
+    if (!dobStr) return null;
+    const dob = new Date(dobStr);
+    if (isNaN(dob.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    if (age < 0) return null;
+    return {
+      years: age,
+      isMinor: age < 18,
+      label: age === 0 ? 'Infant (< 1 yr)' : `${age} yrs • ${age < 18 ? 'Minor' : 'Adult'}`,
+    };
+  });
+
+  // Calculate Overall Form Completion Progress (Percentage)
+  readonly completionPercent = computed(() => {
+    const val = this.formValue();
+    const fields = [
+      Boolean(val.firstName?.trim()),
+      Boolean(val.lastName?.trim()),
+      Boolean(val.birthDate),
+      Boolean(val.gender && val.gender !== 'UNSPECIFIED'),
+      Boolean(val.phone?.trim()),
+      Boolean(val.email?.trim()),
+      Boolean(val.line1?.trim()),
+      Boolean(val.city?.trim()),
+      Boolean(val.referenceNumber?.trim()),
+    ];
+    const completedCount = fields.filter(Boolean).length;
+    return Math.round((completedCount / fields.length) * 100);
+  });
+
+  readonly isPersonalComplete = computed(() => {
+    const v = this.formValue();
+    return Boolean(v.firstName?.trim() && v.lastName?.trim());
+  });
+
+  readonly isContactComplete = computed(() => {
+    const v = this.formValue();
+    return Boolean(v.phone?.trim() || v.email?.trim() || v.line1?.trim() || v.city?.trim());
+  });
+
   constructor() {
     if (this.patientId) void this.loadPatient(this.patientId);
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyDown(event: KeyboardEvent): void {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      void this.submit();
+    }
+  }
+
+  setGender(gender: PatientGender): void {
+    this.form.controls.gender.setValue(gender);
+    this.form.controls.gender.markAsDirty();
+  }
+
+  setGuardianRelationship(rel: GuardianRelationship): void {
+    this.form.controls.guardian.controls.relationship.setValue(rel);
+  }
+
+  setGuardianContactPref(pref: ContactPreference): void {
+    this.form.controls.guardian.controls.contactPreference.setValue(pref);
   }
 
   toggleGuardian(): void {
@@ -87,6 +162,52 @@ export class PatientEditorPage {
       else control.removeValidators(Validators.required);
       control.updateValueAndValidity();
     }
+  }
+
+  scrollToSection(sectionId: string): void {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  fillDemoData(): void {
+    const firstNames = ['Lucas', 'Emma', 'Sophie', 'Alexandre', 'Camille', 'Liam', 'Inès'];
+    const lastNames = ['Bernard', 'Martin', 'Dubois', 'Thomas', 'Moreau', 'Petit', 'Roux'];
+    const cities = ['Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nice', 'Nantes', 'Bordeaux'];
+    const fn = firstNames[Math.floor(Math.random() * firstNames.length)];
+    const ln = lastNames[Math.floor(Math.random() * lastNames.length)];
+    const city = cities[Math.floor(Math.random() * cities.length)];
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+
+    this.form.patchValue({
+      firstName: fn,
+      lastName: ln,
+      birthDate: '2010-06-15',
+      gender: 'FEMALE',
+      phone: '+33 6 12 34 56 78',
+      email: `${fn.toLowerCase()}.${ln.toLowerCase()}@example.com`,
+      line1: '142 Avenue des Champs-Élysées',
+      city: city,
+      postalCode: '75008',
+      country: 'France',
+      referenceNumber: `PT-${randomNum}`,
+      notes: 'Patient referred for orthodontic consultation. Prefers afternoon appointments.',
+    });
+
+    if (!this.guardianEnabled()) {
+      this.toggleGuardian();
+    }
+    this.form.controls.guardian.patchValue({
+      firstName: 'Marie',
+      lastName: ln,
+      relationship: 'MOTHER',
+      phone: '+33 6 98 76 54 32',
+      email: `marie.${ln.toLowerCase()}@example.com`,
+      isPrimary: true,
+      financiallyResponsible: true,
+      contactPreference: 'PHONE',
+    });
   }
 
   async submit(): Promise<void> {
@@ -187,3 +308,4 @@ export class PatientEditorPage {
     };
   }
 }
+

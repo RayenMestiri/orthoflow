@@ -30,7 +30,13 @@
                 "input": "public"
               }
             ],
-            "styles": ["node_modules/material-icons/iconfont/material-icons.css", "src/styles.scss"]
+            "styles": [
+              "node_modules/material-icons/iconfont/material-icons.css",
+              "node_modules/fullcalendar/skeleton.css",
+              "node_modules/fullcalendar/themes/classic/theme.css",
+              "node_modules/fullcalendar/themes/classic/palette.css",
+              "src/styles.scss"
+            ]
           },
           "configurations": {
             "production": {

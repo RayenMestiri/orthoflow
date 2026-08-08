@@ -144,6 +144,25 @@ export class MembershipRepository {
       status: MEMBERSHIP_STATUSES.ACTIVE,
     }).exec();
   }
+
+  /**
+   * The clinic's owner-doctor.
+   *
+   * MVP RULE — ONE CLINIC = ONE OWNER-DOCTOR: every appointment's `doctorId`
+   * resolves through this lookup, never from a client payload. Sorted by
+   * `joinedAt` so the answer stays deterministic if a co-owner is ever added
+   * before multi-practitioner scheduling exists.
+   */
+  async findActiveOwner(clinicId: string): Promise<MembershipRecord | null> {
+    return ClinicMembershipModel.findOne({
+      clinicId: toObjectId(clinicId, 'clinicId'),
+      role: CLINIC_ROLES.CLINIC_OWNER,
+      status: MEMBERSHIP_STATUSES.ACTIVE,
+    })
+      .sort({ joinedAt: 1, _id: 1 })
+      .lean<MembershipRecord | null>()
+      .exec();
+  }
 }
 
 export const membershipRepository = new MembershipRepository();

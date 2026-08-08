@@ -82,6 +82,24 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'schedule',
+        title: 'Schedule — OrthoFlow',
+        canActivate: [permissionGuard],
+        data: { permission: PERMISSIONS.APPOINTMENTS_VIEW },
+        loadComponent: () =>
+          import('./features/schedule/pages/schedule-page/schedule-page').then(
+            (component) => component.SchedulePage,
+          ),
+      },
+      {
+        path: 'settings',
+        title: 'Settings — OrthoFlow',
+        loadComponent: () =>
+          import('./features/settings/pages/settings-page/settings-page').then(
+            (component) => component.SettingsPage,
+          ),
+      },
+      {
         path: 'patients',
         title: 'Patients — OrthoFlow',
         canActivate: [permissionGuard],

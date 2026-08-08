@@ -34,6 +34,20 @@ export class PatientRepository {
       .exec();
   }
 
+  /** Bounded batch lookup used to resolve appointment lists into people. */
+  async findManyByIdsInClinic(patientIds: string[], clinicId: string): Promise<PatientRecord[]> {
+    if (patientIds.length === 0) {
+      return [];
+    }
+    return PatientModel.find({
+      ...this.baseFilter(clinicId),
+      _id: { $in: patientIds.map((id) => toObjectId(id, 'patientId')) },
+    })
+      .limit(patientIds.length)
+      .lean<PatientRecord[]>()
+      .exec();
+  }
+
   async listByClinic(
     clinicId: string,
     filters: PatientListFilters,

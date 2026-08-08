@@ -1,0 +1,37 @@
+<full-calendar [options]="options()" [events]="events()">
+  <ng-template #eventContent let-arg>
+    @let appointment = appointmentOf(arg);
+    @if (appointment) {
+      <div
+        class="schedule-event"
+        [attr.data-status]="appointment.status"
+        [attr.data-capacity]="appointment.slotCapacity.state"
+        [style.--event-accent]="appointment.appointmentType?.color ?? null"
+      >
+        <span class="schedule-event__initials" aria-hidden="true">{{ patientInitials(appointment) }}</span>
+        <span class="schedule-event__time">
+          {{ formatTime(appointment.startAt) }}
+          <span class="schedule-event__patient"
+            >· {{ appointment.patient?.fullName ?? 'Patient' }}</span
+          >
+        </span>
+        <span class="schedule-event__type">{{
+          appointment.appointmentType?.name ?? 'Appointment'
+        }}</span>
+        @if (isLate(appointment)) {
+          <span class="schedule-event__late">Late</span>
+        }
+        @if (appointment.slotCapacity.state === 'OVERBOOKED') {
+          <span class="schedule-event__capacity" title="Overbooked slot">
+            <span class="material-icons" aria-hidden="true">groups</span> Overbooked
+          </span>
+        }
+        <app-appointment-status-badge class="schedule-event__badge" [status]="appointment.status" />
+      </div>
+    } @else {
+      <div class="schedule-event schedule-event--preview">
+        <span class="schedule-event__time">{{ arg.timeText || 'New Slot' }}</span>
+      </div>
+    }
+  </ng-template>
+</full-calendar>

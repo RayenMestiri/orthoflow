@@ -19,6 +19,9 @@ export function toClinicDto(record: ClinicRecord): ClinicDto {
     currency: record.currency,
     schedule: {
       slotMinutes: record.schedule?.slotMinutes ?? DEFAULT_CLINIC_SCHEDULE.slotMinutes,
+      defaultConcurrentCapacity:
+        record.schedule?.defaultConcurrentCapacity ??
+        DEFAULT_CLINIC_SCHEDULE.defaultConcurrentCapacity,
       // Clinics created before scheduling existed have no stored pattern; the
       // calendar still needs one, so fall back rather than render an empty grid.
       workingHours: (record.schedule?.workingHours?.length

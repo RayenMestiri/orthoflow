@@ -157,6 +157,18 @@ export class AuthService {
       return { user: createdUser, clinic: createdClinic };
     });
 
+    // A new clinic gets the standard orthodontic visit kinds so its diary is
+    // usable on day one. Best-effort: a seeding hiccup must not fail signup,
+    // and the owner can always create types by hand.
+    try {
+      const { appointmentTypeService } = await import(
+        '../appointment-types/appointment-type.service.js'
+      );
+      await appointmentTypeService.seedDefaults(clinic._id.toString(), user._id.toString());
+    } catch {
+      // Logged nowhere on purpose: nothing actionable beyond "create types".
+    }
+
     const [issued, delivery] = await Promise.all([
       this.issueSession(user._id.toString(), context),
       this.challenges.issueEmailVerification(user._id.toString(), user.email, user.firstName),

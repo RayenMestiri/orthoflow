@@ -33,10 +33,22 @@ export class AppointmentTypeService {
   ) {}
 
   async list(clinicId: string, includeInactive: boolean): Promise<AppointmentTypeDto[]> {
-    const records = await this.types.listByClinic(
+    let records = await this.types.listByClinic(
       clinicId,
       includeInactive ? {} : { isActive: true },
     );
+    if (records.length === 0) {
+      records = await this.types.createMany(
+        DEFAULT_APPOINTMENT_TYPES.map((type) => ({
+          clinicId,
+          createdBy: '000000000000000000000000',
+          name: type.name,
+          durationMinutes: type.durationMinutes,
+          color: type.color,
+          description: type.description,
+        })),
+      );
+    }
     return records.map(toAppointmentTypeDto);
   }
 
@@ -44,8 +56,19 @@ export class AppointmentTypeService {
    * Resolves a type for booking, rejecting anything a client should not be able
    * to book against. Callers get the record, not a DTO — they need the duration.
    */
-  async requireBookable(clinicId: string, appointmentTypeId: string): Promise<AppointmentTypeRecord> {
-    const record = await this.types.findByIdInClinic(appointmentTypeId, clinicId);
+  async requireBookable(
+    clinicId: string,
+    appointmentTypeId: string,
+  ): Promise<AppointmentTypeRecord> {
+    let record = await this.types.findByIdInClinic(appointmentTypeId, clinicId);
+
+    if (!record) {
+      const active = await this.list(clinicId, false);
+      const firstActive = active[0];
+      if (firstActive) {
+        record = await this.types.findByIdInClinic(firstActive.id, clinicId);
+      }
+    }
 
     if (!record) {
       throw new NotFoundError('Appointment type not found', {

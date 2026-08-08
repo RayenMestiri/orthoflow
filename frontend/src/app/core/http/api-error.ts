@@ -4,6 +4,7 @@ import type { ApiErrorEnvelope } from '../auth/auth.models';
 export interface ApiProblem {
   code: string;
   message: string;
+  details?: unknown;
 }
 
 export function getApiProblem(error: unknown): ApiProblem {

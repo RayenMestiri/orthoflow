@@ -1,186 +1,546 @@
 <section class="patient-editor" aria-labelledby="patient-editor-title">
+  <!-- Top Navigation & Header -->
   <header class="patient-editor__header">
-    <a routerLink="/app/patients"
-      ><span class="material-icons" aria-hidden="true">arrow_back</span> Patients</a
-    >
-    <p>{{ editing ? 'Administrative record' : 'New patient intake' }}</p>
-    <h1 id="patient-editor-title">{{ title() }}</h1>
-    <span>{{
-      editing
-        ? 'Keep contact and clinic information accurate.'
-        : 'Capture the essentials quickly. Clinical details come later.'
-    }}</span>
+    <div class="patient-editor__nav">
+      <a routerLink="/app/patients" class="patient-editor__back-link">
+        <span class="material-icons" aria-hidden="true">arrow_back</span>
+        <span>Back to Patients</span>
+      </a>
+      <div class="patient-editor__meta-actions">
+        @if (!editing) {
+          <button type="button" class="btn-demo-fill" (click)="fillDemoData()" title="Quick fill realistic sample data">
+            <span class="material-icons" aria-hidden="true">auto_fix_high</span>
+            <span>Fill Demo Data</span>
+          </button>
+        }
+        <span class="patient-editor__badge">{{ editing ? 'Administrative Record' : 'New Patient Intake' }}</span>
+      </div>
+    </div>
+
+    <div class="patient-editor__title-row">
+      <div>
+        <h1 id="patient-editor-title">{{ title() }}</h1>
+        <p class="patient-editor__subtitle">
+          {{
+            editing
+              ? 'Maintain accurate contact, address, and administrative record details.'
+              : 'Complete the intake profile to establish the patient workspace.'
+          }}
+        </p>
+      </div>
+
+      <!-- Live Completion Progress Ring/Bar -->
+      <div class="completion-card">
+        <div class="completion-card__header">
+          <span class="completion-card__title">Intake Progress</span>
+          <span class="completion-card__value">{{ completionPercent() }}%</span>
+        </div>
+        <div class="completion-card__bar-bg">
+          <div class="completion-card__bar-fill" [style.width.%]="completionPercent()"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section Navigation Stepper Bar -->
+    <nav class="editor-stepper" aria-label="Form sections navigation">
+      <button
+        type="button"
+        class="editor-stepper__tab"
+        [class.is-complete]="isPersonalComplete()"
+        (click)="scrollToSection('section-personal')"
+      >
+        <span class="editor-stepper__num">01</span>
+        <span class="editor-stepper__label">Personal Info</span>
+        @if (isPersonalComplete()) {
+          <span class="material-icons editor-stepper__check">check_circle</span>
+        }
+      </button>
+
+      <button
+        type="button"
+        class="editor-stepper__tab"
+        [class.is-complete]="isContactComplete()"
+        (click)="scrollToSection('section-contact')"
+      >
+        <span class="editor-stepper__num">02</span>
+        <span class="editor-stepper__label">Contact Details</span>
+        @if (isContactComplete()) {
+          <span class="material-icons editor-stepper__check">check_circle</span>
+        }
+      </button>
+
+      @if (!editing) {
+        <button
+          type="button"
+          class="editor-stepper__tab"
+          [class.is-active]="guardianEnabled()"
+          (click)="scrollToSection('section-guardian')"
+        >
+          <span class="editor-stepper__num">03</span>
+          <span class="editor-stepper__label">Responsible Adult</span>
+          @if (computedAge()?.isMinor) {
+            <span class="editor-stepper__badge-minor">Minor</span>
+          }
+        </button>
+      }
+
+      <button
+        type="button"
+        class="editor-stepper__tab"
+        (click)="scrollToSection('section-internal')"
+      >
+        <span class="editor-stepper__num">{{ editing ? '03' : '04' }}</span>
+        <span class="editor-stepper__label">Internal Context</span>
+      </button>
+    </nav>
   </header>
 
   @if (loading()) {
-    <div class="patient-editor__loading" role="status">Loading secure patient information…</div>
+    <div class="patient-editor__loading" role="status">
+      <span class="material-icons spin-icon">sync</span>
+      <p>Loading secure patient information…</p>
+    </div>
   } @else {
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       @if (error()) {
         <div class="patient-editor__error" role="alert">
-          <span class="material-icons" aria-hidden="true">error_outline</span>{{ error() }}
+          <span class="material-icons" aria-hidden="true">error_outline</span>
+          <span>{{ error() }}</span>
         </div>
       }
 
-      <section class="editor-section" aria-labelledby="personal-heading">
-        <header>
-          <span>01</span>
+      <!-- Section 01: Personal Information -->
+      <section id="section-personal" class="editor-section" aria-labelledby="personal-heading">
+        <header class="editor-section__header">
+          <div class="editor-section__badge">01</div>
           <div>
-            <h2 id="personal-heading">Personal information</h2>
-            <p>The information staff use to identify the patient.</p>
+            <h2 id="personal-heading">Personal Information</h2>
+            <p>Essential demographics used across clinical files and appointments.</p>
           </div>
         </header>
+
         <div class="editor-grid">
-          <label
-            >First name<input formControlName="firstName" autocomplete="given-name" required />
+          <!-- First Name -->
+          <div class="input-field" [class.has-error]="form.controls.firstName.touched && form.controls.firstName.invalid">
+            <label for="firstName">First name <span class="required-star">*</span></label>
+            <div class="input-wrapper">
+              <span class="material-icons input-icon">person</span>
+              <input
+                id="firstName"
+                formControlName="firstName"
+                autocomplete="given-name"
+                placeholder="e.g. Lucas"
+                required
+              />
+            </div>
             @if (form.controls.firstName.touched && form.controls.firstName.invalid) {
-              <small>First name is required.</small>
+              <small class="error-msg">First name is required.</small>
             }
-          </label>
-          <label
-            >Last name<input formControlName="lastName" autocomplete="family-name" required />
+          </div>
+
+          <!-- Last Name -->
+          <div class="input-field" [class.has-error]="form.controls.lastName.touched && form.controls.lastName.invalid">
+            <label for="lastName">Last name <span class="required-star">*</span></label>
+            <div class="input-wrapper">
+              <span class="material-icons input-icon">badge</span>
+              <input
+                id="lastName"
+                formControlName="lastName"
+                autocomplete="family-name"
+                placeholder="e.g. Bernard"
+                required
+              />
+            </div>
             @if (form.controls.lastName.touched && form.controls.lastName.invalid) {
-              <small>Last name is required.</small>
+              <small class="error-msg">Last name is required.</small>
             }
-          </label>
-          <label>Date of birth<input type="date" formControlName="birthDate" /></label>
-          <label
-            >Gender<select formControlName="gender">
-              <option value="UNSPECIFIED">Not specified</option>
-              <option value="FEMALE">Female</option>
-              <option value="MALE">Male</option>
-            </select></label
-          >
-          <label>Phone<input type="tel" formControlName="phone" autocomplete="tel" /></label>
-          <label
-            >Email<input type="email" formControlName="email" autocomplete="email" />
+          </div>
+
+          <!-- Date of Birth with Live Age Calculator -->
+          <div class="input-field">
+            <div class="label-with-badge">
+              <label for="birthDate">Date of birth</label>
+              @if (computedAge(); as age) {
+                <span class="age-badge" [class.age-badge--minor]="age.isMinor">
+                  <span class="material-icons">cake</span>
+                  {{ age.label }}
+                </span>
+              }
+            </div>
+            <div class="input-wrapper">
+              <span class="material-icons input-icon">calendar_today</span>
+              <input id="birthDate" type="date" formControlName="birthDate" />
+            </div>
+          </div>
+
+          <!-- Gender Pill Selector -->
+          <div class="input-field">
+            <span class="field-label">Gender identity</span>
+            <div class="segmented-pills">
+              <button
+                type="button"
+                class="segmented-pill"
+                [class.is-selected]="form.controls.gender.value === 'FEMALE'"
+                (click)="setGender('FEMALE')"
+              >
+                <span class="material-icons">woman</span>
+                <span>Female</span>
+              </button>
+
+              <button
+                type="button"
+                class="segmented-pill"
+                [class.is-selected]="form.controls.gender.value === 'MALE'"
+                (click)="setGender('MALE')"
+              >
+                <span class="material-icons">man</span>
+                <span>Male</span>
+              </button>
+
+              <button
+                type="button"
+                class="segmented-pill"
+                [class.is-selected]="form.controls.gender.value === 'UNSPECIFIED'"
+                (click)="setGender('UNSPECIFIED')"
+              >
+                <span class="material-icons">person_outline</span>
+                <span>Unspecified</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Phone -->
+          <div class="input-field">
+            <label for="phone">Phone number</label>
+            <div class="input-wrapper">
+              <span class="material-icons input-icon">call</span>
+              <input id="phone" type="tel" formControlName="phone" autocomplete="tel" placeholder="+33 6 12 34 56 78" />
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="input-field" [class.has-error]="form.controls.email.touched && form.controls.email.invalid">
+            <label for="email">Email address</label>
+            <div class="input-wrapper">
+              <span class="material-icons input-icon">email</span>
+              <input id="email" type="email" formControlName="email" autocomplete="email" placeholder="patient@example.com" />
+            </div>
             @if (form.controls.email.touched && form.controls.email.invalid) {
-              <small>Enter a valid email address.</small>
+              <small class="error-msg">Please enter a valid email address.</small>
             }
-          </label>
+          </div>
         </div>
       </section>
 
-      <section class="editor-section" aria-labelledby="contact-heading">
-        <header>
-          <span>02</span>
+      <!-- Section 02: Contact & Address Information -->
+      <section id="section-contact" class="editor-section" aria-labelledby="contact-heading">
+        <header class="editor-section__header">
+          <div class="editor-section__badge">02</div>
           <div>
-            <h2 id="contact-heading">Contact information</h2>
-            <p>Optional location details for administrative follow-up.</p>
+            <h2 id="contact-heading">Contact & Location</h2>
+            <p>Physical location used for correspondence and clinic notifications.</p>
           </div>
         </header>
+
         <div class="editor-grid">
-          <label class="editor-grid__wide"
-            >Address<input formControlName="line1" autocomplete="street-address"
-          /></label>
-          <label>City<input formControlName="city" autocomplete="address-level2" /></label>
-          <label
-            >Postal code<input formControlName="postalCode" autocomplete="postal-code"
-          /></label>
-          <label>Country<input formControlName="country" autocomplete="country-name" /></label>
+          <!-- Street Address -->
+          <div class="input-field input-field--wide">
+            <label for="line1">Street address</label>
+            <div class="input-wrapper">
+              <span class="material-icons input-icon">home</span>
+              <input id="line1" formControlName="line1" autocomplete="street-address" placeholder="123 Health Ave, Suite 4B" />
+            </div>
+          </div>
+
+          <!-- City -->
+          <div class="input-field">
+            <label for="city">City</label>
+            <div class="input-wrapper">
+              <span class="material-icons input-icon">location_city</span>
+              <input id="city" formControlName="city" autocomplete="address-level2" placeholder="e.g. Paris" />
+            </div>
+          </div>
+
+          <!-- Postal Code -->
+          <div class="input-field">
+            <label for="postalCode">Postal code</label>
+            <div class="input-wrapper">
+              <span class="material-icons input-icon">markunread_mailbox</span>
+              <input id="postalCode" formControlName="postalCode" autocomplete="postal-code" placeholder="75001" />
+            </div>
+          </div>
+
+          <!-- Country -->
+          <div class="input-field input-field--wide">
+            <label for="country">Country</label>
+            <div class="input-wrapper">
+              <span class="material-icons input-icon">public</span>
+              <input id="country" formControlName="country" autocomplete="country-name" placeholder="France" />
+            </div>
+          </div>
         </div>
       </section>
 
+      <!-- Section 03: Responsible Adult (Guardian) -->
       @if (!editing) {
-        <section class="editor-section editor-section--guardian" aria-labelledby="guardian-heading">
-          <header>
-            <span>03</span>
+        <section
+          id="section-guardian"
+          class="editor-section editor-section--guardian"
+          [class.is-expanded]="guardianEnabled()"
+          aria-labelledby="guardian-heading"
+        >
+          <header class="editor-section__header editor-section__header--action">
+            <div class="editor-section__badge">03</div>
             <div>
-              <h2 id="guardian-heading">Responsible adult</h2>
-              <p>Link a parent or guardian now when the patient is a minor.</p>
+              <div class="header-title-flex">
+                <h2 id="guardian-heading">Responsible Adult / Guardian</h2>
+                @if (computedAge()?.isMinor) {
+                  <span class="minor-recommendation-badge">
+                    <span class="material-icons">info</span>
+                    Recommended for minors
+                  </span>
+                }
+              </div>
+              <p>Link a parent or legal guardian for minor consent & financial responsibility.</p>
             </div>
             <button
               type="button"
+              class="guardian-toggle-btn"
+              [class.is-active]="guardianEnabled()"
               [attr.aria-expanded]="guardianEnabled()"
               (click)="toggleGuardian()"
             >
-              {{ guardianEnabled() ? 'Remove' : 'Add guardian' }}
+              <span class="material-icons">{{ guardianEnabled() ? 'remove_circle_outline' : 'add_circle_outline' }}</span>
+              <span>{{ guardianEnabled() ? 'Remove Guardian' : 'Add Guardian' }}</span>
             </button>
           </header>
+
           @if (guardianEnabled()) {
-            <div class="editor-grid" formGroupName="guardian">
-              <label
-                >First name<input formControlName="firstName" autocomplete="off" required
-              /></label>
-              <label
-                >Last name<input formControlName="lastName" autocomplete="off" required
-              /></label>
-              <label
-                >Relationship<select formControlName="relationship">
-                  <option value="MOTHER">Mother</option>
-                  <option value="FATHER">Father</option>
-                  <option value="LEGAL_GUARDIAN">Legal guardian</option>
-                  <option value="OTHER">Other</option>
-                </select></label
-              >
-              <label>Phone<input type="tel" formControlName="phone" autocomplete="off" /></label>
-              <label>Email<input type="email" formControlName="email" autocomplete="off" /></label>
-              <label
-                >Contact preference<select formControlName="contactPreference">
-                  <option value="NO_PREFERENCE">No preference</option>
-                  <option value="PHONE">Phone</option>
-                  <option value="EMAIL">Email</option>
-                </select></label
-              >
-              <label class="editor-check"
-                ><input type="checkbox" formControlName="isPrimary" /><span
-                  ><strong>Primary guardian</strong
-                  ><small>Shown first in the patient workspace.</small></span
-                ></label
-              >
-              <label class="editor-check"
-                ><input type="checkbox" formControlName="financiallyResponsible" /><span
-                  ><strong>Financially responsible</strong
-                  ><small>Administrative marker only; no payment functionality.</small></span
-                ></label
-              >
+            <div class="editor-grid guardian-form-grid" formGroupName="guardian">
+              <!-- Guardian First Name -->
+              <div class="input-field">
+                <label for="guardianFirstName">Guardian first name <span class="required-star">*</span></label>
+                <div class="input-wrapper">
+                  <span class="material-icons input-icon">person</span>
+                  <input id="guardianFirstName" formControlName="firstName" autocomplete="off" placeholder="First name" required />
+                </div>
+              </div>
+
+              <!-- Guardian Last Name -->
+              <div class="input-field">
+                <label for="guardianLastName">Guardian last name <span class="required-star">*</span></label>
+                <div class="input-wrapper">
+                  <span class="material-icons input-icon">badge</span>
+                  <input id="guardianLastName" formControlName="lastName" autocomplete="off" placeholder="Last name" required />
+                </div>
+              </div>
+
+              <!-- Relationship Pills -->
+              <div class="input-field input-field--wide">
+                <span class="field-label">Relationship to patient</span>
+                <div class="segmented-pills">
+                  <button
+                    type="button"
+                    class="segmented-pill"
+                    [class.is-selected]="form.controls.guardian.controls.relationship.value === 'MOTHER'"
+                    (click)="setGuardianRelationship('MOTHER')"
+                  >
+                    <span>Mother</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="segmented-pill"
+                    [class.is-selected]="form.controls.guardian.controls.relationship.value === 'FATHER'"
+                    (click)="setGuardianRelationship('FATHER')"
+                  >
+                    <span>Father</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="segmented-pill"
+                    [class.is-selected]="form.controls.guardian.controls.relationship.value === 'LEGAL_GUARDIAN'"
+                    (click)="setGuardianRelationship('LEGAL_GUARDIAN')"
+                  >
+                    <span>Legal Guardian</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="segmented-pill"
+                    [class.is-selected]="form.controls.guardian.controls.relationship.value === 'OTHER'"
+                    (click)="setGuardianRelationship('OTHER')"
+                  >
+                    <span>Other</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Guardian Phone -->
+              <div class="input-field">
+                <label for="guardianPhone">Guardian phone</label>
+                <div class="input-wrapper">
+                  <span class="material-icons input-icon">call</span>
+                  <input id="guardianPhone" type="tel" formControlName="phone" autocomplete="off" placeholder="+33 6 ..." />
+                </div>
+              </div>
+
+              <!-- Guardian Email -->
+              <div class="input-field">
+                <label for="guardianEmail">Guardian email</label>
+                <div class="input-wrapper">
+                  <span class="material-icons input-icon">email</span>
+                  <input id="guardianEmail" type="email" formControlName="email" autocomplete="off" placeholder="guardian@example.com" />
+                </div>
+              </div>
+
+              <!-- Contact Preference Pills -->
+              <div class="input-field input-field--wide">
+                <span class="field-label">Contact preference</span>
+                <div class="segmented-pills">
+                  <button
+                    type="button"
+                    class="segmented-pill"
+                    [class.is-selected]="form.controls.guardian.controls.contactPreference.value === 'NO_PREFERENCE'"
+                    (click)="setGuardianContactPref('NO_PREFERENCE')"
+                  >
+                    <span>No Preference</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="segmented-pill"
+                    [class.is-selected]="form.controls.guardian.controls.contactPreference.value === 'PHONE'"
+                    (click)="setGuardianContactPref('PHONE')"
+                  >
+                    <span class="material-icons">call</span>
+                    <span>Phone</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="segmented-pill"
+                    [class.is-selected]="form.controls.guardian.controls.contactPreference.value === 'EMAIL'"
+                    (click)="setGuardianContactPref('EMAIL')"
+                  >
+                    <span class="material-icons">email</span>
+                    <span>Email</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Checkbox Cards -->
+              <div class="checkbox-card-grid input-field--wide">
+                <label class="checkbox-card" [class.is-checked]="form.controls.guardian.controls.isPrimary.value">
+                  <input type="checkbox" formControlName="isPrimary" />
+                  <div class="checkbox-card__body">
+                    <strong>Primary Contact Guardian</strong>
+                    <small>Displayed prominently as the main point of contact in patient profile.</small>
+                  </div>
+                </label>
+
+                <label class="checkbox-card" [class.is-checked]="form.controls.guardian.controls.financiallyResponsible.value">
+                  <input type="checkbox" formControlName="financiallyResponsible" />
+                  <div class="checkbox-card__body">
+                    <strong>Financially Responsible</strong>
+                    <small>Billing and administrative marker for clinic billing records.</small>
+                  </div>
+                </label>
+              </div>
             </div>
           }
         </section>
       }
 
-      <section class="editor-section" aria-labelledby="internal-heading">
-        <header>
-          <span>{{ editing ? '03' : '04' }}</span>
+      <!-- Section 04 / 03: Internal Context -->
+      <section id="section-internal" class="editor-section" aria-labelledby="internal-heading">
+        <header class="editor-section__header">
+          <div class="editor-section__badge">{{ editing ? '03' : '04' }}</div>
           <div>
-            <h2 id="internal-heading">Internal information</h2>
-            <p>Clinic-owned administrative context, never clinical findings.</p>
+            <h2 id="internal-heading">Internal Clinic Context</h2>
+            <p>Administrative tagging, reference IDs, and staff intake notes.</p>
           </div>
         </header>
+
         <div class="editor-grid">
-          <label
-            >Patient reference<input
-              formControlName="referenceNumber"
-              autocomplete="off"
-              placeholder="Optional, e.g. PT-1042"
-          /></label>
+          <!-- Patient Reference -->
+          <div class="input-field">
+            <label for="referenceNumber">Patient reference code</label>
+            <div class="input-wrapper">
+              <span class="material-icons input-icon">fingerprint</span>
+              <input
+                id="referenceNumber"
+                formControlName="referenceNumber"
+                autocomplete="off"
+                placeholder="Optional, e.g. PT-1042"
+              />
+            </div>
+          </div>
+
+          <!-- Status toggle (when editing) -->
           @if (editing) {
-            <label
-              >Administrative status<select formControlName="status">
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-              </select></label
-            >
+            <div class="input-field">
+              <label for="status">Administrative status</label>
+              <div class="segmented-pills">
+                <button
+                  type="button"
+                  class="segmented-pill"
+                  [class.is-selected]="form.controls.status.value === 'ACTIVE'"
+                  (click)="form.controls.status.setValue('ACTIVE')"
+                >
+                  <span class="material-icons">check_circle</span>
+                  <span>Active</span>
+                </button>
+                <button
+                  type="button"
+                  class="segmented-pill"
+                  [class.is-selected]="form.controls.status.value === 'INACTIVE'"
+                  (click)="form.controls.status.setValue('INACTIVE')"
+                >
+                  <span class="material-icons">block</span>
+                  <span>Inactive</span>
+                </button>
+              </div>
+            </div>
           }
-          <label class="editor-grid__wide"
-            >Administrative note<textarea
-              formControlName="notes"
-              rows="4"
-              placeholder="Optional reception or administrative note"
-            ></textarea
-            ><small>{{ form.controls.notes.value.length }}/2000</small></label
-          >
+
+          <!-- Administrative Notes -->
+          <div class="input-field input-field--wide">
+            <div class="label-with-counter">
+              <label for="notes">Administrative note</label>
+              <span class="char-counter">{{ form.controls.notes.value.length }}/2000</span>
+            </div>
+            <div class="input-wrapper input-wrapper--textarea">
+              <span class="material-icons input-icon">sticky_note_2</span>
+              <textarea
+                id="notes"
+                formControlName="notes"
+                rows="4"
+                placeholder="Add relevant administrative instructions, reception notes, or scheduling preferences…"
+              ></textarea>
+            </div>
+          </div>
         </div>
       </section>
 
+      <!-- Sticky Action Bar -->
       <footer class="patient-editor__actions">
-        <a [routerLink]="patientId ? ['/app/patients', patientId] : ['/app/patients']">Cancel</a>
-        <button type="submit" [disabled]="submitting()">
-          <span class="material-icons" aria-hidden="true">{{
-            editing ? 'save' : 'person_add'
-          }}</span
-          >{{ submitting() ? 'Saving…' : editing ? 'Save changes' : 'Create patient' }}
-        </button>
+        <div class="action-bar__info">
+          <span class="keyboard-shortcut"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to save</span>
+        </div>
+        <div class="action-bar__buttons">
+          <a
+            class="btn-cancel"
+            [routerLink]="patientId ? ['/app/patients', patientId] : ['/app/patients']"
+          >
+            Cancel
+          </a>
+          <button type="submit" class="btn-submit" [disabled]="submitting()">
+            @if (submitting()) {
+              <span class="material-icons spin-icon">sync</span>
+              <span>Saving Patient…</span>
+            } @else {
+              <span class="material-icons">{{ editing ? 'save' : 'person_add' }}</span>
+              <span>{{ editing ? 'Save Changes' : 'Create Patient' }}</span>
+            }
+          </button>
+        </div>
       </footer>
     </form>
   }

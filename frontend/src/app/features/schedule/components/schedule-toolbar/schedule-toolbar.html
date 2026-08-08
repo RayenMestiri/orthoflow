@@ -1,0 +1,46 @@
+<div class="schedule-toolbar" aria-label="Calendar controls">
+  <div class="schedule-toolbar__nav">
+    <button class="schedule-toolbar__today" type="button" (click)="today.emit()">
+      <span class="material-icons">today</span>
+      <span>Today</span>
+    </button>
+
+    <div class="schedule-toolbar__arrows" role="group" aria-label="Change period">
+      <button type="button" aria-label="Previous period" (click)="previous.emit()" title="Previous period">
+        <span class="material-icons" aria-hidden="true">chevron_left</span>
+      </button>
+      <button type="button" aria-label="Next period" (click)="next.emit()" title="Next period">
+        <span class="material-icons" aria-hidden="true">chevron_right</span>
+      </button>
+    </div>
+
+    <h2 class="schedule-toolbar__title" aria-live="polite">
+      <span>{{ title() }}</span>
+      @if (isLoading()) {
+        <span class="schedule-toolbar__spinner" role="status" aria-label="Updating schedule"></span>
+      }
+    </h2>
+  </div>
+
+  <div class="schedule-toolbar__actions">
+    <div class="schedule-toolbar__views" role="group" aria-label="Calendar view">
+      @for (view of views; track view.name) {
+        <button
+          type="button"
+          class="schedule-toolbar__view-btn"
+          [class.is-active]="activeView() === view.name"
+          [attr.aria-pressed]="activeView() === view.name"
+          (click)="viewChange.emit(view.name)"
+        >
+          {{ view.label }}
+        </button>
+      }
+    </div>
+
+    <button class="schedule-toolbar__new" type="button" (click)="newAppointment.emit()">
+      <span class="material-icons" aria-hidden="true">add_circle</span>
+      <span>New Appointment</span>
+    </button>
+  </div>
+</div>
+

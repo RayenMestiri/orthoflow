@@ -1,0 +1,148 @@
+<form class="settings-section" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <header class="settings-section__header">
+    <div>
+      <h2>Clinic information</h2>
+      <p>Identity and contact details shown to your team and on printed documents.</p>
+    </div>
+  </header>
+
+  <div class="settings-grid">
+    <div class="settings-field settings-field--wide">
+      <label for="clinic-name">Clinic name</label>
+      <input id="clinic-name" formControlName="clinicName" autocomplete="organization" />
+      <p class="settings-field__error" aria-live="polite">
+        @if (form.controls.clinicName.touched && form.controls.clinicName.invalid) {
+          Enter the clinic name (at least 2 characters).
+        }
+      </p>
+    </div>
+
+    <div class="settings-field settings-field--wide">
+      <label for="doctor-name">Doctor display name</label>
+      <input
+        id="doctor-name"
+        formControlName="doctorDisplayName"
+        placeholder="Dr Nadia Khelifi"
+        aria-describedby="doctor-name-hint"
+      />
+      <p id="doctor-name-hint" class="settings-field__hint">
+        How the owner-doctor is presented to patients.
+      </p>
+    </div>
+
+    <div class="settings-field">
+      <label for="clinic-phone">Phone</label>
+      <input
+        id="clinic-phone"
+        type="tel"
+        inputmode="tel"
+        formControlName="phone"
+        placeholder="+216 71 000 000"
+      />
+      <p class="settings-field__error"></p>
+    </div>
+
+    <div class="settings-field">
+      <label for="clinic-email">Email</label>
+      <input
+        id="clinic-email"
+        type="email"
+        formControlName="email"
+        placeholder="contact@clinic.tn"
+      />
+      <p class="settings-field__error" aria-live="polite">
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+          Enter a valid email address.
+        }
+      </p>
+    </div>
+
+    <div class="settings-field settings-field--wide">
+      <label for="clinic-address">Address</label>
+      <input
+        id="clinic-address"
+        formControlName="addressLine1"
+        autocomplete="street-address"
+        placeholder="12 Avenue Habib Bourguiba"
+      />
+      <p class="settings-field__error"></p>
+    </div>
+
+    <div class="settings-field">
+      <label for="clinic-city">City</label>
+      <input id="clinic-city" formControlName="city" autocomplete="address-level2" />
+      <p class="settings-field__error"></p>
+    </div>
+
+    <div class="settings-field">
+      <label for="clinic-postal">Postal code</label>
+      <input id="clinic-postal" formControlName="postalCode" autocomplete="postal-code" />
+      <p class="settings-field__error"></p>
+    </div>
+
+    <div class="settings-field">
+      <label for="clinic-country">Country</label>
+      <input id="clinic-country" formControlName="country" autocomplete="country-name" />
+      <p class="settings-field__error"></p>
+    </div>
+
+    <div class="settings-field">
+      <label for="clinic-timezone">Timezone</label>
+      <select id="clinic-timezone" formControlName="timezone" aria-describedby="timezone-hint">
+        @for (zone of timezones; track zone) {
+          <option [value]="zone">{{ zone }}</option>
+        }
+      </select>
+      <p id="timezone-hint" class="settings-field__hint">
+        Appointment times are stored in UTC and shown in this zone.
+      </p>
+    </div>
+
+    <div class="settings-field">
+      <label for="clinic-language">Default language</label>
+      <select id="clinic-language" formControlName="defaultLanguage">
+        @for (language of languages; track language) {
+          <option [value]="language">{{ languageLabels[language] }}</option>
+        }
+      </select>
+      <p class="settings-field__error"></p>
+    </div>
+
+    <div class="settings-field settings-field--wide">
+      <label for="clinic-logo">Logo URL</label>
+      <input
+        id="clinic-logo"
+        type="url"
+        formControlName="logoUrl"
+        placeholder="https://…"
+        aria-describedby="logo-hint"
+      />
+      <p id="logo-hint" class="settings-field__hint">Optional. Used on printed documents later.</p>
+      <p class="settings-field__error" aria-live="polite">
+        @if (form.controls.logoUrl.touched && form.controls.logoUrl.invalid) {
+          Enter a full URL beginning with http:// or https://.
+        }
+      </p>
+    </div>
+  </div>
+
+  @if (canEdit()) {
+    <footer class="settings-actions">
+      @if (justSaved()) {
+        <span class="settings-actions__saved" role="status">
+          <span class="material-icons" aria-hidden="true">check_circle</span> Saved
+        </span>
+      }
+      <button type="button" class="settings-btn" [disabled]="!isDirty()" (click)="reset()">
+        Reset
+      </button>
+      <button
+        type="submit"
+        class="settings-btn settings-btn--primary"
+        [disabled]="!isDirty() || isSaving()"
+      >
+        {{ isSaving() ? 'Saving…' : 'Save changes' }}
+      </button>
+    </footer>
+  }
+</form>

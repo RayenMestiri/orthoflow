@@ -54,6 +54,7 @@ export const clinicWorkingDaySchema = z
 export const clinicScheduleSchema = z.object({
   /** 15 minutes matches short orthodontic controls; 5–60 keeps the grid sane. */
   slotMinutes: z.number().int().min(5).max(60).default(15),
+  defaultConcurrentCapacity: z.number().int().min(1).max(10).default(2),
   workingHours: z.array(clinicWorkingDaySchema).length(7, 'must cover all seven weekdays'),
 });
 
@@ -76,6 +77,7 @@ export const clinicDtoSchema = z.object({
   currency: z.string(),
   schedule: z.object({
     slotMinutes: z.number().int(),
+    defaultConcurrentCapacity: z.number().int(),
     workingHours: z.array(
       z.object({
         weekday: z.number().int(),

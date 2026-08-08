@@ -1,0 +1,210 @@
+/**
+ * Compact weekly editor: one row per day, not seven cards. Density matters —
+ * the whole week should be readable without scrolling on a laptop.
+ */
+
+.hours-list {
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  list-style: none;
+  overflow: hidden;
+}
+
+.hours-day {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.75rem 1rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--color-white);
+
+  & + & {
+    border-top: 1px solid var(--color-line);
+  }
+
+  &--closed {
+    background: var(--color-porcelain);
+  }
+}
+
+.hours-day__label {
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hours-day__name {
+  color: var(--color-pine-900);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.hours-day__closed-tag {
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-pill);
+  color: var(--color-muted);
+  background: var(--color-mist);
+  font-size: 0.62rem;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.hours-day__periods {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+}
+
+.hours-day__empty {
+  margin: 0;
+  padding-block: 0.65rem;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.hours-period {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.45rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+
+  &:focus-within {
+    border-color: var(--color-pine-600);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-pine-600) 12%, transparent);
+  }
+
+  input {
+    width: 6.1rem;
+    height: 2.1rem;
+    border: 0;
+    outline: 0;
+    color: var(--color-ink);
+    background: transparent;
+    font: inherit;
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+
+    &[aria-invalid='true'] {
+      color: var(--color-danger);
+    }
+
+    &:disabled {
+      color: var(--color-slate);
+    }
+  }
+}
+
+.hours-period__dash {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.hours-period__remove {
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border: 0;
+  border-radius: 0.35rem;
+  color: var(--color-muted);
+  background: transparent;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-danger);
+    background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  }
+
+  .material-icons {
+    font-size: 0.95rem;
+  }
+}
+
+/* Errors carry an icon and text — never colour alone. */
+.hours-day__error {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.72rem;
+  font-weight: 600;
+
+  .material-icons {
+    font-size: 0.9rem;
+  }
+}
+
+.hours-day__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+
+  button {
+    display: inline-flex;
+    min-height: 2.1rem;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0 0.55rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--color-slate);
+    background: transparent;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--color-line);
+      color: var(--color-pine-700);
+      background: var(--color-sage);
+    }
+
+    .material-icons {
+      font-size: 0.9rem;
+    }
+  }
+}
+
+.hours-total {
+  margin: 0.7rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+/* Tablet and below: stack the row so the time inputs keep full width. */
+@media (max-width: 60rem) {
+  .hours-day {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+    padding: 0.85rem 0.9rem;
+  }
+
+  .hours-day__label {
+    min-height: 0;
+  }
+
+  .hours-day__actions {
+    padding-top: 0.15rem;
+  }
+}
+
+@media (max-width: 26rem) {
+  .hours-period {
+    width: 100%;
+    justify-content: space-between;
+
+    input {
+      width: 5.6rem;
+    }
+  }
+}

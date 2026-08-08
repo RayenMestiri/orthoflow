@@ -66,6 +66,7 @@ export class AppShell {
     {
       label: 'Schedule',
       icon: 'calendar_month',
+      route: '/app/schedule',
       visible: this.permissions.can(PERMISSIONS.APPOINTMENTS_VIEW),
     },
     {
@@ -77,6 +78,12 @@ export class AppShell {
       label: 'Cash records',
       icon: 'receipt_long',
       visible: this.permissions.can(PERMISSIONS.CASH_RECORDS_VIEW),
+    },
+    {
+      label: 'Settings',
+      icon: 'tune',
+      route: '/app/settings',
+      visible: this.permissions.can(PERMISSIONS.CLINIC_SETTINGS_MANAGE),
     },
   ]);
 

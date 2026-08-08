@@ -1,0 +1,314 @@
+@if (mode(); as drawerMode) {
+  <div
+    class="drawer"
+    role="dialog"
+    aria-modal="false"
+    [attr.aria-label]="drawerMode === 'create' ? 'New appointment' : 'Appointment details'"
+  >
+    <header class="drawer__header">
+      <div>
+        <h2>{{ drawerMode === 'create' ? 'New appointment' : 'Appointment' }}</h2>
+        @if (drawerMode === 'edit' && appointment(); as current) {
+          <app-appointment-status-badge [status]="current.status" />
+        }
+      </div>
+      <button class="drawer__close" type="button" aria-label="Close panel" (click)="close()">
+        <span class="material-icons" aria-hidden="true">close</span>
+      </button>
+    </header>
+
+    <div class="drawer__body">
+      @if (store.capacityWarning(); as warning) {
+        <section class="capacity-warning" role="alert" aria-labelledby="capacity-warning-title">
+          <span class="material-icons" aria-hidden="true">groups</span>
+          <div>
+            <h3 id="capacity-warning-title">This time is already at capacity</h3>
+            <p>
+              {{ warning.concurrentAppointments }} appointments overlap this time. The clinic’s
+              recommended capacity is {{ warning.recommendedCapacity }}.
+            </p>
+            @if (warning.overlappingAppointments.length) {
+              <ul>
+                @for (overlap of warning.overlappingAppointments; track overlap.id) {
+                  <li>
+                    <strong>{{ overlap.patientName }}</strong>
+                    <span>{{ formatTime(overlap.startAt) }}–{{ formatTime(overlap.endAt) }}</span>
+                  </li>
+                }
+              </ul>
+            }
+            <div class="capacity-warning__actions">
+              <button type="button" class="drawer__ghost" (click)="store.dismissCapacityWarning()">
+                Choose another time
+              </button>
+              @if (warning.overrideAllowed) {
+                <button
+                  type="button"
+                  class="drawer__primary"
+                  [disabled]="store.isMutating()"
+                  (click)="confirmOverbooking()"
+                >
+                  Book anyway
+                </button>
+              }
+            </div>
+          </div>
+        </section>
+      }
+
+      @if (drawerMode === 'edit' && appointment(); as current) {
+        @if (current.status === 'CANCELLED' && current.cancellationReason) {
+          <p class="drawer__cancel-note">
+            <span class="material-icons" aria-hidden="true">event_busy</span>
+            Cancelled — {{ current.cancellationReason }}
+          </p>
+        }
+
+        @if (primaryAction(); as action) {
+          <section class="drawer__section" aria-label="Appointment workflow">
+            <h3>Next step</h3>
+            <div class="drawer__actions">
+              <button type="button" class="drawer__action drawer__action--primary" [disabled]="store.isMutating()" (click)="applyStatus(action.status)">
+                <span class="material-icons" aria-hidden="true">{{ action.icon }}</span>
+                {{ action.label }}
+              </button>
+              @if (secondaryActions().length > 0) {
+                <button type="button" class="drawer__action" [attr.aria-expanded]="moreActionsOpen()" (click)="moreActionsOpen.set(!moreActionsOpen())">
+                  More <span class="material-icons" aria-hidden="true">expand_more</span>
+                </button>
+              }
+            </div>
+            @if (moreActionsOpen()) {
+              <div class="drawer__more-actions">
+                @for (secondary of secondaryActions(); track secondary.status) {
+                  <button type="button" [class.drawer__action--warn]="secondary.status === 'NO_SHOW'" [disabled]="store.isMutating()" (click)="applyStatus(secondary.status)">
+                    <span class="material-icons" aria-hidden="true">{{ secondary.icon }}</span>{{ secondary.label }}
+                  </button>
+                }
+              </div>
+            }
+          </section>
+        }
+      }
+
+      <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="drawer__field">
+          <label for="appointment-patient">Patient</label>
+          @if (selectedPatient(); as patient) {
+            <div class="drawer__patient">
+              <span class="drawer__patient-copy">
+                <strong>{{ patient.fullName }}</strong>
+                @if (patientMeta(patient)) {
+                  <small>{{ patientMeta(patient) }}</small>
+                }
+              </span>
+              <span class="drawer__patient-tools">
+                <a
+                  [routerLink]="['/app/patients', patient.id]"
+                  aria-label="Open patient profile"
+                  title="Open patient profile"
+                >
+                  <span class="material-icons" aria-hidden="true">open_in_new</span>
+                </a>
+                @if (!isClosed()) {
+                  <button
+                    type="button"
+                    aria-label="Choose another patient"
+                    title="Choose another patient"
+                    (click)="clearPatient()"
+                  >
+                    <span class="material-icons" aria-hidden="true">swap_horiz</span>
+                  </button>
+                }
+              </span>
+            </div>
+          } @else {
+            <div class="drawer__search">
+              <span class="material-icons" aria-hidden="true">search</span>
+              <input
+                #firstField
+                id="appointment-patient"
+                type="search"
+                autocomplete="off"
+                placeholder="Search name, phone, or reference"
+                formControlName="patientSearch"
+                (focus)="searchOpen.set(true)"
+                (keydown)="onSearchKeydown($event)"
+                [attr.aria-invalid]="submitted() && !selectedPatient()"
+              />
+            </div>
+            @if (searchOpen() && searchResults().length > 0) {
+              <ul class="drawer__results" aria-label="Matching patients">
+                @for (patient of searchResults(); track patient.id) {
+                  <li>
+                    <button type="button" (click)="selectPatient(patient)">
+                      <strong>{{ patient.fullName }}</strong>
+                      <small>
+                        {{ patientMeta(patient) || 'No contact details' }}
+                        @if (patient.primaryGuardian) {
+                          · Guardian: {{ patient.primaryGuardian.fullName }}
+                        }
+                      </small>
+                    </button>
+                  </li>
+                }
+              </ul>
+            } @else if (showNoResults()) {
+              <div class="drawer__no-results">
+                <span>No matching patient.</span>
+                <a routerLink="/app/patients/new">+ Create new patient</a>
+              </div>
+            }
+            <p class="drawer__error">
+              @if (submitted() && !selectedPatient()) {
+                Choose the patient for this appointment.
+              }
+            </p>
+          }
+        </div>
+
+        <div class="drawer__field">
+          <label for="appointment-type">Appointment type</label>
+          <div class="drawer__control">
+            <span class="material-icons" aria-hidden="true">category</span>
+            <select id="appointment-type" formControlName="appointmentTypeId">
+              <option value="" disabled>Choose a type</option>
+              @for (type of store.activeTypes(); track type.id) {
+                <option [value]="type.id">{{ type.name }} · {{ type.durationMinutes }} min</option>
+              }
+            </select>
+          </div>
+          <p class="drawer__error">
+            @if (submitted() && form.controls.appointmentTypeId.invalid) {
+              Choose the appointment type.
+            }
+          </p>
+        </div>
+
+        <div class="drawer__grid">
+          <div class="drawer__field">
+            <label for="appointment-date">Date</label>
+            <div class="drawer__control">
+              <input id="appointment-date" type="date" formControlName="date" />
+            </div>
+          </div>
+          <div class="drawer__field">
+            <label for="appointment-start">Start</label>
+            <div class="drawer__control">
+              <input id="appointment-start" type="time" formControlName="startTime" />
+            </div>
+          </div>
+        </div>
+
+        <div class="drawer__grid">
+          <div class="drawer__field">
+            <label for="appointment-duration">Duration (min)</label>
+            <div class="drawer__control">
+              <input
+                id="appointment-duration"
+                type="number"
+                min="5"
+                max="480"
+                step="5"
+                formControlName="durationMinutes"
+              />
+            </div>
+          </div>
+          <div class="drawer__field">
+            <span class="drawer__end-label">End</span>
+            <p class="drawer__end" aria-live="polite">{{ endPreview() ?? '—' }}</p>
+          </div>
+        </div>
+
+        <div class="drawer__field">
+          <label for="appointment-note">Notes <span>Optional</span></label>
+          <div class="drawer__control drawer__control--area">
+            <textarea
+              id="appointment-note"
+              rows="3"
+              maxlength="1000"
+              placeholder="Anything the front desk should know"
+              formControlName="note"
+            ></textarea>
+          </div>
+        </div>
+
+        @if (!isClosed()) {
+          <div class="drawer__submit-row">
+            <button class="drawer__ghost" type="button" (click)="close()">Cancel</button>
+            <button class="drawer__primary" type="submit" [disabled]="store.isMutating()">
+              @if (store.isMutating()) {
+                <span class="drawer__spinner" aria-hidden="true"></span>
+              }
+              {{ drawerMode === 'create' ? 'Create appointment' : 'Save changes' }}
+            </button>
+          </div>
+        }
+      </form>
+
+      @if (drawerMode === 'edit' && appointment(); as current) {
+        @if (canCancel()) {
+          <section class="drawer__section drawer__section--danger" aria-label="Cancel appointment">
+            @if (!cancelPanelOpen()) {
+              <button class="drawer__danger-link" type="button" (click)="cancelPanelOpen.set(true)">
+                <span class="material-icons" aria-hidden="true">event_busy</span>
+                Cancel appointment…
+              </button>
+            } @else {
+              <label for="cancel-reason">Cancellation reason <span>Optional</span></label>
+              <div class="drawer__control drawer__control--area">
+                <textarea
+                  id="cancel-reason"
+                  rows="2"
+                  maxlength="500"
+                  placeholder="Why is this appointment cancelled?"
+                  [formControl]="cancelReason"
+                ></textarea>
+              </div>
+              <div class="drawer__submit-row">
+                <button class="drawer__ghost" type="button" (click)="cancelPanelOpen.set(false)">
+                  Keep appointment
+                </button>
+                <button
+                  class="drawer__danger"
+                  type="button"
+                  [disabled]="store.isMutating()"
+                  (click)="confirmCancel()"
+                >
+                  Cancel appointment
+                </button>
+              </div>
+            }
+          </section>
+        }
+
+
+        <section class="drawer__section drawer__activity" aria-label="Appointment activity">
+          <h3>Activity</h3>
+          @if (store.activity().length === 0) {
+            <p class="drawer__activity-empty">No activity recorded yet.</p>
+          } @else {
+            <ol>
+              @for (item of store.activity(); track item.id) {
+                <li>
+                  <span class="drawer__activity-dot" aria-hidden="true"></span>
+                  <div>
+                    <strong>{{ activityLabel(item.action) }}</strong>
+                    <small>{{ item.actorName }} · {{ formatDateTime(item.createdAt) }}</small>
+                  </div>
+                </li>
+              }
+            </ol>
+          }
+        </section>
+
+        <footer class="drawer__meta">
+          <span>Created {{ formatDateTime(current.createdAt) }}</span>
+          @if (current.updatedAt !== current.createdAt) {
+            <span>Updated {{ formatDateTime(current.updatedAt) }}</span>
+          }
+        </footer>
+      }
+    </div>
+  </div>
+}

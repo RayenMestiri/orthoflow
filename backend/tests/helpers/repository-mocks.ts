@@ -175,6 +175,18 @@ export const membershipRepositoryMock = {
   create: vi.fn(),
   update: vi.fn(async () => null),
   countActiveOwners: vi.fn(async () => 2),
+  findActiveOwner: vi.fn(async (clinicId: string) => ({
+    _id: new Types.ObjectId(),
+    userId: new Types.ObjectId(USER_ID),
+    clinicId: new Types.ObjectId(clinicId),
+    role: CLINIC_ROLES.CLINIC_OWNER,
+    status: MEMBERSHIP_STATUSES.ACTIVE,
+    invitedBy: null,
+    joinedAt: FIXED_DATE,
+    removedAt: null,
+    createdAt: FIXED_DATE,
+    updatedAt: FIXED_DATE,
+  })),
 };
 
 export const clinicRepositoryMock = {
@@ -198,6 +210,104 @@ export const patientRepositoryMock = {
   update: vi.fn(async (patientId: string, clinicId: string) => patientRecord(clinicId, patientId)),
   archive: vi.fn(async (patientId: string, clinicId: string) => patientRecord(clinicId, patientId)),
   restore: vi.fn(async (patientId: string, clinicId: string) => patientRecord(clinicId, patientId)),
+  findManyByIdsInClinic: vi.fn(async (patientIds: string[], clinicId: string) =>
+    patientIds.map((patientId) => patientRecord(clinicId, patientId)),
+  ),
+};
+
+export const APPOINTMENT_ID = '652f1c9b8a1e4f0012abdddd';
+export const APPOINTMENT_TYPE_ID = '652f1c9b8a1e4f0012abeeee';
+
+export function appointmentTypeRecord(clinicId: string, typeId = APPOINTMENT_TYPE_ID) {
+  return {
+    _id: new Types.ObjectId(typeId),
+    clinicId: new Types.ObjectId(clinicId),
+    name: 'Monthly control',
+    durationMinutes: 15,
+    color: '#2D765F',
+    description: null,
+    isActive: true,
+    createdBy: new Types.ObjectId(USER_ID),
+    createdAt: FIXED_DATE,
+    updatedAt: FIXED_DATE,
+  };
+}
+
+/** Monday 2026-08-10, 09:00 in Africa/Tunis (UTC+1). */
+export const APPOINTMENT_START = new Date('2026-08-10T08:00:00.000Z');
+
+export function appointmentRecord(clinicId: string, appointmentId = APPOINTMENT_ID) {
+  return {
+    _id: new Types.ObjectId(appointmentId),
+    clinicId: new Types.ObjectId(clinicId),
+    patientId: new Types.ObjectId(PATIENT_ID),
+    doctorId: new Types.ObjectId(USER_ID),
+    appointmentTypeId: new Types.ObjectId(APPOINTMENT_TYPE_ID),
+    startAt: APPOINTMENT_START,
+    endAt: new Date(APPOINTMENT_START.getTime() + 15 * 60_000),
+    durationMinutes: 15,
+    status: 'SCHEDULED' as const,
+    note: null,
+    cancellationReason: null,
+    cancelledAt: null,
+    cancelledBy: null,
+    arrivedAt: null,
+    treatmentStartedAt: null,
+    completedAt: null,
+    noShowAt: null,
+    markedNoShowBy: null,
+    overbookingOverride: false,
+    overbookingApprovedBy: null,
+    createdBy: new Types.ObjectId(USER_ID),
+    updatedBy: null,
+    createdAt: FIXED_DATE,
+    updatedAt: FIXED_DATE,
+  };
+}
+
+export const appointmentRepositoryMock = {
+  findByIdInClinic: vi.fn(async (appointmentId: string, clinicId: string) =>
+    appointmentRecord(clinicId, appointmentId),
+  ),
+  listInRange: vi.fn(async (clinicId: string) => [appointmentRecord(clinicId)]),
+  listCapacityOverlaps: vi.fn(async () => []),
+  create: vi.fn(async (input: { clinicId: string }) => appointmentRecord(input.clinicId)),
+  updateFields: vi.fn(async (appointmentId: string, clinicId: string) =>
+    appointmentRecord(clinicId, appointmentId),
+  ),
+  transitionStatus: vi.fn(
+    async (
+      appointmentId: string,
+      clinicId: string,
+      _fromStatus: string,
+      toStatus: string,
+      _updatedBy: string,
+      cancellation?: { reason: string | null },
+    ) => ({
+      ...appointmentRecord(clinicId, appointmentId),
+      status: toStatus as never,
+      ...(cancellation
+        ? { cancellationReason: cancellation.reason, cancelledAt: FIXED_DATE }
+        : {}),
+    }),
+  ),
+  countInRange: vi.fn(async () => 1),
+};
+
+export const appointmentTypeRepositoryMock = {
+  listByClinic: vi.fn(async (clinicId: string) => [appointmentTypeRecord(clinicId)]),
+  findByIdInClinic: vi.fn(async (typeId: string, clinicId: string) =>
+    appointmentTypeRecord(clinicId, typeId),
+  ),
+  findManyByIdsInClinic: vi.fn(async (typeIds: string[], clinicId: string) =>
+    typeIds.map((typeId) => appointmentTypeRecord(clinicId, typeId)),
+  ),
+  create: vi.fn(async (input: { clinicId: string }) => appointmentTypeRecord(input.clinicId)),
+  createMany: vi.fn(async () => []),
+  update: vi.fn(async (typeId: string, clinicId: string) =>
+    appointmentTypeRecord(clinicId, typeId),
+  ),
+  countForClinic: vi.fn(async () => 1),
 };
 
 export const guardianRepositoryMock = {
@@ -251,6 +361,8 @@ export function resetRepositoryMocks(): void {
     patientRepositoryMock,
     guardianRepositoryMock,
     patientGuardianRepositoryMock,
+    appointmentRepositoryMock,
+    appointmentTypeRepositoryMock,
     auditLogRepositoryMock,
   ];
 

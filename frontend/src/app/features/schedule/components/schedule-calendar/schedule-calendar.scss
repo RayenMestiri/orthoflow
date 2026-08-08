@@ -1,0 +1,220 @@
+:host {
+  display: block;
+  height: 100%;
+  min-height: 0;
+}
+
+full-calendar {
+  display: block;
+  height: 100%;
+
+  // Theme palette → OrthoFlow tokens.
+  --fc-classic-primary: var(--color-pine-700);
+  --fc-classic-primary-foreground: var(--color-white);
+  --fc-classic-event: var(--color-pine-700);
+  --fc-classic-event-contrast: var(--color-white);
+  --fc-classic-highlight: color-mix(in srgb, var(--color-pine-700) 12%, transparent);
+  --fc-classic-today: color-mix(in srgb, var(--color-copper-600) 8%, transparent);
+  --fc-classic-now: var(--color-copper-600);
+  --fc-classic-background: var(--color-white);
+  --fc-classic-faint: color-mix(in srgb, var(--color-mist) 25%, transparent);
+  --fc-classic-muted: color-mix(in srgb, var(--color-mist) 50%, transparent);
+  --fc-classic-strong: var(--color-mist);
+  --fc-classic-foreground: var(--color-ink);
+  --fc-classic-faint-foreground: var(--color-muted);
+  --fc-classic-muted-foreground: var(--color-slate);
+  --fc-classic-border: var(--color-line);
+  --fc-classic-strong-border: var(--color-mist);
+
+  font-family: var(--font-sans);
+}
+
+:host ::ng-deep full-calendar {
+  /* Clean Column Headers & Axis */
+  .fc-col-header-cell {
+    padding: 0.65rem 0.4rem;
+    background: var(--color-porcelain);
+    font-size: 0.8125rem;
+    font-weight: 750;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .fc-col-header-cell.fc-day-today {
+    background: color-mix(in srgb, var(--color-copper-100) 50%, white);
+    color: var(--color-copper-700);
+  }
+
+  .fc-timegrid-axis-cushion,
+  .fc-timegrid-slot-label-cushion {
+    color: var(--color-slate);
+    font-size: 0.72rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Grid slot lines */
+  .fc-timegrid-slot {
+    height: 3rem;
+  }
+
+  .fc-timegrid-slot-minor {
+    border-top-style: dotted;
+    border-top-color: color-mix(in srgb, var(--color-line) 60%, transparent);
+  }
+
+  /* Selection highlight */
+  .fc-highlight {
+    background: color-mix(in srgb, var(--color-pine-700) 14%, transparent) !important;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Event Container overrides */
+  .fc-timegrid-event {
+    border: 0;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 2px 8px rgb(13 41 37 / 0.08);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+
+    &:hover {
+      z-index: 10 !important;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgb(13 41 37 / 0.16);
+    }
+  }
+}
+
+.schedule-event[data-capacity='AT_CAPACITY'] {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-copper-600) 35%, transparent);
+}
+
+.schedule-event[data-capacity='OVERBOOKED'] {
+  border-left-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 7%, var(--color-white));
+}
+
+/* Event Card Inner Design */
+.schedule-event {
+  display: flex;
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.4rem 0.55rem;
+  border-left: 4px solid var(--event-accent, var(--color-pine-700));
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--event-accent, var(--color-pine-700)) 10%, var(--color-white));
+  font-size: 0.78rem;
+  line-height: 1.3;
+
+  &[data-status='ARRIVED'] {
+    border-left-color: var(--color-copper-600);
+    background: color-mix(in srgb, var(--color-copper-600) 10%, var(--color-white));
+  }
+
+  &[data-status='IN_TREATMENT'] {
+    border-left-color: var(--color-info);
+    background: color-mix(in srgb, var(--color-info) 10%, var(--color-white));
+  }
+
+  &[data-status='COMPLETED'] {
+    opacity: 0.75;
+    border-left-color: var(--color-success);
+    background: color-mix(in srgb, var(--color-success) 10%, var(--color-white));
+  }
+
+  &[data-status='NO_SHOW'] {
+    opacity: 0.7;
+    border-left-style: dashed;
+  }
+}
+
+.schedule-event__time {
+  overflow: hidden;
+  color: var(--color-pine-900);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-event__initials {
+  display: none;
+  color: var(--color-pine-900);
+  font-size: 0.67rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+}
+
+.schedule-event__patient {
+  color: var(--color-pine-900);
+  font-size: 0.8125rem;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.schedule-event__type {
+  overflow: hidden;
+  color: var(--color-slate);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-event__badge {
+  margin-top: auto;
+}
+
+.schedule-event__late,
+.schedule-event__capacity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  color: var(--color-danger);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.schedule-event__capacity .material-icons { font-size: 0.8rem; }
+
+/* Container query optimizations for small appointment heights */
+:host ::ng-deep .fc-timegrid-event .schedule-event {
+  container-type: size;
+}
+
+@container (max-height: 3.2rem) {
+  .schedule-event__type,
+  .schedule-event__badge {
+    display: none;
+  }
+}
+
+@container (max-width: 6rem) {
+  .schedule-event {
+    justify-content: center;
+    padding: 0.2rem 0.25rem;
+    text-align: center;
+  }
+
+  .schedule-event__initials { display: block; }
+  .schedule-event__time,
+  .schedule-event__type,
+  .schedule-event__late,
+  .schedule-event__capacity,
+  .schedule-event__badge { display: none; }
+}
+
+@media (max-width: 42rem) {
+  :host ::ng-deep .fc-scroller {
+    overflow-x: hidden !important;
+  }
+}
+
+@container (max-height: 4.8rem) {
+  .schedule-event__badge {
+    display: none;
+  }
+}

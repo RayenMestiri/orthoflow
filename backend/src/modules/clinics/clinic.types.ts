@@ -1,4 +1,5 @@
 import type { Types } from 'mongoose';
+import type { ClinicSettings } from './clinic-settings.types.js';
 
 export const CLINIC_STATUSES = {
   ACTIVE: 'ACTIVE',
@@ -48,12 +49,15 @@ export interface ClinicWorkingDay {
 export interface ClinicScheduleSettings {
   /** Calendar grid granularity in minutes. Orthodontics works in 15s. */
   slotMinutes: number;
+  /** Recommended number of simultaneous patients before explicit approval is required. */
+  defaultConcurrentCapacity: number;
   workingHours: ClinicWorkingDay[];
 }
 
 /** Sunday-closed, Saturday morning — a common Tunisian orthodontic pattern. */
 export const DEFAULT_CLINIC_SCHEDULE: ClinicScheduleSettings = {
   slotMinutes: 15,
+  defaultConcurrentCapacity: 2,
   workingHours: [
     { weekday: 0, opensAt: '08:00', closesAt: '13:00', isClosed: true },
     { weekday: 1, opensAt: '08:00', closesAt: '18:00', isClosed: false },
@@ -86,6 +90,14 @@ export interface ClinicAttributes {
   currency: string;
   /** Opening pattern the appointment calendar is built and validated against. */
   schedule: ClinicScheduleSettings;
+  /**
+   * Operating configuration owned by the Clinic Settings module.
+   *
+   * Optional at the type level because clinics created before settings existed
+   * have no stored subdocument; readers fall back to
+   * `DEFAULT_CLINIC_SETTINGS` rather than assuming it is present.
+   */
+  settings?: ClinicSettings;
   status: ClinicStatus;
   createdBy: Types.ObjectId;
   archivedAt: Date | null;

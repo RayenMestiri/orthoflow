@@ -1,0 +1,160 @@
+<section class="settings-section">
+  <header class="settings-section__header">
+    <div>
+      <h2>Working hours</h2>
+      <p>
+        Each day can have several opening periods, so a lunch closure is one day with two shifts. An
+        empty day means closed.
+      </p>
+    </div>
+    @if (canEdit()) {
+      <button
+        type="button"
+        class="settings-btn settings-btn--ghost"
+        (click)="copyMondayToWeekdays()"
+      >
+        <span class="material-icons" aria-hidden="true">content_copy</span>
+        Copy Monday to weekdays
+      </button>
+    }
+  </header>
+
+  <ul class="hours-list">
+    @for (weekday of weekdays; track weekday) {
+      @let periods = draft()[weekday];
+      @let dayValidation = validation()[weekday];
+      <li class="hours-day" [class.hours-day--closed]="periods.length === 0">
+        <div class="hours-day__label">
+          <span class="hours-day__name">{{ weekdayLabels[weekday] }}</span>
+          @if (periods.length === 0) {
+            <span class="hours-day__closed-tag">Closed</span>
+          }
+        </div>
+
+        <div class="hours-day__periods">
+          @if (periods.length === 0) {
+            <p class="hours-day__empty">No opening periods.</p>
+          } @else {
+            @for (period of periods; track $index) {
+              <div class="hours-period">
+                <label class="sr-only" [attr.for]="weekday + '-start-' + $index">
+                  {{ weekdayLabels[weekday] }} period {{ $index + 1 }} opening time
+                </label>
+                <input
+                  [id]="weekday + '-start-' + $index"
+                  type="time"
+                  step="300"
+                  [value]="period.start"
+                  [disabled]="!canEdit()"
+                  [attr.aria-invalid]="dayValidation.periodErrors[$index] !== null"
+                  (change)="updatePeriod(weekday, $index, 'start', $event)"
+                />
+                <span class="hours-period__dash" aria-hidden="true">—</span>
+                <label class="sr-only" [attr.for]="weekday + '-end-' + $index">
+                  {{ weekdayLabels[weekday] }} period {{ $index + 1 }} closing time
+                </label>
+                <input
+                  [id]="weekday + '-end-' + $index"
+                  type="time"
+                  step="300"
+                  [value]="period.end"
+                  [disabled]="!canEdit()"
+                  [attr.aria-invalid]="dayValidation.periodErrors[$index] !== null"
+                  (change)="updatePeriod(weekday, $index, 'end', $event)"
+                />
+                @if (canEdit()) {
+                  <button
+                    type="button"
+                    class="hours-period__remove"
+                    [attr.aria-label]="
+                      'Remove ' + weekdayLabels[weekday] + ' period ' + ($index + 1)
+                    "
+                    (click)="removePeriod(weekday, $index)"
+                  >
+                    <span class="material-icons" aria-hidden="true">close</span>
+                  </button>
+                }
+              </div>
+            }
+          }
+
+          @for (error of dayValidation.periodErrors; track $index) {
+            @if (error) {
+              <p class="hours-day__error" role="alert">
+                <span class="material-icons" aria-hidden="true">error_outline</span>
+                Period {{ $index + 1 }}: {{ error }}
+              </p>
+            }
+          }
+          @if (dayValidation.dayError) {
+            <p class="hours-day__error" role="alert">
+              <span class="material-icons" aria-hidden="true">error_outline</span>
+              {{ dayValidation.dayError }}
+            </p>
+          }
+        </div>
+
+        @if (canEdit()) {
+          <div class="hours-day__actions">
+            <button
+              type="button"
+              [attr.aria-label]="'Add an opening period on ' + weekdayLabels[weekday]"
+              (click)="addPeriod(weekday)"
+            >
+              <span class="material-icons" aria-hidden="true">add</span> Period
+            </button>
+            @if (!isFirstDay(weekday)) {
+              <button
+                type="button"
+                [attr.aria-label]="'Copy the previous day to ' + weekdayLabels[weekday]"
+                (click)="copyPreviousDay(weekday)"
+              >
+                <span class="material-icons" aria-hidden="true">south</span> Copy above
+              </button>
+            }
+            <button
+              type="button"
+              [attr.aria-label]="
+                (periods.length === 0 ? 'Open ' : 'Close ') + weekdayLabels[weekday]
+              "
+              (click)="toggleClosed(weekday)"
+            >
+              <span class="material-icons" aria-hidden="true">
+                {{ periods.length === 0 ? 'lock_open' : 'lock' }}
+              </span>
+              {{ periods.length === 0 ? 'Open' : 'Close' }}
+            </button>
+          </div>
+        }
+      </li>
+    }
+  </ul>
+
+  <p class="hours-total">Open {{ weeklyTotal() }} per week.</p>
+
+  @if (canEdit()) {
+    <footer class="settings-actions">
+      @if (justSaved()) {
+        <span class="settings-actions__saved" role="status">
+          <span class="material-icons" aria-hidden="true">check_circle</span> Saved
+        </span>
+      }
+      @if (!isValid()) {
+        <span class="settings-actions__blocked" role="status">
+          Fix the highlighted periods before saving.
+        </span>
+      }
+      <button type="button" class="settings-btn" [disabled]="!isDirty()" (click)="reset()">
+        Reset
+      </button>
+      <button
+        type="button"
+        class="settings-btn settings-btn--primary"
+        [disabled]="!isDirty() || !isValid() || isSaving()"
+        (click)="submit()"
+      >
+        {{ isSaving() ? 'Saving…' : 'Save working hours' }}
+      </button>
+    </footer>
+  }
+</section>

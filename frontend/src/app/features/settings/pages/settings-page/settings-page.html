@@ -1,0 +1,75 @@
+<section class="settings-page" aria-labelledby="settings-title">
+  <header class="settings-page__header">
+    <p class="settings-page__eyebrow">Clinic administration</p>
+    <h1 id="settings-title">Settings</h1>
+    <p class="settings-page__lead">
+      Operating configuration for this clinic. Other modules read these values.
+    </p>
+  </header>
+
+  @if (!canEdit()) {
+    <p class="settings-page__readonly" role="status">
+      <span class="material-icons" aria-hidden="true">visibility</span>
+      You can view this configuration. Only the clinic owner can change it.
+    </p>
+  }
+
+  @if (store.error(); as message) {
+    <div class="settings-page__alert" role="alert">
+      <span class="material-icons" aria-hidden="true">error_outline</span>
+      <span>{{ message }}</span>
+      <button type="button" aria-label="Dismiss message" (click)="store.dismissError()">
+        <span class="material-icons" aria-hidden="true">close</span>
+      </button>
+    </div>
+  }
+
+  <div class="settings-page__body">
+    <nav class="settings-nav" aria-label="Settings sections">
+      @for (tab of tabs; track tab.id) {
+        <button
+          type="button"
+          class="settings-nav__item"
+          [class.settings-nav__item--active]="activeSection() === tab.id"
+          [attr.aria-current]="activeSection() === tab.id ? 'page' : null"
+          (click)="select(tab.id)"
+        >
+          <span class="material-icons" aria-hidden="true">{{ tab.icon }}</span>
+          <span class="settings-nav__copy">
+            <strong>{{ tab.label }}</strong>
+            <small>{{ tab.description }}</small>
+          </span>
+        </button>
+      }
+    </nav>
+
+    <div class="settings-page__content">
+      @if (store.isLoading() && !store.isLoaded()) {
+        <div class="settings-page__loading" role="status">
+          <span class="settings-page__spinner" aria-hidden="true"></span>
+          Loading clinic configuration…
+        </div>
+      } @else if (store.settings(); as settings) {
+        @switch (activeSection()) {
+          @case ('general') {
+            <app-settings-general [general]="settings.general" [canEdit]="canEdit()" />
+          }
+          @case ('working-hours') {
+            <app-settings-working-hours
+              [workingHours]="settings.workingHours"
+              [canEdit]="canEdit()"
+            />
+          }
+          @case ('scheduling') {
+            <app-settings-scheduling [scheduling]="settings.scheduling" [canEdit]="canEdit()" />
+          }
+        }
+      } @else if (!store.isLoading()) {
+        <div class="settings-page__loading" role="status">
+          Clinic configuration is unavailable.
+          <button type="button" class="settings-btn" (click)="store.load(true)">Try again</button>
+        </div>
+      }
+    </div>
+  </div>
+</section>

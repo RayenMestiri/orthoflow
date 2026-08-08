@@ -75,11 +75,13 @@ export class AuthStore {
   }
 
   async ensureInitialized(): Promise<void> {
-    if (this.statusState() !== 'unknown') {
-      return;
+    if (this.initialization) {
+      return this.initialization;
     }
-    this.initialization ??= this.initialize();
-    return this.initialization;
+    if (this.statusState() === 'unknown') {
+      this.initialization = this.initialize();
+      return this.initialization;
+    }
   }
 
   async refreshAccessTokenOnce(): Promise<string | null> {

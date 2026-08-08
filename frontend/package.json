@@ -26,10 +26,12 @@
     "@angular/platform-browser": "^22.1.0",
     "@angular/router": "^22.1.0",
     "@fontsource-variable/manrope": "^5.3.0",
+    "@fullcalendar/angular": "^7.0.2",
     "gsap": "^3.15.0",
     "material-icons": "^1.13.14",
     "motion": "^13.0.0",
     "rxjs": "~7.8.0",
+    "temporal-polyfill": "^1.0.3",
     "three": "^0.185.1",
     "tslib": "^2.3.0"
   },

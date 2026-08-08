@@ -96,13 +96,12 @@ export const CLOSED_APPOINTMENT_STATUSES: readonly AppointmentStatus[] = [
  * A cancelled or missed slot is free again, so it must not block a rebooking —
  * this is the list the overlap check runs against.
  */
-export const BLOCKING_APPOINTMENT_STATUSES: readonly AppointmentStatus[] = [
+export const CAPACITY_CONSUMING_APPOINTMENT_STATUSES: readonly AppointmentStatus[] = [
   APPOINTMENT_STATUSES.SCHEDULED,
   APPOINTMENT_STATUSES.CONFIRMED,
   APPOINTMENT_STATUSES.ARRIVED,
   APPOINTMENT_STATUSES.WAITING,
   APPOINTMENT_STATUSES.IN_TREATMENT,
-  APPOINTMENT_STATUSES.COMPLETED,
 ];
 
 export function isClosedStatus(status: AppointmentStatus): boolean {
@@ -144,6 +143,14 @@ export interface AppointmentAttributes {
   cancelledAt: Date | null;
   cancelledBy: Types.ObjectId | null;
 
+  arrivedAt: Date | null;
+  treatmentStartedAt: Date | null;
+  completedAt: Date | null;
+  noShowAt: Date | null;
+  markedNoShowBy: Types.ObjectId | null;
+  overbookingOverride: boolean;
+  overbookingApprovedBy: Types.ObjectId | null;
+
   createdBy: Types.ObjectId;
   updatedBy: Types.ObjectId | null;
   createdAt: Date;
@@ -162,6 +169,8 @@ export interface CreateAppointmentInput {
   durationMinutes: number;
   status?: AppointmentStatus;
   note?: string | null;
+  overbookingOverride?: boolean;
+  overbookingApprovedBy?: string | null;
   createdBy: string;
 }
 
@@ -172,6 +181,8 @@ export interface UpdateAppointmentFields {
   endAt?: Date;
   durationMinutes?: number;
   note?: string | null;
+  overbookingOverride?: boolean;
+  overbookingApprovedBy?: string | null;
   updatedBy: string;
 }
 
@@ -198,6 +209,24 @@ export interface AppointmentTypeSummary {
   durationMinutes: number;
 }
 
+export type SlotCapacityState = 'AVAILABLE' | 'BUSY' | 'AT_CAPACITY' | 'OVERBOOKED';
+
+export interface SlotCapacityInfo {
+  state: SlotCapacityState;
+  concurrentAppointments: number;
+  recommendedCapacity: number;
+  overbookingOverride: boolean;
+}
+
+export interface AppointmentActivityDto {
+  id: string;
+  action: string;
+  actorUserId: string | null;
+  actorName: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
 /**
  * What the calendar renders.
  *
@@ -221,6 +250,14 @@ export interface AppointmentDto {
 
   cancellationReason: string | null;
   cancelledAt: string | null;
+  cancelledBy: string | null;
+  arrivedAt: string | null;
+  treatmentStartedAt: string | null;
+  completedAt: string | null;
+  noShowAt: string | null;
+  markedNoShowBy: string | null;
+  overbookingOverride: boolean;
+  overbookingApprovedBy: string | null;
 
   createdBy: string;
   updatedBy: string | null;
@@ -229,4 +266,5 @@ export interface AppointmentDto {
 
   patient: AppointmentPatientSummary | null;
   appointmentType: AppointmentTypeSummary | null;
+  slotCapacity: SlotCapacityInfo;
 }

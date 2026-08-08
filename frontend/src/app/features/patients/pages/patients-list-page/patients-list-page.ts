@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, effect, inject, untracked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  computed,
+  effect,
+  inject,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -19,7 +29,9 @@ export class PatientsListPage {
   readonly store = inject(PatientsStore);
   private readonly auth = inject(AuthStore);
   private readonly permissions = inject(PermissionService);
-  readonly canCreate = this.permissions.can(PERMISSIONS.PATIENTS_CREATE);
+
+  readonly canCreate = computed(() => this.permissions.can(PERMISSIONS.PATIENTS_CREATE));
+  readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
   readonly search = new FormControl('', { nonNullable: true });
 
   constructor() {
@@ -37,6 +49,14 @@ export class PatientsListPage {
         });
       }
     });
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent): void {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      this.searchInput()?.nativeElement.focus();
+    }
   }
 
   setStatus(event: Event): void {

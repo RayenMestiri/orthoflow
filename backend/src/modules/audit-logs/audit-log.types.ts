@@ -16,6 +16,9 @@ export const AUDIT_ACTIONS = {
 
   CLINIC_CREATED: 'clinic.created',
   CLINIC_UPDATED: 'clinic.updated',
+  CLINIC_SETTINGS_UPDATED: 'clinic.settings_updated',
+  CLINIC_WORKING_HOURS_UPDATED: 'clinic.working_hours_updated',
+  CLINIC_SCHEDULING_SETTINGS_UPDATED: 'clinic.scheduling_settings_updated',
 
   MEMBERSHIP_CREATED: 'membership.created',
   MEMBERSHIP_ROLE_CHANGED: 'membership.role_changed',
@@ -34,6 +37,8 @@ export const AUDIT_ACTIONS = {
   APPOINTMENT_UPDATED: 'appointment.updated',
   /** Moved or resized — the time changed, which is worth its own event. */
   APPOINTMENT_RESCHEDULED: 'appointment.rescheduled',
+  APPOINTMENT_DURATION_CHANGED: 'appointment.duration_changed',
+  APPOINTMENT_OVERBOOKED: 'appointment.overbooked',
   APPOINTMENT_STATUS_CHANGED: 'appointment.status_changed',
   APPOINTMENT_CANCELLED: 'appointment.cancelled',
   APPOINTMENT_NO_SHOW: 'appointment.no_show',

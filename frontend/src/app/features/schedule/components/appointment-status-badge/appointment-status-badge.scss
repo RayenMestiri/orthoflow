@@ -1,0 +1,63 @@
+/**
+ * Semantic status colors, all drawn from the design tokens:
+ * neutral → calm positive → informational → attention → active → outcome.
+ */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.66rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+
+  i {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  &[data-status='SCHEDULED'] {
+    color: var(--color-slate);
+    background: var(--color-sage);
+  }
+
+  &[data-status='CONFIRMED'] {
+    color: var(--color-pine-700);
+    background: var(--color-pine-100);
+  }
+
+  &[data-status='ARRIVED'] {
+    color: var(--color-info);
+    background: color-mix(in srgb, var(--color-info) 12%, var(--color-white));
+  }
+
+  &[data-status='WAITING'] {
+    color: var(--color-warning);
+    background: color-mix(in srgb, var(--color-warning) 13%, var(--color-white));
+  }
+
+  &[data-status='IN_TREATMENT'] {
+    color: var(--color-copper-700);
+    background: var(--color-copper-100);
+  }
+
+  &[data-status='COMPLETED'] {
+    color: var(--color-success);
+    background: color-mix(in srgb, var(--color-success) 12%, var(--color-white));
+  }
+
+  &[data-status='NO_SHOW'] {
+    color: var(--color-danger);
+    background: color-mix(in srgb, var(--color-danger) 10%, var(--color-white));
+  }
+
+  &[data-status='CANCELLED'] {
+    color: var(--color-muted);
+    background: var(--color-mist);
+    text-decoration: line-through;
+  }
+}
