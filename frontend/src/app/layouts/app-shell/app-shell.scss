@@ -1,0 +1,409 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+}
+
+.app-shell {
+  display: grid;
+  min-height: 100dvh;
+  grid-template-columns: 16.5rem minmax(0, 1fr);
+  background: #f3f1eb;
+}
+
+.app-shell__sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  height: 100dvh;
+  flex-direction: column;
+  padding: 1.35rem 1.1rem;
+  color: var(--color-white);
+  background:
+    radial-gradient(circle at 0 100%, rgb(200 100 69 / 0.12), transparent 20rem),
+    var(--color-pine-900);
+}
+
+.app-shell__brand {
+  display: flex;
+  min-height: 3rem;
+  align-items: center;
+  gap: 0.7rem;
+  padding-inline: 0.45rem;
+}
+
+.app-shell__brand-mark {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(255 254 251 / 0.2);
+  border-radius: 0.75rem;
+  background: rgb(255 254 251 / 0.08);
+}
+
+.app-shell__brand-mark svg {
+  width: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+}
+
+.app-shell__brand > span:nth-child(2) {
+  display: grid;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.app-shell__brand small {
+  color: rgb(255 254 251 / 0.48);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.app-shell__brand > button {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-left: auto;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  background: transparent;
+}
+
+.app-shell__nav {
+  display: grid;
+  gap: 0.28rem;
+  margin-top: 2.3rem;
+}
+
+.app-shell__nav > p {
+  margin: 0 0 0.55rem;
+  padding-inline: 0.75rem;
+  color: rgb(255 254 251 / 0.4);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.app-shell__nav a,
+.app-shell__nav-link {
+  display: grid;
+  min-height: 2.8rem;
+  grid-template-columns: 1.4rem 1fr auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.65rem;
+  color: rgb(255 254 251 / 0.68);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.app-shell__nav a:hover,
+.app-shell__nav-link--active {
+  color: var(--color-white) !important;
+  background: rgb(255 254 251 / 0.09);
+}
+
+.app-shell__nav .material-icons {
+  font-size: 1.15rem;
+}
+
+.app-shell__nav-link--future {
+  opacity: 0.62;
+}
+
+.app-shell__nav-link--future small {
+  padding: 0.18rem 0.35rem;
+  border-radius: var(--radius-pill);
+  color: rgb(255 254 251 / 0.56);
+  background: rgb(255 254 251 / 0.08);
+  font-size: 0.55rem;
+  text-transform: uppercase;
+}
+
+.app-shell__sidebar-note {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.65rem;
+  margin-top: auto;
+  padding: 0.9rem;
+  border: 1px solid rgb(255 254 251 / 0.09);
+  border-radius: var(--radius-md);
+  background: rgb(255 254 251 / 0.045);
+}
+
+.app-shell__sidebar-note > .material-icons {
+  color: #92cbb5;
+  font-size: 1.1rem;
+}
+
+.app-shell__sidebar-note > span:last-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.app-shell__sidebar-note strong {
+  font-size: 0.7rem;
+}
+
+.app-shell__sidebar-note small {
+  color: rgb(255 254 251 / 0.48);
+  font-size: 0.6rem;
+  line-height: 1.45;
+}
+
+.app-shell__workspace {
+  min-width: 0;
+}
+
+.app-shell__topbar {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  display: flex;
+  min-height: 4.7rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem clamp(1.25rem, 3vw, 2.5rem);
+  border-bottom: 1px solid #e1dfd8;
+  background: rgb(246 243 236 / 0.92);
+  backdrop-filter: blur(14px);
+}
+
+.app-shell__topbar-start,
+.app-shell__topbar-actions,
+.app-shell__clinic,
+.app-shell__account-trigger {
+  display: flex;
+  align-items: center;
+}
+
+.app-shell__topbar-start,
+.app-shell__topbar-actions {
+  gap: 0.75rem;
+}
+
+.app-shell__menu {
+  display: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-pine-900);
+  background: var(--color-white);
+}
+
+.app-shell__clinic {
+  gap: 0.65rem;
+}
+
+.app-shell__clinic > .material-icons {
+  color: var(--color-copper-700);
+  font-size: 1.15rem;
+}
+
+.app-shell__clinic > span:last-child {
+  display: grid;
+}
+
+.app-shell__clinic small,
+.app-shell__account-copy small {
+  color: var(--color-muted);
+  font-size: 0.6rem;
+}
+
+.app-shell__clinic strong,
+.app-shell__account-copy strong {
+  color: var(--color-ink);
+  font-size: 0.76rem;
+}
+
+.app-shell__clinic select {
+  min-height: 2.75rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  font-size: 0.78rem;
+}
+
+.app-shell__utility {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  background: var(--color-white);
+}
+
+.app-shell__account {
+  position: relative;
+}
+
+.app-shell__account-trigger {
+  min-height: 3rem;
+  gap: 0.65rem;
+  padding: 0.25rem 0.35rem 0.25rem 0.3rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+.app-shell__account-avatar {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  border-radius: 0.72rem;
+  color: var(--color-white);
+  background: var(--color-pine-700);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.app-shell__account-copy {
+  display: grid;
+  min-width: 7rem;
+  text-align: left;
+}
+
+.app-shell__account-trigger > .material-icons {
+  color: var(--color-muted);
+  font-size: 1rem;
+}
+
+.app-shell__account-menu {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  width: 15rem;
+  padding: 0.65rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  box-shadow: var(--shadow-lg);
+}
+
+.app-shell__account-menu > div {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.55rem 0.65rem 0.8rem;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.app-shell__account-menu strong {
+  font-size: 0.8rem;
+}
+
+.app-shell__account-menu small {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 0.65rem;
+  text-overflow: ellipsis;
+}
+
+.app-shell__account-menu button {
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.4rem;
+  padding-inline: 0.65rem;
+  border: 0;
+  border-radius: 0.55rem;
+  color: var(--color-danger);
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.app-shell__account-menu button:hover {
+  background: color-mix(in srgb, var(--color-danger) 6%, var(--color-white));
+}
+
+.app-shell__account-menu .material-icons {
+  font-size: 1rem;
+}
+
+.app-shell__main {
+  min-width: 0;
+  padding: clamp(1.5rem, 4vw, 3.25rem);
+}
+
+.app-shell__scrim {
+  display: none;
+}
+
+@media (max-width: 64rem) {
+  .app-shell {
+    display: block;
+  }
+
+  .app-shell__sidebar {
+    position: fixed;
+    width: min(19rem, 86vw);
+    transform: translateX(-105%);
+    transition: transform var(--transition-base);
+  }
+
+  .app-shell--nav-open .app-shell__sidebar {
+    transform: translateX(0);
+  }
+
+  .app-shell__scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 19;
+    display: block;
+    border: 0;
+    background: rgb(13 41 37 / 0.48);
+    backdrop-filter: blur(3px);
+  }
+
+  .app-shell__menu {
+    display: grid;
+  }
+}
+
+@media (max-width: 40rem) {
+  .app-shell__topbar {
+    min-height: 4.25rem;
+    padding-inline: var(--gutter);
+  }
+
+  .app-shell__clinic > .material-icons,
+  .app-shell__clinic small,
+  .app-shell__utility,
+  .app-shell__account-copy,
+  .app-shell__account-trigger > .material-icons {
+    display: none;
+  }
+
+  .app-shell__main {
+    padding: 1.35rem var(--gutter) 2.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell__sidebar {
+    transition: none;
+  }
+
+  .app-shell__topbar,
+  .app-shell__scrim {
+    backdrop-filter: none;
+  }
+}

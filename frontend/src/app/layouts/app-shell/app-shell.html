@@ -1,0 +1,129 @@
+<div class="app-shell" [class.app-shell--nav-open]="navigationOpen()">
+  @if (navigationOpen()) {
+    <button
+      class="app-shell__scrim"
+      type="button"
+      aria-label="Close navigation"
+      (click)="toggleNavigation()"
+    ></button>
+  }
+
+  <aside class="app-shell__sidebar" [attr.aria-hidden]="compact() && !navigationOpen()">
+    <div class="app-shell__brand">
+      <span class="app-shell__brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32">
+          <path
+            d="M8 5.8c2.1-1.7 5.1-1.4 8 .2 2.9-1.6 5.9-1.9 8-.2 3 2.4 1.4 7.2-.1 10.1-1.3 2.5-1.6 8.6-4.6 10.1-1.8.9-2.2-2.3-3.3-5.6-.4-1.2-1.2-1.2-1.6 0-1.1 3.3-1.5 6.5-3.3 5.6-3-1.5-3.3-7.6-4.6-10.1C6.6 13 5 8.2 8 5.8Z"
+          />
+        </svg>
+      </span>
+      <span>OrthoFlow<small>Clinic workspace</small></span>
+      @if (compact()) {
+        <button type="button" aria-label="Close navigation" (click)="toggleNavigation()">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      }
+    </div>
+
+    <nav class="app-shell__nav" aria-label="Clinic workspace">
+      <p>Workspace</p>
+      @for (item of navigation(); track item.label) {
+        @if (item.visible) {
+          @if (item.route) {
+            <a [routerLink]="item.route" routerLinkActive="app-shell__nav-link--active">
+              <span class="material-icons" aria-hidden="true">{{ item.icon }}</span>
+              <span>{{ item.label }}</span>
+            </a>
+          } @else {
+            <span class="app-shell__nav-link app-shell__nav-link--future" aria-disabled="true">
+              <span class="material-icons" aria-hidden="true">{{ item.icon }}</span>
+              <span>{{ item.label }}</span>
+              <small>Soon</small>
+            </span>
+          }
+        }
+      }
+    </nav>
+
+    <div class="app-shell__sidebar-note">
+      <span class="material-icons" aria-hidden="true">verified_user</span>
+      <span
+        ><strong>Role-aware access</strong
+        ><small>{{ roleLabel() }} permissions are active.</small></span
+      >
+    </div>
+  </aside>
+
+  <section class="app-shell__workspace">
+    <header class="app-shell__topbar">
+      <div class="app-shell__topbar-start">
+        <button
+          class="app-shell__menu"
+          type="button"
+          aria-label="Open navigation"
+          (click)="toggleNavigation()"
+        >
+          <span class="material-icons" aria-hidden="true">menu</span>
+        </button>
+        <div class="app-shell__clinic">
+          <span class="material-icons" aria-hidden="true">apartment</span>
+          @if (auth.memberships().length > 1) {
+            <label class="sr-only" for="clinic-selector">Active clinic</label>
+            <select
+              id="clinic-selector"
+              [value]="auth.activeClinicId()"
+              (change)="selectClinic($event)"
+            >
+              @for (membership of auth.memberships(); track membership.clinicId) {
+                <option [value]="membership.clinicId">{{ membership.clinicName }}</option>
+              }
+            </select>
+          } @else {
+            <span
+              ><small>Active clinic</small
+              ><strong>{{
+                auth.activeMembership()?.clinicName ?? 'Platform workspace'
+              }}</strong></span
+            >
+          }
+        </div>
+      </div>
+
+      <div class="app-shell__topbar-actions">
+        <button class="app-shell__utility" type="button" aria-label="Notifications" disabled>
+          <span class="material-icons" aria-hidden="true">notifications_none</span>
+        </button>
+        <div class="app-shell__account">
+          <button
+            type="button"
+            class="app-shell__account-trigger"
+            (click)="toggleAccount()"
+            [attr.aria-expanded]="accountOpen()"
+          >
+            <span class="app-shell__account-avatar">{{ initials() }}</span>
+            <span class="app-shell__account-copy"
+              ><strong>{{ auth.user()?.fullName }}</strong
+              ><small>{{ roleLabel() }}</small></span
+            >
+            <span class="material-icons" aria-hidden="true">expand_more</span>
+          </button>
+          @if (accountOpen()) {
+            <div class="app-shell__account-menu">
+              <div>
+                <strong>{{ auth.user()?.fullName }}</strong
+                ><small>{{ auth.user()?.email }}</small>
+              </div>
+              <button type="button" (click)="logout()">
+                <span class="material-icons" aria-hidden="true">logout</span>Sign out
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </header>
+
+    <main class="app-shell__main">
+      <router-outlet />
+    </main>
+  </section>
+</div>

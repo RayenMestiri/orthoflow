@@ -1,0 +1,102 @@
+<div class="dashboard">
+  <header class="dashboard__header">
+    <div>
+      <p class="dashboard__date">{{ today }}</p>
+      <h1>Good to see you, {{ auth.user()?.firstName }}.</h1>
+      <p>{{ briefing().description }}</p>
+    </div>
+    <span class="dashboard__status"><i></i>Workspace protected</span>
+  </header>
+
+  <div class="dashboard__context" aria-label="Current workspace context">
+    <span
+      ><small>Clinic</small
+      ><strong>{{ auth.activeMembership()?.clinicName ?? 'Platform workspace' }}</strong></span
+    >
+    <span
+      ><small>Access</small><strong>{{ briefing().eyebrow }}</strong></span
+    >
+    <span><small>Foundation</small><strong>Ready for setup</strong></span>
+  </div>
+
+  <section class="dashboard__briefing" aria-labelledby="briefing-title">
+    <div class="dashboard__briefing-copy">
+      <p>{{ briefing().eyebrow }}</p>
+      <h2 id="briefing-title">{{ briefing().title }}</h2>
+    </div>
+    <ol class="dashboard__priorities">
+      @for (priority of briefing().priorities; track priority; let index = $index) {
+        <li>
+          <span>{{ index + 1 }}</span
+          ><strong>{{ priority }}</strong
+          ><small>Configuration opens in the relevant milestone.</small>
+        </li>
+      }
+    </ol>
+  </section>
+
+  <div class="dashboard__work-grid">
+    <section class="dashboard__day" aria-labelledby="day-title">
+      <div class="dashboard__section-head">
+        <div>
+          <p>Operational view</p>
+          <h2 id="day-title">Today’s clinic flow</h2>
+        </div>
+        <span>Schedule module pending</span>
+      </div>
+      <div class="dashboard__timeline">
+        <div>
+          <time>08:00</time><span></span>
+          <p>
+            <strong>Clinic opens</strong
+            ><small>The daily timeline will organize arrivals, chairs, and handoffs.</small>
+          </p>
+        </div>
+        <div class="dashboard__timeline-now">
+          <time>Now</time><span></span>
+          <p>
+            <strong>No live schedule connected yet</strong
+            ><small
+              >This space stays intentionally quiet until appointment data is authoritative.</small
+            >
+          </p>
+        </div>
+        <div>
+          <time>Close</time><span></span>
+          <p>
+            <strong>Traceable day-end</strong
+            ><small>Completed work and physical-payment records will reconcile here.</small>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="dashboard__principles" aria-labelledby="principles-title">
+      <p>Built into the foundation</p>
+      <h2 id="principles-title">Trust before volume.</h2>
+      <ul>
+        <li>
+          <span class="material-icons" aria-hidden="true">domain</span
+          ><span
+            ><strong>Clinic-scoped</strong
+            ><small>Every operational view follows active membership.</small></span
+          >
+        </li>
+        <li>
+          <span class="material-icons" aria-hidden="true">manage_accounts</span
+          ><span
+            ><strong>Role-aware</strong
+            ><small>Navigation reflects permissions, not job-title guesses.</small></span
+          >
+        </li>
+        <li>
+          <span class="material-icons" aria-hidden="true">history</span
+          ><span
+            ><strong>Traceable</strong
+            ><small>Sensitive actions are designed for accountable history.</small></span
+          >
+        </li>
+      </ul>
+    </aside>
+  </div>
+</div>
