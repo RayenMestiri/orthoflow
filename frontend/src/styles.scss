@@ -1,3 +1,4 @@
+@use 'tailwindcss';
 @use '@fontsource-variable/manrope';
 @use 'styles/tokens';
 @use 'styles/typography';
@@ -25,6 +26,10 @@ body {
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+}
+
+body.menu-open {
+  overflow: hidden;
 }
 
 button,

@@ -23,8 +23,9 @@
 
     <button
       class="menu-toggle"
+      [class.menu-toggle--open]="menuOpen()"
       type="button"
-      aria-label="Toggle navigation menu"
+      [attr.aria-label]="menuOpen() ? 'Close navigation menu' : 'Open navigation menu'"
       aria-controls="mobile-navigation"
       [attr.aria-expanded]="menuOpen()"
       (click)="toggleMenu()"
@@ -35,22 +36,44 @@
   </div>
 
   @if (menuOpen()) {
-    <nav class="mobile-nav" id="mobile-navigation" aria-label="Mobile navigation">
-      <span class="mobile-nav__label">Explore OrthoFlow</span>
-      <a href="#product" (click)="closeMenu()">Product <span>01</span></a>
-      <a href="#solutions" (click)="closeMenu()">Solutions <span>02</span></a>
-      <a href="#why-orthoflow" (click)="closeMenu()">Why OrthoFlow <span>03</span></a>
-      <a href="#security" (click)="closeMenu()">Security <span>04</span></a>
-      <a class="button button--primary" href="#waitlist" (click)="closeMenu()">Join the waitlist</a>
-    </nav>
+    <div class="mobile-menu-layer fixed inset-x-0 bottom-0 top-20">
+      <button
+        class="mobile-menu-backdrop"
+        type="button"
+        tabindex="-1"
+        aria-hidden="true"
+        (click)="closeMenu()"
+      ></button>
+      <nav
+        class="mobile-nav"
+        id="mobile-navigation"
+        aria-label="Mobile navigation"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+      >
+        <div class="mobile-nav__head">
+          <span class="mobile-nav__label">Explore OrthoFlow</span>
+          <button class="mobile-nav__close" type="button" (click)="closeMenu()">
+            Close <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <a href="#product" (click)="closeMenu()">Product <span>01</span></a>
+        <a href="#solutions" (click)="closeMenu()">Solutions <span>02</span></a>
+        <a href="#why-orthoflow" (click)="closeMenu()">Why OrthoFlow <span>03</span></a>
+        <a href="#security" (click)="closeMenu()">Security <span>04</span></a>
+        <a class="button button--primary" href="#waitlist" (click)="closeMenu()"
+          >Join the waitlist</a
+        >
+      </nav>
+    </div>
   }
 </header>
 
-<main id="main-content">
+<main id="main-content" [attr.inert]="menuOpen() ? '' : null">
   <router-outlet />
 </main>
 
-<footer class="site-footer">
+<footer class="site-footer" [attr.inert]="menuOpen() ? '' : null">
   <div class="container footer-grid">
     <div class="footer-intro">
       <a class="brand brand--footer" href="#top" aria-label="OrthoFlow home">

@@ -55,6 +55,7 @@
 .brand {
   display: inline-flex;
   width: fit-content;
+  min-height: 2.75rem;
   align-items: center;
   gap: var(--space-2);
   color: var(--color-pine-900);
@@ -86,6 +87,9 @@
 
 .desktop-nav a,
 .footer-links a {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
   color: var(--color-slate);
   font-size: var(--font-size-sm);
   font-weight: 600;
@@ -103,6 +107,7 @@
 }
 
 .menu-toggle,
+.mobile-menu-layer,
 .mobile-nav {
   display: none;
 }
@@ -183,26 +188,77 @@
     width: 1rem;
     height: 1px;
     background: var(--color-ink);
+    transition: transform var(--transition-fast);
+  }
+
+  .menu-toggle--open span:first-child {
+    transform: translateY(0.2rem) rotate(45deg);
+  }
+
+  .menu-toggle--open span:last-child {
+    transform: translateY(-0.2rem) rotate(-45deg);
+  }
+
+  .mobile-menu-layer {
+    display: block;
+  }
+
+  .mobile-menu-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border: 0;
+    background: rgb(23 63 56 / 0.18);
+    backdrop-filter: blur(3px);
+    cursor: pointer;
   }
 
   .mobile-nav {
+    position: relative;
+    z-index: 1;
     display: grid;
     width: min(calc(100% - (2 * var(--gutter))), var(--container));
     padding: var(--space-6);
-    margin: 0 auto var(--space-4);
+    margin: var(--space-4) auto;
     border: 1px solid var(--color-line);
     border-radius: var(--radius-lg);
     background: var(--color-white);
     box-shadow: var(--shadow-lg);
   }
 
+  .mobile-nav__head {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
   .mobile-nav__label {
-    padding-bottom: var(--space-4);
     color: var(--color-muted);
     font-size: var(--font-size-xs);
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
+  }
+
+  .mobile-nav__close {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    padding: 0 var(--space-2);
+    border: 0;
+    color: var(--color-pine-700);
+    background: transparent;
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    gap: var(--space-2);
+    cursor: pointer;
+  }
+
+  .mobile-nav__close span {
+    font-size: 1.15rem;
+    font-weight: 400;
   }
 
   .mobile-nav > a:not(.button) {

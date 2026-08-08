@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { A11yModule } from '@angular/cdk/a11y';
+import { DOCUMENT } from '@angular/common';
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-marketing-layout',
-  imports: [RouterOutlet],
+  imports: [A11yModule, RouterOutlet],
   templateUrl: './marketing-layout.html',
   styleUrl: './marketing-layout.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -15,6 +17,14 @@ import { RouterOutlet } from '@angular/router';
 export class MarketingLayout {
   protected readonly menuOpen = signal(false);
   protected readonly scrolled = signal(false);
+  private readonly document = inject(DOCUMENT);
+
+  constructor() {
+    effect((onCleanup) => {
+      this.document.body.classList.toggle('menu-open', this.menuOpen());
+      onCleanup(() => this.document.body.classList.remove('menu-open'));
+    });
+  }
 
   protected toggleMenu(): void {
     this.menuOpen.update((open) => !open);

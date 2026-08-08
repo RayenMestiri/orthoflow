@@ -1,7 +1,7 @@
-<section class="hero" aria-labelledby="hero-title">
+<section class="hero relative isolate" aria-labelledby="hero-title">
   <div class="hero__grid"></div>
   <div class="container hero__content">
-    <div class="hero__copy reveal">
+    <div class="hero__copy">
       <span class="eyebrow">Practice management, rethought</span>
       <h1 id="hero-title">Run your orthodontic practice with clarity.</h1>
       <p>
@@ -24,7 +24,7 @@
       </div>
     </div>
 
-    <div class="hero__preview reveal">
+    <div class="hero__preview">
       <app-product-preview />
       <div class="preview-caption">
         <span class="preview-caption__line"></span>
@@ -67,9 +67,13 @@
     <div class="problem-list">
       @for (problem of problems; track problem.number) {
         <article class="problem-item">
-          <span>{{ problem.number }}</span>
-          <h3>{{ problem.title }}</h3>
+          <span class="problem-item__number">{{ problem.number }}</span>
+          <div class="problem-item__title">
+            <span>{{ problem.context }}</span>
+            <h3>{{ problem.title }}</h3>
+          </div>
           <p>{{ problem.description }}</p>
+          <span class="problem-item__impact">{{ problem.impact }}</span>
         </article>
       }
     </div>
@@ -87,44 +91,55 @@
       </p>
     </div>
 
-    <div class="capability-grid">
-      @for (capability of capabilities; track capability.name; let index = $index) {
-        <article class="capability capability--{{ capability.tone }}">
-          <div class="capability__meta">
-            <span>0{{ index + 1 }}</span>
-            <span>{{ capability.name }}</span>
-          </div>
-          <div>
-            <h3>{{ capability.summary }}</h3>
-            <p>{{ capability.detail }}</p>
-          </div>
-          @if (index === 0) {
-            <div class="mini-schedule" aria-hidden="true">
-              <span>09:00 <strong>Control</strong></span>
-              <span>09:45 <strong>New patient</strong></span>
-              <span>10:30 <strong>Opening</strong></span>
+    <div class="capability-layout">
+      <article class="capability-feature">
+        <div class="capability__meta">
+          <span>01</span>
+          <span>{{ featuredCapability.name }}</span>
+        </div>
+        <div class="capability-feature__copy">
+          <h3>{{ featuredCapability.summary }}</h3>
+          <p>{{ featuredCapability.detail }}</p>
+        </div>
+        <div class="mini-schedule" aria-hidden="true">
+          <span>09:00 <strong>Control</strong><small>Arrived</small></span>
+          <span>09:45 <strong>New patient</strong><small>Confirmed</small></span>
+          <span>10:30 <strong>Opening</strong><small>Waiting list</small></span>
+        </div>
+      </article>
+
+      <div class="capability-ledger">
+        @for (capability of supportingCapabilities; track capability.name; let index = $index) {
+          <article class="capability-row capability-row--{{ capability.tone }}">
+            <div class="capability__meta">
+              <span>0{{ index + 2 }}</span>
+              <span>{{ capability.name }}</span>
             </div>
-          }
-          @if (index === 1) {
-            <div class="treatment-strip" aria-hidden="true">
-              <span class="active">Consult</span><i></i><span class="active">Braces</span><i></i
-              ><span>Retention</span>
+            <div class="capability-row__copy">
+              <h3>{{ capability.summary }}</h3>
+              <p>{{ capability.detail }}</p>
             </div>
-          }
-          @if (index === 2) {
-            <div class="receipt-chip" aria-hidden="true">
-              <span>Recorded today</span>
-              <strong>200 TND</strong>
-              <small>Receipt #OF-284</small>
-            </div>
-          }
-          @if (index === 3) {
-            <div class="role-list" aria-hidden="true">
-              <span>Owner</span><span>Doctor</span><span>Assistant</span><span>Front desk</span>
-            </div>
-          }
-        </article>
-      }
+            @if (index === 0) {
+              <div class="treatment-strip" aria-hidden="true">
+                <span class="active">Consult</span><i></i><span class="active">Braces</span><i></i
+                ><span>Retention</span>
+              </div>
+            }
+            @if (index === 1) {
+              <div class="receipt-chip" aria-hidden="true">
+                <span>Recorded today</span>
+                <strong>200 TND</strong>
+                <small>Receipt #OF-284</small>
+              </div>
+            }
+            @if (index === 2) {
+              <div class="role-list" aria-hidden="true">
+                <span>Owner</span><span>Doctor</span><span>Assistant</span><span>Front desk</span>
+              </div>
+            }
+          </article>
+        }
+      </div>
     </div>
   </div>
 </section>
@@ -209,14 +224,55 @@
       <p>Each action advances the same patient story, so the next person never starts from zero.</p>
     </div>
 
-    <ol class="workflow-track">
-      @for (step of workflow; track step; let index = $index) {
-        <li>
-          <span>{{ index + 1 }}</span>
-          <strong>{{ step }}</strong>
-        </li>
-      }
-    </ol>
+    <div class="workflow-canvas relative overflow-hidden" data-workflow>
+      <div class="workflow-canvas__header">
+        <div>
+          <span class="workflow-canvas__label">Patient journey</span>
+          <strong>Lina Ben Amor · Monthly control</strong>
+        </div>
+        <span class="workflow-canvas__status"><i></i> Context synced</span>
+      </div>
+
+      <div class="workflow-progress" aria-hidden="true">
+        <span data-workflow-progress></span>
+      </div>
+
+      <ol class="workflow-track">
+        @for (phase of workflowPhases; track phase.number) {
+          <li data-workflow-phase>
+            <div class="workflow-phase__heading">
+              <span>{{ phase.number }}</span>
+              <div>
+                <strong>{{ phase.title }}</strong>
+                <small>{{ phase.owner }}</small>
+              </div>
+            </div>
+            <ul>
+              @for (step of phase.steps; track step.label) {
+                <li class="workflow-step" [class.workflow-step--emphasis]="step.emphasis">
+                  <span class="workflow-step__check" aria-hidden="true">✓</span>
+                  <div>
+                    <strong>{{ step.label }}</strong>
+                    <small>{{ step.actor }}</small>
+                  </div>
+                </li>
+              }
+            </ul>
+          </li>
+        }
+      </ol>
+
+      <div class="workflow-outcome">
+        <p>
+          <strong>Nothing gets handed off without context.</strong> Every update advances the same
+          patient record.
+        </p>
+        <div>
+          <span>Guardian <strong>Ready to notify</strong></span>
+          <span>Next visit <strong>16 June · 09:30</strong></span>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
