@@ -37,6 +37,7 @@ export interface BuildAppOptions {
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({
     logger: loggerOptions,
+    pluginTimeout: 30_000,
     /**
      * Behind a load balancer, `request.ip` is the proxy unless we trust it —
      * which would make both rate limiting and audit trails describe the wrong
