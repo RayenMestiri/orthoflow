@@ -1,0 +1,257 @@
+:host {
+  display: block;
+}
+.patient-editor {
+  width: min(100%, 64rem);
+  margin-inline: auto;
+}
+.patient-editor__header > a {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-pine-700);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.patient-editor__header > a .material-icons {
+  font-size: 1rem;
+}
+.patient-editor__header > p {
+  margin: 1.2rem 0 0.5rem;
+  color: var(--color-copper-700);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.patient-editor__header h1 {
+  margin: 0;
+  color: var(--color-pine-900);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 650;
+  letter-spacing: -0.05em;
+}
+.patient-editor__header > span {
+  display: block;
+  margin-top: 0.75rem;
+  color: var(--color-slate);
+  line-height: 1.6;
+}
+form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.editor-section {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.42fr) minmax(0, 1fr);
+  gap: clamp(1.5rem, 4vw, 3rem);
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+}
+.editor-section > header {
+  display: grid;
+  grid-template-columns: 1.8rem 1fr;
+  align-content: start;
+  gap: 0.6rem;
+}
+.editor-section > header > span {
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border-radius: 0.55rem;
+  color: var(--color-pine-700);
+  background: var(--color-sage);
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+.editor-section h2 {
+  margin: 0;
+  color: var(--color-pine-900);
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+.editor-section header p {
+  margin: 0.35rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.65rem;
+  line-height: 1.55;
+}
+.editor-section header button {
+  grid-column: 2;
+  width: fit-content;
+  min-height: 2.5rem;
+  margin-top: 0.65rem;
+  padding-inline: 0.7rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-pine-700);
+  background: transparent;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+.editor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: start;
+  gap: 1rem;
+}
+.editor-grid label {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  color: var(--color-ink);
+  font-size: 0.65rem;
+  font-weight: 650;
+}
+.editor-grid input,
+.editor-grid select,
+.editor-grid textarea {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d8d6cf;
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  background: #fffefa;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.editor-grid textarea {
+  min-height: 6.5rem;
+  resize: vertical;
+  line-height: 1.55;
+}
+.editor-grid input:focus,
+.editor-grid select:focus,
+.editor-grid textarea:focus {
+  border-color: var(--color-pine-700);
+  outline: 3px solid rgb(23 63 56 / 0.1);
+}
+.editor-grid label > small {
+  color: var(--color-danger);
+  font-size: 0.58rem;
+  font-weight: 500;
+}
+.editor-grid__wide {
+  grid-column: 1 / -1;
+}
+.editor-check {
+  grid-template-columns: auto 1fr;
+  align-items: flex-start;
+  padding: 0.8rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+}
+.editor-check input {
+  width: 1.1rem;
+  min-height: 1.1rem;
+  margin-top: 0.1rem;
+  accent-color: var(--color-pine-700);
+}
+.editor-check span {
+  display: grid;
+  gap: 0.2rem;
+}
+.editor-check small {
+  color: var(--color-muted) !important;
+  line-height: 1.45;
+}
+.patient-editor__error {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 22%, var(--color-line));
+  border-radius: var(--radius-sm);
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 5%, white);
+  font-size: 0.7rem;
+}
+.patient-editor__error .material-icons {
+  font-size: 1rem;
+}
+.patient-editor__loading {
+  margin-top: 2rem;
+  padding: 3rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  color: var(--color-muted);
+  background: var(--color-white);
+  text-align: center;
+}
+.patient-editor__actions {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: rgb(255 254 251 / 0.94);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+}
+.patient-editor__actions a,
+.patient-editor__actions button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding-inline: 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.patient-editor__actions a {
+  color: var(--color-pine-700);
+}
+.patient-editor__actions button {
+  border: 0;
+  color: var(--color-white);
+  background: var(--color-pine-700);
+}
+.patient-editor__actions button:disabled {
+  opacity: 0.6;
+}
+.patient-editor__actions .material-icons {
+  font-size: 1rem;
+}
+@media (max-width: 50rem) {
+  .editor-section {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 38rem) {
+  .editor-grid {
+    grid-template-columns: 1fr;
+  }
+  .editor-grid__wide {
+    grid-column: auto;
+  }
+  .patient-editor__actions {
+    bottom: 0.5rem;
+  }
+  .patient-editor__actions a,
+  .patient-editor__actions button {
+    flex: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .patient-editor__actions {
+    backdrop-filter: none;
+  }
+}

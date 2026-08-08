@@ -1,0 +1,371 @@
+<section class="patient-profile" aria-labelledby="patient-profile-title">
+  @if (loading()) {
+    <div class="profile-state" role="status">Loading secure patient profile…</div>
+  } @else if (error() || !patient()) {
+    <div class="profile-state" role="alert">
+      <span class="material-icons" aria-hidden="true">error_outline</span
+      ><strong>Patient profile unavailable</strong><small>{{ error() }}</small
+      ><button type="button" (click)="load()">Try again</button>
+    </div>
+  } @else {
+    @let current = patient()!;
+    <a class="patient-profile__back" routerLink="/app/patients"
+      ><span class="material-icons" aria-hidden="true">arrow_back</span>Patient directory</a
+    >
+    @if (notice()) {
+      <div class="profile-notice" role="status">
+        <span class="material-icons" aria-hidden="true">check_circle</span>{{ notice()
+        }}<button type="button" aria-label="Dismiss message" (click)="notice.set(null)">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </div>
+    }
+
+    <header class="profile-header">
+      <div class="profile-header__identity">
+        <span class="profile-avatar">{{ initials(current.firstName, current.lastName) }}</span>
+        <div>
+          <p>Patient profile</p>
+          <h1 id="patient-profile-title">{{ current.fullName }}</h1>
+          <span>{{ current.referenceNumber ?? 'No patient reference' }}</span>
+        </div>
+      </div>
+      <div class="profile-header__actions">
+        @if (canUpdate && current.status !== 'ARCHIVED') {
+          <a [routerLink]="['/app/patients', current.id, 'edit']"
+            ><span class="material-icons" aria-hidden="true">edit</span>Edit</a
+          >
+        }
+        <button type="button" disabled title="Scheduling is planned for a later phase">
+          New appointment
+        </button>
+        <button type="button" disabled title="Treatment management is planned for a later phase">
+          Add treatment
+        </button>
+        <button type="button" disabled title="Cash records are planned for a later phase">
+          Record payment
+        </button>
+      </div>
+    </header>
+
+    <div class="profile-facts" aria-label="Patient summary">
+      <span
+        ><small>Status</small
+        ><strong class="profile-status" [attr.data-status]="current.status"
+          ><i></i>{{ current.status.toLowerCase() }}</strong
+        ></span
+      >
+      <span
+        ><small>Age</small
+        ><strong>{{ current.age === null ? '—' : current.age + ' years' }}</strong></span
+      >
+      <span
+        ><small>Primary guardian</small
+        ><strong>{{ primaryGuardian()?.fullName ?? '—' }}</strong></span
+      >
+      <span
+        ><small>Phone</small><strong>{{ current.phone ?? '—' }}</strong></span
+      >
+    </div>
+
+    <nav class="profile-tabs" aria-label="Patient profile sections">
+      <button
+        type="button"
+        [class.active]="activeView() === 'overview'"
+        (click)="activeView.set('overview')"
+      >
+        Overview
+      </button>
+      <button
+        type="button"
+        [class.active]="activeView() === 'activity'"
+        (click)="activeView.set('activity')"
+      >
+        Activity <span>{{ activity().length }}</span>
+      </button>
+      <div aria-label="Future patient sections">
+        <span>Appointments</span><span>Treatment</span><span>Payments</span><span>Documents</span>
+      </div>
+    </nav>
+
+    @if (activeView() === 'overview') {
+      <div class="profile-overview">
+        <section class="profile-panel">
+          <header>
+            <div>
+              <p>Administrative record</p>
+              <h2>Patient information</h2>
+            </div>
+            @if (canUpdate && current.status !== 'ARCHIVED') {
+              <a [routerLink]="['/app/patients', current.id, 'edit']">Edit information</a>
+            }
+          </header>
+          <dl class="profile-definition">
+            <div>
+              <dt>Full name</dt>
+              <dd>{{ current.fullName }}</dd>
+            </div>
+            <div>
+              <dt>Birth date</dt>
+              <dd>{{ formatBirthDate(current.birthDate) }}</dd>
+            </div>
+            <div>
+              <dt>Gender</dt>
+              <dd>
+                {{ current.gender === 'UNSPECIFIED' ? '—' : formatEnumLabel(current.gender) }}
+              </dd>
+            </div>
+            <div>
+              <dt>Phone</dt>
+              <dd>{{ current.phone ?? '—' }}</dd>
+            </div>
+            <div>
+              <dt>Email</dt>
+              <dd>{{ current.email ?? '—' }}</dd>
+            </div>
+            <div>
+              <dt>Address</dt>
+              <dd>{{ formatAddress(current) }}</dd>
+            </div>
+            <div class="wide">
+              <dt>Administrative note</dt>
+              <dd>{{ current.notes ?? '—' }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="profile-panel guardians-panel">
+          <header>
+            <div>
+              <p>Responsible adults</p>
+              <h2>Guardians</h2>
+            </div>
+            @if (canUpdate && current.status !== 'ARCHIVED') {
+              <button type="button" (click)="openGuardian()">
+                <span class="material-icons" aria-hidden="true">add</span>Add guardian
+              </button>
+            }
+          </header>
+          @if (guardians().length === 0) {
+            <div class="guardian-empty">
+              <span class="material-icons" aria-hidden="true">family_restroom</span
+              ><strong>No guardian linked</strong
+              ><small>Add a responsible adult when this patient is a minor.</small>
+            </div>
+          } @else {
+            <div class="guardian-list">
+              @for (guardian of guardians(); track guardian.id) {
+                <article>
+                  <span class="guardian-avatar">{{
+                    initials(guardian.firstName, guardian.lastName)
+                  }}</span>
+                  <div>
+                    <h3>{{ guardian.fullName }}</h3>
+                    <p>{{ relationshipLabel(guardian.relationship) }}</p>
+                    <small>{{
+                      guardian.phone ?? guardian.email ?? 'No contact information'
+                    }}</small>
+                  </div>
+                  <div class="guardian-markers">
+                    @if (guardian.isPrimary) {
+                      <span>Primary</span>
+                    }
+                    @if (guardian.financiallyResponsible) {
+                      <span>Financially responsible</span>
+                    }
+                  </div>
+                  @if (canUpdate && current.status !== 'ARCHIVED') {
+                    <button
+                      type="button"
+                      [attr.aria-label]="'Edit ' + guardian.fullName"
+                      (click)="openGuardian(guardian)"
+                    >
+                      <span class="material-icons" aria-hidden="true">edit</span>
+                    </button>
+                  }
+                </article>
+              }
+            </div>
+          }
+        </section>
+
+        <section class="profile-panel clinic-panel">
+          <header>
+            <div>
+              <p>Record provenance</p>
+              <h2>Clinic information</h2>
+            </div>
+          </header>
+          <dl class="profile-definition">
+            <div>
+              <dt>Patient since</dt>
+              <dd>{{ current.createdAt | date: 'longDate' }}</dd>
+            </div>
+            <div>
+              <dt>Created by</dt>
+              <dd>{{ createdBy() }}</dd>
+            </div>
+            <div>
+              <dt>Last updated</dt>
+              <dd>{{ current.updatedAt | date: 'medium' }}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>{{ formatEnumLabel(current.status) }}</dd>
+            </div>
+          </dl>
+          @if (canArchive && current.status !== 'ARCHIVED') {
+            <div class="archive-zone">
+              <div>
+                <strong>Archive patient</strong
+                ><small
+                  >Removes this patient from the default directory without deleting history.</small
+                >
+              </div>
+              <button type="button" (click)="archiveOpen.set(true)">Archive</button>
+            </div>
+          }
+        </section>
+      </div>
+    } @else {
+      <section class="profile-panel activity-panel">
+        <header>
+          <div>
+            <p>Real audit history</p>
+            <h2>Patient activity</h2>
+          </div>
+          <span>Newest first</span>
+        </header>
+        @if (activity().length === 0) {
+          <div class="guardian-empty">
+            <span class="material-icons" aria-hidden="true">history</span
+            ><strong>No activity recorded</strong
+            ><small>Auditable patient changes will appear here.</small>
+          </div>
+        }
+        <ol class="activity-list">
+          @for (item of activity(); track item.id) {
+            <li>
+              <span class="activity-dot" aria-hidden="true"></span>
+              <div>
+                <strong>{{ actionLabel(item.action) }}</strong>
+                <p>By {{ item.actorName }}</p>
+              </div>
+              <time [attr.datetime]="item.createdAt">{{ item.createdAt | date: 'medium' }}</time>
+            </li>
+          }
+        </ol>
+      </section>
+    }
+
+    @if (guardianPanelOpen()) {
+      <div
+        class="profile-overlay"
+        role="presentation"
+        (click)="closeGuardian()"
+        (keydown.escape)="closeGuardian()"
+      >
+        <section
+          class="guardian-editor"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="guardian-editor-title"
+          cdkTrapFocus
+          [cdkTrapFocusAutoCapture]="true"
+          (click)="$event.stopPropagation()"
+          (keydown.escape)="closeGuardian()"
+        >
+          <header>
+            <div>
+              <p>Responsible adult</p>
+              <h2 id="guardian-editor-title">
+                {{ editingGuardian() ? 'Edit guardian' : 'Add guardian' }}
+              </h2>
+            </div>
+            <button type="button" aria-label="Close guardian form" (click)="closeGuardian()">
+              <span class="material-icons" aria-hidden="true">close</span>
+            </button>
+          </header>
+          <form [formGroup]="guardianForm" (ngSubmit)="saveGuardian()">
+            @if (guardianError()) {
+              <div class="guardian-editor__error" role="alert">{{ guardianError() }}</div>
+            }
+            <div class="guardian-editor__grid">
+              <label>First name<input formControlName="firstName" required /></label
+              ><label>Last name<input formControlName="lastName" required /></label>
+              <label
+                >Relationship<select formControlName="relationship">
+                  <option value="MOTHER">Mother</option>
+                  <option value="FATHER">Father</option>
+                  <option value="LEGAL_GUARDIAN">Legal guardian</option>
+                  <option value="OTHER">Other</option>
+                </select></label
+              >
+              <label>Phone<input type="tel" formControlName="phone" /></label
+              ><label>Email<input type="email" formControlName="email" /></label>
+              <label
+                >Contact preference<select formControlName="contactPreference">
+                  <option value="NO_PREFERENCE">No preference</option>
+                  <option value="PHONE">Phone</option>
+                  <option value="EMAIL">Email</option>
+                </select></label
+              >
+              <label class="guardian-check"
+                ><input type="checkbox" formControlName="isPrimary" /><span
+                  ><strong>Primary guardian</strong
+                  ><small>Shown first on this profile.</small></span
+                ></label
+              >
+              <label class="guardian-check"
+                ><input type="checkbox" formControlName="financiallyResponsible" /><span
+                  ><strong>Financially responsible</strong
+                  ><small>Administrative responsibility marker.</small></span
+                ></label
+              >
+            </div>
+            <footer>
+              <button type="button" (click)="closeGuardian()">Cancel</button
+              ><button type="submit" [disabled]="guardianSaving()">
+                {{ guardianSaving() ? 'Saving…' : 'Save guardian' }}
+              </button>
+            </footer>
+          </form>
+        </section>
+      </div>
+    }
+
+    @if (archiveOpen()) {
+      <div
+        class="profile-overlay"
+        role="presentation"
+        (click)="archiveOpen.set(false)"
+        (keydown.escape)="archiveOpen.set(false)"
+      >
+        <section
+          class="archive-dialog"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="archive-title"
+          aria-describedby="archive-description"
+          cdkTrapFocus
+          [cdkTrapFocusAutoCapture]="true"
+          (click)="$event.stopPropagation()"
+          (keydown.escape)="archiveOpen.set(false)"
+        >
+          <span class="material-icons" aria-hidden="true">inventory_2</span>
+          <h2 id="archive-title">Archive {{ current.fullName }}?</h2>
+          <p id="archive-description">
+            The record and audit history remain intact. The patient will move to the archived
+            directory.
+          </p>
+          <footer>
+            <button type="button" (click)="archiveOpen.set(false)">Keep active</button
+            ><button type="button" [disabled]="archiving()" (click)="archive()">
+              {{ archiving() ? 'Archiving…' : 'Archive patient' }}
+            </button>
+          </footer>
+        </section>
+      </div>
+    }
+  }
+</section>

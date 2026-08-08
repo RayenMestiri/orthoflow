@@ -23,6 +23,7 @@ export const SESSION_ID = '652f1c9b8a1e4f0012ab0002';
 export const CLINIC_A = '652f1c9b8a1e4f0012ab34cd';
 export const CLINIC_B = '652f1c9b8a1e4f0012ab99ff';
 export const PATIENT_ID = '652f1c9b8a1e4f0012abaaaa';
+export const GUARDIAN_ID = '652f1c9b8a1e4f0012abbbbb';
 
 /** Knobs each test turns to describe the caller and their clinic. */
 export const testState = {
@@ -72,6 +73,7 @@ export function patientRecord(clinicId: string, patientId = PATIENT_ID) {
     clinicId: new Types.ObjectId(clinicId),
     firstName: 'Yasmine',
     lastName: 'Trabelsi',
+    referenceNumber: 'PT-0012',
     birthDate: new Date('2014-03-21T00:00:00.000Z'),
     gender: 'FEMALE' as const,
     phone: '+216 20 123 456',
@@ -82,6 +84,36 @@ export function patientRecord(clinicId: string, patientId = PATIENT_ID) {
     createdBy: new Types.ObjectId(USER_ID),
     archivedAt: null,
     archivedBy: null,
+    createdAt: FIXED_DATE,
+    updatedAt: FIXED_DATE,
+  };
+}
+
+export function guardianRecord(clinicId: string, guardianId = GUARDIAN_ID) {
+  return {
+    _id: new Types.ObjectId(guardianId),
+    clinicId: new Types.ObjectId(clinicId),
+    firstName: 'Leila',
+    lastName: 'Trabelsi',
+    phone: '+216 20 100 200',
+    email: 'leila@example.com',
+    createdBy: new Types.ObjectId(USER_ID),
+    createdAt: FIXED_DATE,
+    updatedAt: FIXED_DATE,
+  };
+}
+
+export function patientGuardianRecord(clinicId: string) {
+  return {
+    _id: new Types.ObjectId(),
+    clinicId: new Types.ObjectId(clinicId),
+    patientId: new Types.ObjectId(PATIENT_ID),
+    guardianId: new Types.ObjectId(GUARDIAN_ID),
+    relationship: 'MOTHER' as const,
+    isPrimary: true,
+    financiallyResponsible: true,
+    contactPreference: 'PHONE' as const,
+    createdBy: new Types.ObjectId(USER_ID),
     createdAt: FIXED_DATE,
     updatedAt: FIXED_DATE,
   };
@@ -154,8 +186,9 @@ export const clinicRepositoryMock = {
 };
 
 export const patientRepositoryMock = {
-  findByIdInClinic: vi.fn(async (patientId: string, clinicId: string) =>
-    patientRecord(clinicId, patientId),
+  findByIdInClinic: vi.fn(
+    async (patientId: string, clinicId: string): Promise<ReturnType<typeof patientRecord> | null> =>
+      patientRecord(clinicId, patientId),
   ),
   listByClinic: vi.fn(async (clinicId: string) => ({
     items: [patientRecord(clinicId)],
@@ -165,6 +198,32 @@ export const patientRepositoryMock = {
   update: vi.fn(async (patientId: string, clinicId: string) => patientRecord(clinicId, patientId)),
   archive: vi.fn(async (patientId: string, clinicId: string) => patientRecord(clinicId, patientId)),
   restore: vi.fn(async (patientId: string, clinicId: string) => patientRecord(clinicId, patientId)),
+};
+
+export const guardianRepositoryMock = {
+  create: vi.fn(async (clinicId: string) => guardianRecord(clinicId)),
+  findManyByIdsInClinic: vi.fn(async (_guardianIds: string[], clinicId: string) => [
+    guardianRecord(clinicId),
+  ]),
+  updateInClinic: vi.fn(async (_guardianId: string, clinicId: string) => guardianRecord(clinicId)),
+};
+
+export const patientGuardianRepositoryMock = {
+  listByPatient: vi.fn(async (_patientId: string, clinicId: string) => [
+    patientGuardianRecord(clinicId),
+  ]),
+  listPrimaryByPatientIds: vi.fn(async (_patientIds: string[], clinicId: string) => [
+    patientGuardianRecord(clinicId),
+  ]),
+  findByPatientAndGuardian: vi.fn(
+    async (_patientId: string, _guardianId: string, clinicId: string) =>
+      patientGuardianRecord(clinicId),
+  ),
+  create: vi.fn(async (input: { clinicId: string }) => patientGuardianRecord(input.clinicId)),
+  clearPrimary: vi.fn(async () => undefined),
+  update: vi.fn(async (_patientId: string, _guardianId: string, clinicId: string) =>
+    patientGuardianRecord(clinicId),
+  ),
 };
 
 export const auditLogRepositoryMock = {
@@ -190,6 +249,8 @@ export function resetRepositoryMocks(): void {
     membershipRepositoryMock,
     clinicRepositoryMock,
     patientRepositoryMock,
+    guardianRepositoryMock,
+    patientGuardianRepositoryMock,
     auditLogRepositoryMock,
   ];
 

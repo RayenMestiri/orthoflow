@@ -17,11 +17,16 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const store = inject(AuthStore);
   const isPublicAuthRequest = PUBLIC_AUTH_PATHS.some((path) => request.url.endsWith(path));
   const token = store.accessToken();
+  const clinicId = store.activeClinicId();
+  const protectedHeaders = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(clinicId ? { 'x-clinic-id': clinicId } : {}),
+  };
   const authorizedRequest =
     token && !isPublicAuthRequest
       ? request.clone({
           withCredentials: true,
-          setHeaders: { Authorization: `Bearer ${token}` },
+          setHeaders: protectedHeaders,
         })
       : request.clone({ withCredentials: true });
 
@@ -39,7 +44,10 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
           return next(
             request.clone({
               withCredentials: true,
-              setHeaders: { Authorization: `Bearer ${refreshedToken}` },
+              setHeaders: {
+                Authorization: `Bearer ${refreshedToken}`,
+                ...(store.activeClinicId() ? { 'x-clinic-id': store.activeClinicId()! } : {}),
+              },
             }),
           );
         }),

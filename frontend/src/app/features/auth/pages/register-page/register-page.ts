@@ -53,6 +53,18 @@ export class RegisterPage {
     };
   });
 
+  /** How many of the three requirements are met — drives the strength meter. */
+  readonly passwordScore = computed(
+    () => Object.values(this.passwordChecks()).filter(Boolean).length,
+  );
+
+  readonly passwordStrengthLabel = computed(() => {
+    if (this.passwordValue().length === 0) {
+      return 'not set';
+    }
+    return ['weak', 'weak', 'almost there', 'strong'][this.passwordScore()] ?? 'weak';
+  });
+
   togglePassword(): void {
     this.passwordVisible.update((visible) => !visible);
   }

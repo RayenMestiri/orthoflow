@@ -27,6 +27,13 @@ vi.mock('../../src/modules/clinics/clinic.repository.js', async () => ({
 vi.mock('../../src/modules/patients/patient.repository.js', async () => ({
   patientRepository: (await import('../helpers/repository-mocks.js')).patientRepositoryMock,
 }));
+vi.mock('../../src/modules/guardians/guardian.repository.js', async () => ({
+  guardianRepository: (await import('../helpers/repository-mocks.js')).guardianRepositoryMock,
+}));
+vi.mock('../../src/modules/guardians/patient-guardian.repository.js', async () => ({
+  patientGuardianRepository: (await import('../helpers/repository-mocks.js'))
+    .patientGuardianRepositoryMock,
+}));
 vi.mock('../../src/modules/audit-logs/audit-log.repository.js', async () => ({
   auditLogRepository: (await import('../helpers/repository-mocks.js')).auditLogRepositoryMock,
 }));

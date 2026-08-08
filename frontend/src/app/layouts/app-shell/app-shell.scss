@@ -355,12 +355,16 @@
   .app-shell__sidebar {
     position: fixed;
     width: min(19rem, 86vw);
+    visibility: hidden;
     transform: translateX(-105%);
+    pointer-events: none;
     transition: transform var(--transition-base);
   }
 
   .app-shell--nav-open .app-shell__sidebar {
+    visibility: visible;
     transform: translateX(0);
+    pointer-events: auto;
   }
 
   .app-shell__scrim {

@@ -179,8 +179,8 @@ schemas simply do not declare the field.
   `isSessionUsable`).
 - Login must not reveal whether an email is registered: unknown accounts still pay the Argon2 cost.
 
-Implemented in this milestone: password reset and email verification with expiring,
-single-use, attempt-limited codes delivered through backend SMTP. Still to build: MFA.
+Implemented: password reset and email verification with expiring, single-use, attempt-limited codes
+delivered through backend SMTP. Still to build: MFA.
 
 ## 7. Authorization (RBAC)
 
@@ -364,7 +364,7 @@ replay detection.
 
 ## 20. Current development stage
 
-**Milestone 1 — foundation. Complete.**
+**Phase 2 — patients and guardians. Complete.**
 
 Implemented:
 
@@ -378,13 +378,15 @@ Implemented:
 - Users, clinics, clinic memberships.
 - RBAC and tenant isolation.
 - Patients — the first business domain, used as the reference implementation.
+- Guardians and patient↔guardian relationships, including primary and financial responsibility.
+- Patient-scoped activity history backed by immutable audit records.
 - Audit logging (write side wired into services; read side for clinic owners).
 - `/health` and `/health/ready`.
 - Media service abstraction (no upload endpoints yet).
 - Development seed script.
 
 **Deliberately not built yet** — do not add these without a milestone:
-appointments and scheduling, treatments, cash records, receipts, guardians, notifications, Redis,
+appointments and scheduling, treatments, cash records, receipts, notifications, Redis,
 analytics, AI, the parent portal, PDF receipt generation, media upload endpoints.
 
 ### Notes for the next milestones

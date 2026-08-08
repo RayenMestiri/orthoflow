@@ -1,3 +1,11 @@
+/**
+ * Shared auth form system.
+ *
+ * Every auth page (login, register, forgot, reset, verify) composes these
+ * classes, so a field looks and behaves identically wherever it appears. Page
+ * stylesheets only add what is genuinely unique to that page.
+ */
+
 .auth-form-page {
   width: min(100%, 33rem);
   padding-block: 1rem;
@@ -7,17 +15,30 @@
   width: min(100%, 28rem);
 }
 
+/* ---------------------------------------------------------------- header -- */
+
 .auth-form-header {
-  margin-bottom: 1.8rem;
+  margin-bottom: 1.7rem;
 }
 
 .auth-form-eyebrow {
-  margin: 0 0 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 0.7rem;
   color: var(--color-copper-700);
   font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.auth-form-eyebrow::before {
+  width: 1.4rem;
+  height: 1px;
+  background: currentColor;
+  content: '';
+  opacity: 0.5;
 }
 
 .auth-form-header h2 {
@@ -36,16 +57,62 @@
   line-height: 1.65;
 }
 
+/* ------------------------------------------------------------------ form -- */
+
 .auth-form {
   display: grid;
   gap: 0.45rem;
 }
 
+/**
+ * Pairs fields side by side only while each column can still show its value.
+ * `auto-fit` + a 13rem floor collapses to one column on its own, so a clinic
+ * name never renders as "Al Amal Orthod…" at an in-between width.
+ */
 .auth-form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   gap: 0 0.9rem;
 }
+
+/**
+ * Groups a long form into labelled blocks ("Your details", "Your clinic").
+ * The rule after the label does the visual separation without adding a box.
+ */
+.auth-form-section {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.auth-form-section + .auth-form-section {
+  margin-top: 1.15rem;
+}
+
+.auth-form-section__title {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0 0 0.7rem;
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.auth-form-section__title::after {
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(to right, var(--color-line), transparent);
+  content: '';
+}
+
+.auth-form-section__title .material-icons {
+  color: var(--color-pine-600);
+  font-size: 0.95rem;
+}
+
+/* ----------------------------------------------------------------- field -- */
 
 .auth-field {
   display: grid;
@@ -76,62 +143,143 @@
   font-size: 0.68rem;
 }
 
+.auth-field__optional {
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-pill);
+  color: var(--color-muted);
+  background: var(--color-sage);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 0.08em;
+}
+
+/* --------------------------------------------------------------- control -- */
+
 .auth-control {
+  position: relative;
   display: grid;
-  min-height: 3.1rem;
+  min-height: 3.35rem;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 0.65rem;
-  margin-top: 0.48rem;
-  padding: 0 0.8rem;
+  gap: 0.7rem;
+  margin-top: 0.45rem;
+  padding: 0 0.85rem;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--color-white);
+  box-shadow: 0 1px 2px rgb(23 32 30 / 0.035);
   transition:
     border-color var(--transition-fast),
-    box-shadow var(--transition-fast);
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.auth-control:hover:not(:focus-within) {
+  border-color: color-mix(in srgb, var(--color-pine-600) 28%, var(--color-line));
 }
 
 .auth-control:focus-within {
   border-color: var(--color-pine-600);
-  box-shadow: 0 0 0 3px rgb(36 86 77 / 0.1);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-pine-600) 12%, transparent),
+    0 6px 16px rgb(23 63 56 / 0.07);
 }
 
-.auth-control--invalid {
-  border-color: color-mix(in srgb, var(--color-danger) 58%, var(--color-line));
+.auth-control--invalid,
+.auth-control--invalid:hover:not(:focus-within) {
+  border-color: color-mix(in srgb, var(--color-danger) 60%, var(--color-line));
+  background: color-mix(in srgb, var(--color-danger) 2.5%, var(--color-white));
 }
 
-.auth-control > .material-icons {
+.auth-control--invalid:focus-within {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-danger) 12%, transparent);
+}
+
+/* The leading icon tracks the field state: idle → focused/filled → invalid. */
+.auth-control > .material-icons:first-child {
   color: var(--color-muted);
-  font-size: 1.08rem;
+  font-size: 1.1rem;
+  transition: color var(--transition-fast);
+}
+
+.auth-control:focus-within > .material-icons:first-child,
+.auth-control:has(input:not(:placeholder-shown)) > .material-icons:first-child,
+.auth-control:has(select) > .material-icons:first-child {
+  color: var(--color-pine-600);
+}
+
+.auth-control--invalid > .material-icons:first-child {
+  color: var(--color-danger);
 }
 
 .auth-control input,
 .auth-control select {
   min-width: 0;
-  height: 3rem;
+  height: 3.25rem;
   border: 0;
   outline: 0;
   color: var(--color-ink);
   background: transparent;
-  font-size: 0.86rem;
+  caret-color: var(--color-pine-600);
+  font-size: 0.88rem;
+  font-weight: 500;
 }
 
 .auth-control input::placeholder {
-  color: #929b97;
+  color: #9aa3a0;
+  font-weight: 450;
+}
+
+/**
+ * The control shell owns the focus ring, so the global `input:focus-visible`
+ * outline would draw a second, tighter box inside it. Suppressed here only —
+ * buttons and links keep the global outline.
+ */
+.auth-control input:focus-visible,
+.auth-control select:focus-visible {
+  outline: none;
+}
+
+/* Phone and code fields read far better with even digit widths. */
+.auth-control input[inputmode='tel'],
+.auth-control input[inputmode='numeric'],
+.auth-control input[type='tel'] {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/**
+ * Chrome paints autofilled inputs with its own yellow background and ignores
+ * `background-color`. The inset shadow is the only reliable override, and the
+ * absurd transition delay stops it flashing back on re-render.
+ */
+.auth-control input:-webkit-autofill,
+.auth-control input:-webkit-autofill:hover,
+.auth-control input:-webkit-autofill:focus {
+  box-shadow: 0 0 0 40rem var(--color-white) inset;
+  -webkit-text-fill-color: var(--color-ink);
+  caret-color: var(--color-pine-600);
+  transition: background-color 100000s ease-in-out 0s;
 }
 
 .auth-control__action {
   display: grid;
-  width: 2.75rem;
-  height: 2.75rem;
-  margin-right: -0.6rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin-right: -0.55rem;
   place-items: center;
   border: 0;
-  border-radius: 0.45rem;
-  color: var(--color-slate);
+  border-radius: 0.6rem;
+  color: var(--color-muted);
   background: transparent;
   cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .auth-control__action:hover {
@@ -145,19 +293,35 @@
 
 .auth-field__error {
   min-height: 1.3rem;
-  margin: 0.24rem 0 0;
+  margin: 0.26rem 0 0;
   color: var(--color-danger);
   font-size: 0.7rem;
+  font-weight: 550;
   line-height: 1.3;
 }
+
+/* A small dot marks the message as an error without needing an icon element. */
+.auth-field:has(.auth-control--invalid) .auth-field__error::before {
+  display: inline-block;
+  width: 0.3rem;
+  height: 0.3rem;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+  vertical-align: 0.12em;
+}
+
+/* ----------------------------------------------------------------- alert -- */
 
 .auth-alert {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 0.65rem;
-  margin-bottom: 0.8rem;
-  padding: 0.82rem 0.9rem;
+  margin-bottom: 0.85rem;
+  padding: 0.85rem 0.95rem;
   border: 1px solid color-mix(in srgb, var(--color-danger) 24%, transparent);
+  border-left: 3px solid var(--color-danger);
   border-radius: var(--radius-sm);
   color: var(--color-danger);
   background: color-mix(in srgb, var(--color-danger) 6%, var(--color-white));
@@ -167,6 +331,7 @@
 
 .auth-alert--success {
   border-color: color-mix(in srgb, var(--color-success) 24%, transparent);
+  border-left-color: var(--color-success);
   color: var(--color-success);
   background: color-mix(in srgb, var(--color-success) 7%, var(--color-white));
 }
@@ -176,36 +341,84 @@
   font-size: 1.1rem;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .auth-alert {
+    animation: auth-alert-in 240ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+/* ---------------------------------------------------------------- submit -- */
+
 .auth-submit {
+  position: relative;
   display: inline-flex;
-  min-height: 3.25rem;
+  min-height: 3.35rem;
   align-items: center;
   justify-content: center;
-  gap: 0.65rem;
-  margin-top: 0.45rem;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+  padding-inline: 1.25rem;
+  overflow: hidden;
   border: 1px solid var(--color-pine-700);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   color: var(--color-white);
-  background: var(--color-pine-700);
-  box-shadow: 0 10px 24px rgb(23 63 56 / 0.15);
-  font-size: 0.86rem;
+  /**
+   * Solid colour first, gradient on top. The label is white, so if the gradient
+   * layer ever fails to paint the button must still be dark — not an invisible
+   * white-on-porcelain rectangle.
+   */
+  background-color: var(--color-pine-700);
+  background-image: linear-gradient(
+    135deg,
+    var(--color-pine-700),
+    var(--color-pine-600) 52%,
+    var(--color-pine-700)
+  );
+  box-shadow: 0 10px 24px rgb(23 63 56 / 0.16);
+  font-size: 0.87rem;
   font-weight: 700;
+  letter-spacing: -0.005em;
+  text-decoration: none;
   cursor: pointer;
   transition:
     transform var(--transition-fast),
-    background var(--transition-fast),
-    box-shadow var(--transition-fast);
+    box-shadow var(--transition-fast),
+    filter var(--transition-fast);
+}
+
+/* Light sweep on hover — reads as "premium" without animating layout. */
+.auth-submit::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.16), transparent);
+  content: '';
+  pointer-events: none;
+  transform: skewX(-18deg);
+  transition: transform 620ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .auth-submit:hover:not(:disabled) {
   transform: translateY(-1px);
-  background: var(--color-pine-900);
-  box-shadow: 0 14px 28px rgb(23 63 56 / 0.2);
+  box-shadow: 0 16px 30px rgb(23 63 56 / 0.22);
+  filter: saturate(1.05);
+}
+
+.auth-submit:hover:not(:disabled)::after {
+  transform: translateX(360%) skewX(-18deg);
+}
+
+.auth-submit:active:not(:disabled) {
+  transform: translateY(0) scale(0.995);
+  box-shadow: 0 6px 14px rgb(23 63 56 / 0.18);
 }
 
 .auth-submit:disabled {
   cursor: wait;
-  opacity: 0.68;
+  opacity: 0.66;
+  box-shadow: none;
 }
 
 .auth-submit--secondary {
@@ -216,11 +429,19 @@
 }
 
 .auth-submit--secondary:hover:not(:disabled) {
-  color: var(--color-white);
+  border-color: var(--color-pine-600);
+  color: var(--color-pine-900);
+  background: var(--color-sage);
+  box-shadow: none;
 }
 
 .auth-submit .material-icons {
-  font-size: 1.08rem;
+  font-size: 1.05rem;
+  transition: transform var(--transition-fast);
+}
+
+.auth-submit:hover:not(:disabled) .material-icons {
+  transform: translateX(3px);
 }
 
 .auth-spinner {
@@ -232,8 +453,10 @@
   animation: auth-spin 700ms linear infinite;
 }
 
+/* ------------------------------------------------------------ supporting -- */
+
 .auth-switch {
-  margin: 1.1rem 0 0;
+  margin: 1.15rem 0 0;
   color: var(--color-slate);
   font-size: 0.8rem;
   text-align: center;
@@ -247,6 +470,12 @@
   color: var(--color-pine-700);
   font-weight: 650;
   text-underline-offset: 0.2rem;
+  transition: color var(--transition-fast);
+}
+
+.auth-switch a:hover,
+.auth-link:hover {
+  color: var(--color-copper-700);
 }
 
 .auth-hint {
@@ -264,6 +493,84 @@
   font-size: 1rem;
 }
 
+/**
+ * Reassurance strip closing a form. Deliberately quiet — it should register
+ * without competing with the submit button.
+ */
+.auth-assurance {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.7rem;
+  margin-top: 1.9rem;
+  padding-top: 1.3rem;
+  border-top: 1px solid var(--color-line);
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.auth-assurance .material-icons {
+  color: var(--color-success);
+  font-size: 1.05rem;
+}
+
+.auth-assurance strong {
+  color: var(--color-slate);
+  font-weight: 650;
+}
+
+/* ------------------------------------------------------ password quality -- */
+
+.password-meter {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.15rem 0 0.2rem;
+}
+
+.password-meter__track {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.28rem;
+}
+
+.password-meter__track span {
+  height: 0.28rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-mist);
+  transition:
+    background var(--transition-base),
+    transform var(--transition-base);
+  transform-origin: left;
+}
+
+/**
+ * One rule per score, all at the same specificity — `data-score` is exclusive,
+ * so exactly one matches. (Mixing `:nth-child` selectors with a bare `span`
+ * selector here silently keeps the weakest colour at full strength.)
+ */
+.password-meter[data-score='1'] .password-meter__track span:nth-child(-n + 1) {
+  background: var(--color-danger);
+}
+
+.password-meter[data-score='2'] .password-meter__track span:nth-child(-n + 2) {
+  background: var(--color-warning);
+}
+
+.password-meter[data-score='3'] .password-meter__track span:nth-child(-n + 3) {
+  background: var(--color-success);
+}
+
+.password-meter__label {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.password-meter[data-score='3'] .password-meter__label {
+  color: var(--color-success);
+}
+
 .password-guide {
   display: flex;
   flex-wrap: wrap;
@@ -272,23 +579,76 @@
 }
 
 .password-guide span {
-  padding: 0.28rem 0.48rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
   color: var(--color-muted);
   background: var(--color-sage);
   font-size: 0.64rem;
+  font-weight: 600;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.password-guide span::before {
+  display: inline-grid;
+  width: 0.85rem;
+  height: 0.85rem;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-muted) 22%, transparent);
+  content: '';
+  font-size: 0.55rem;
+  line-height: 1;
+  transition: background var(--transition-fast);
 }
 
 .password-guide span[data-met='true'] {
+  border-color: color-mix(in srgb, var(--color-success) 26%, transparent);
   color: var(--color-success);
   background: color-mix(in srgb, var(--color-success) 10%, var(--color-white));
 }
+
+.password-guide span[data-met='true']::before {
+  background: var(--color-success);
+  color: var(--color-white);
+  content: '✓';
+}
+
+/* ------------------------------------------------------------ animations -- */
 
 @keyframes auth-spin {
   to {
     transform: rotate(1turn);
   }
 }
+
+@keyframes auth-alert-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem);
+  }
+}
+
+@keyframes auth-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .auth-form-page {
+    animation: auth-rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+/* --------------------------------------------------------------- queries -- */
 
 @media (max-width: 48rem) {
   .auth-form-page {
@@ -300,16 +660,17 @@
   }
 }
 
-@media (max-width: 31rem) {
-  .auth-form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .auth-submit,
-  .auth-control {
+  .auth-control,
+  .auth-control__action,
+  .password-guide span,
+  .password-meter__track span {
     transition: none;
+  }
+
+  .auth-submit::after {
+    display: none;
   }
 
   .auth-spinner {

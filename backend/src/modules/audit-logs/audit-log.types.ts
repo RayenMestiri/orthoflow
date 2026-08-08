@@ -25,6 +25,21 @@ export const AUDIT_ACTIONS = {
   PATIENT_UPDATED: 'patient.updated',
   PATIENT_ARCHIVED: 'patient.archived',
   PATIENT_RESTORED: 'patient.restored',
+
+  GUARDIAN_CREATED: 'guardian.created',
+  GUARDIAN_LINKED: 'guardian.linked',
+  GUARDIAN_UPDATED: 'guardian.updated',
+
+  APPOINTMENT_CREATED: 'appointment.created',
+  APPOINTMENT_UPDATED: 'appointment.updated',
+  /** Moved or resized — the time changed, which is worth its own event. */
+  APPOINTMENT_RESCHEDULED: 'appointment.rescheduled',
+  APPOINTMENT_STATUS_CHANGED: 'appointment.status_changed',
+  APPOINTMENT_CANCELLED: 'appointment.cancelled',
+  APPOINTMENT_NO_SHOW: 'appointment.no_show',
+
+  APPOINTMENT_TYPE_CREATED: 'appointment_type.created',
+  APPOINTMENT_TYPE_UPDATED: 'appointment_type.updated',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -36,6 +51,9 @@ export const AUDIT_RESOURCE_TYPES = {
   CLINIC: 'clinic',
   MEMBERSHIP: 'membership',
   PATIENT: 'patient',
+  GUARDIAN: 'guardian',
+  APPOINTMENT: 'appointment',
+  APPOINTMENT_TYPE: 'appointment_type',
   AUTH_SESSION: 'auth_session',
 } as const;
 
@@ -83,6 +101,7 @@ export interface RecordAuditEventInput {
 export interface AuditLogListFilters {
   action?: AuditAction;
   resourceType?: AuditResourceType;
+  resourceId?: string;
   actorUserId?: string;
   from?: Date;
   to?: Date;

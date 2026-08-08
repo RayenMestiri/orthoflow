@@ -60,6 +60,7 @@ export class AppShell {
     {
       label: 'Patients',
       icon: 'group',
+      route: '/app/patients',
       visible: this.permissions.can(PERMISSIONS.PATIENTS_VIEW),
     },
     {

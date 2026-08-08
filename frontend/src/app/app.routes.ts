@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard, roleGuard } from './core/auth/auth.guards';
+import { authGuard, guestGuard, permissionGuard, roleGuard } from './core/auth/auth.guards';
 import { CLINIC_ROLES } from './core/auth/auth.models';
+import { PERMISSIONS } from './core/auth/permissions';
 
 export const routes: Routes = [
   {
@@ -78,6 +79,46 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/dashboard/pages/dashboard-page/dashboard-page').then(
             (component) => component.DashboardPage,
+          ),
+      },
+      {
+        path: 'patients',
+        title: 'Patients — OrthoFlow',
+        canActivate: [permissionGuard],
+        data: { permission: PERMISSIONS.PATIENTS_VIEW },
+        loadComponent: () =>
+          import('./features/patients/pages/patients-list-page/patients-list-page').then(
+            (component) => component.PatientsListPage,
+          ),
+      },
+      {
+        path: 'patients/new',
+        title: 'New patient — OrthoFlow',
+        canActivate: [permissionGuard],
+        data: { permission: PERMISSIONS.PATIENTS_CREATE },
+        loadComponent: () =>
+          import('./features/patients/pages/patient-editor-page/patient-editor-page').then(
+            (component) => component.PatientEditorPage,
+          ),
+      },
+      {
+        path: 'patients/:patientId/edit',
+        title: 'Edit patient — OrthoFlow',
+        canActivate: [permissionGuard],
+        data: { permission: PERMISSIONS.PATIENTS_UPDATE },
+        loadComponent: () =>
+          import('./features/patients/pages/patient-editor-page/patient-editor-page').then(
+            (component) => component.PatientEditorPage,
+          ),
+      },
+      {
+        path: 'patients/:patientId',
+        title: 'Patient profile — OrthoFlow',
+        canActivate: [permissionGuard],
+        data: { permission: PERMISSIONS.PATIENTS_VIEW },
+        loadComponent: () =>
+          import('./features/patients/pages/patient-detail-page/patient-detail-page').then(
+            (component) => component.PatientDetailPage,
           ),
       },
     ],

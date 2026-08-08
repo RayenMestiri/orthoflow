@@ -9,6 +9,7 @@ import {
   archivePatientHandler,
   createPatientHandler,
   getPatientHandler,
+  getPatientActivityHandler,
   listPatientsHandler,
   restorePatientHandler,
   updatePatientHandler,
@@ -16,6 +17,7 @@ import {
 import {
   createPatientBodySchema,
   patientDtoSchema,
+  patientActivityDtoSchema,
   patientIdParamSchema,
   patientListQuerySchema,
   updatePatientBodySchema,
@@ -31,6 +33,25 @@ import {
 export const patientRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', app.authenticate);
   app.addHook('preHandler', app.requireClinic());
+
+  app.get(
+    '/:patientId/activity',
+    {
+      preHandler: [app.requirePermission(PERMISSIONS.PATIENT_READ)],
+      schema: {
+        tags: ['patients'],
+        summary: 'Read patient activity',
+        security: [{ bearerAuth: [] }],
+        params: patientIdParamSchema,
+        querystring: patientListQuerySchema.pick({ page: true, limit: true }),
+        response: {
+          200: paginatedSchema(patientActivityDtoSchema),
+          ...errorResponses(400, 401, 403, 404),
+        },
+      },
+    },
+    getPatientActivityHandler,
+  );
 
   app.get(
     '/',

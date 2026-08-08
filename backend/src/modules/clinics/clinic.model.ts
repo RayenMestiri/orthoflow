@@ -1,5 +1,10 @@
 import { Schema, model } from 'mongoose';
-import { CLINIC_STATUSES, CLINIC_STATUS_VALUES, type ClinicAttributes } from './clinic.types.js';
+import {
+  CLINIC_STATUSES,
+  CLINIC_STATUS_VALUES,
+  DEFAULT_CLINIC_SCHEDULE,
+  type ClinicAttributes,
+} from './clinic.types.js';
 
 const addressSchema = new Schema(
   {
@@ -8,6 +13,28 @@ const addressSchema = new Schema(
     city: { type: String, default: null, trim: true, maxlength: 80 },
     postalCode: { type: String, default: null, trim: true, maxlength: 20 },
     country: { type: String, default: null, trim: true, maxlength: 80 },
+  },
+  { _id: false },
+);
+
+const workingDaySchema = new Schema(
+  {
+    weekday: { type: Number, required: true, min: 0, max: 6 },
+    opensAt: { type: String, required: true, match: /^([01]\d|2[0-3]):[0-5]\d$/ },
+    closesAt: { type: String, required: true, match: /^([01]\d|2[0-3]):[0-5]\d$/ },
+    isClosed: { type: Boolean, required: true, default: false },
+  },
+  { _id: false },
+);
+
+const scheduleSchema = new Schema(
+  {
+    slotMinutes: { type: Number, required: true, default: 15, min: 5, max: 60 },
+    workingHours: {
+      type: [workingDaySchema],
+      required: true,
+      default: () => DEFAULT_CLINIC_SCHEDULE.workingHours,
+    },
   },
   { _id: false },
 );
@@ -36,6 +63,7 @@ const clinicSchema = new Schema<ClinicAttributes>(
       minlength: 3,
       maxlength: 3,
     },
+    schedule: { type: scheduleSchema, required: true, default: () => DEFAULT_CLINIC_SCHEDULE },
     status: {
       type: String,
       required: true,

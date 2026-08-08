@@ -37,7 +37,9 @@ export const patientDtoSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
   fullName: z.string(),
+  referenceNumber: z.string().nullable(),
   birthDate: z.string().nullable(),
+  age: z.number().int().nonnegative().nullable(),
   gender: z.enum(PATIENT_GENDER_VALUES),
   phone: z.string().nullable(),
   email: z.string().nullable(),
@@ -49,9 +51,13 @@ export const patientDtoSchema = z.object({
   }),
   status: z.enum(PATIENT_STATUS_VALUES),
   notes: z.string().nullable(),
+  createdBy: objectIdSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
   archivedAt: z.string().nullable(),
+  primaryGuardian: z
+    .object({ id: objectIdSchema, fullName: z.string(), relationship: z.string() })
+    .nullable(),
 });
 
 /**
@@ -61,6 +67,7 @@ export const patientDtoSchema = z.object({
 export const createPatientBodySchema = z.object({
   firstName: personNameSchema,
   lastName: personNameSchema,
+  referenceNumber: z.string().trim().min(1).max(48).nullable().optional(),
   birthDate: birthDateSchema.nullable().optional(),
   gender: z.enum(PATIENT_GENDER_VALUES).optional(),
   phone: phoneSchema.nullable().optional(),
@@ -71,6 +78,7 @@ export const createPatientBodySchema = z.object({
 
 export const updatePatientBodySchema = createPatientBodySchema
   .partial()
+  .extend({ status: z.enum(PATIENT_STATUS_VALUES).exclude(['ARCHIVED']).optional() })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'At least one field must be provided',
   });
@@ -78,6 +86,17 @@ export const updatePatientBodySchema = createPatientBodySchema
 export const patientListQuerySchema = paginationQuerySchema.extend({
   status: z.enum(PATIENT_STATUS_VALUES).optional(),
   search: searchQuerySchema,
+  sortBy: z.enum(['name', 'createdAt', 'birthDate']).optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
+});
+
+export const patientActivityDtoSchema = z.object({
+  id: objectIdSchema,
+  action: z.string(),
+  actorUserId: objectIdSchema.nullable(),
+  actorName: z.string(),
+  metadata: z.record(z.string(), z.unknown()),
+  createdAt: z.string(),
 });
 
 export const patientIdParamSchema = z.object({

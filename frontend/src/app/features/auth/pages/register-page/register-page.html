@@ -10,6 +10,14 @@
       <p>Begin as the clinic owner. Team access can be configured after verification.</p>
     </header>
 
+    <ol class="register__steps" aria-label="Setup progress">
+      <li class="register__step register__step--current" aria-current="step">
+        <span>1</span>Account
+      </li>
+      <li class="register__step"><span>2</span>Verify email</li>
+      <li class="register__step"><span>3</span>Invite team</li>
+    </ol>
+
     <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
       @if (errorMessage()) {
         <div class="auth-alert" role="alert">
@@ -18,221 +26,272 @@
         </div>
       }
 
-      <div class="auth-form-grid">
-        <div class="auth-field">
-          <label for="first-name">First name</label>
-          <div
-            class="auth-control"
-            [class.auth-control--invalid]="
-              form.controls.firstName.touched && form.controls.firstName.invalid
-            "
-          >
-            <span class="material-icons" aria-hidden="true">person_outline</span>
-            <input
-              id="first-name"
-              formControlName="firstName"
-              autocomplete="given-name"
-              placeholder="Nadia"
-            />
-          </div>
-          <p class="auth-field__error">
-            @if (form.controls.firstName.touched && form.controls.firstName.invalid) {
-              Enter your first name.
-            }
-          </p>
-        </div>
+      <section class="auth-form-section">
+        <h3 class="auth-form-section__title">
+          <span class="material-icons" aria-hidden="true">person_outline</span>Your details
+        </h3>
 
-        <div class="auth-field">
-          <label for="last-name">Last name</label>
-          <div
-            class="auth-control"
-            [class.auth-control--invalid]="
-              form.controls.lastName.touched && form.controls.lastName.invalid
-            "
-          >
-            <span class="material-icons" aria-hidden="true">badge</span>
-            <input
-              id="last-name"
-              formControlName="lastName"
-              autocomplete="family-name"
-              placeholder="Mansour"
-            />
-          </div>
-          <p class="auth-field__error">
-            @if (form.controls.lastName.touched && form.controls.lastName.invalid) {
-              Enter your last name.
-            }
-          </p>
-        </div>
-
-        <div class="auth-field auth-field--wide">
-          <label for="register-email">Work email</label>
-          <div
-            class="auth-control"
-            [class.auth-control--invalid]="
-              form.controls.email.touched && form.controls.email.invalid
-            "
-          >
-            <span class="material-icons" aria-hidden="true">mail_outline</span>
-            <input
-              id="register-email"
-              type="email"
-              formControlName="email"
-              autocomplete="email"
-              inputmode="email"
-              placeholder="owner@clinic.com"
-            />
-          </div>
-          <p class="auth-field__error">
-            @if (form.controls.email.touched && form.controls.email.hasError('required')) {
-              Enter your work email.
-            } @else if (form.controls.email.touched && form.controls.email.hasError('email')) {
-              Enter a valid email address.
-            }
-          </p>
-        </div>
-
-        <div class="auth-field">
-          <label for="owner-phone"
-            >Your phone <span class="register__optional">Optional</span></label
-          >
-          <div
-            class="auth-control"
-            [class.auth-control--invalid]="
-              form.controls.phone.touched && form.controls.phone.invalid
-            "
-          >
-            <span class="material-icons" aria-hidden="true">phone</span>
-            <input
-              id="owner-phone"
-              type="tel"
-              formControlName="phone"
-              autocomplete="tel"
-              inputmode="tel"
-              placeholder="+216 20 123 456"
-            />
-          </div>
-          <p class="auth-field__error">
-            @if (form.controls.phone.touched && form.controls.phone.invalid) {
-              Enter a valid phone number.
-            }
-          </p>
-        </div>
-
-        <div class="auth-field">
-          <label for="clinic-name">Clinic name</label>
-          <div
-            class="auth-control"
-            [class.auth-control--invalid]="
-              form.controls.clinicName.touched && form.controls.clinicName.invalid
-            "
-          >
-            <span class="material-icons" aria-hidden="true">local_hospital</span>
-            <input
-              id="clinic-name"
-              formControlName="clinicName"
-              autocomplete="organization"
-              placeholder="Al Amal Orthodontics"
-            />
-          </div>
-          <p class="auth-field__error">
-            @if (form.controls.clinicName.touched && form.controls.clinicName.invalid) {
-              Enter the clinic name.
-            }
-          </p>
-        </div>
-
-        <div class="auth-field auth-field--wide">
-          <label for="clinic-phone"
-            >Clinic phone <span class="register__optional">Optional</span></label
-          >
-          <div
-            class="auth-control"
-            [class.auth-control--invalid]="
-              form.controls.clinicPhone.touched && form.controls.clinicPhone.invalid
-            "
-          >
-            <span class="material-icons" aria-hidden="true">call</span>
-            <input
-              id="clinic-phone"
-              type="tel"
-              formControlName="clinicPhone"
-              autocomplete="tel"
-              inputmode="tel"
-              placeholder="Front desk number"
-            />
-          </div>
-          <p class="auth-field__error">
-            @if (form.controls.clinicPhone.touched && form.controls.clinicPhone.invalid) {
-              Enter a valid phone number.
-            }
-          </p>
-        </div>
-
-        <div class="auth-field">
-          <label for="register-password">Password</label>
-          <div
-            class="auth-control"
-            [class.auth-control--invalid]="
-              form.controls.password.touched && form.controls.password.invalid
-            "
-          >
-            <span class="material-icons" aria-hidden="true">lock_outline</span>
-            <input
-              id="register-password"
-              [type]="passwordVisible() ? 'text' : 'password'"
-              formControlName="password"
-              autocomplete="new-password"
-              placeholder="Create a password"
-            />
-            <button
-              class="auth-control__action"
-              type="button"
-              (click)="togglePassword()"
-              [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
+        <div class="auth-form-grid">
+          <div class="auth-field">
+            <label for="first-name">First name</label>
+            <div
+              class="auth-control"
+              [class.auth-control--invalid]="
+                form.controls.firstName.touched && form.controls.firstName.invalid
+              "
             >
-              <span class="material-icons" aria-hidden="true">{{
-                passwordVisible() ? 'visibility_off' : 'visibility'
-              }}</span>
-            </button>
+              <span class="material-icons" aria-hidden="true">person_outline</span>
+              <input
+                id="first-name"
+                formControlName="firstName"
+                autocomplete="given-name"
+                placeholder="Nadia"
+                [attr.aria-invalid]="
+                  form.controls.firstName.touched && form.controls.firstName.invalid
+                "
+              />
+            </div>
+            <p class="auth-field__error" aria-live="polite">
+              @if (form.controls.firstName.touched && form.controls.firstName.invalid) {
+                Enter your first name.
+              }
+            </p>
           </div>
-          <p class="auth-field__error">
-            @if (form.controls.password.touched && form.controls.password.invalid) {
-              Use all three requirements below.
-            }
-          </p>
+
+          <div class="auth-field">
+            <label for="last-name">Last name</label>
+            <div
+              class="auth-control"
+              [class.auth-control--invalid]="
+                form.controls.lastName.touched && form.controls.lastName.invalid
+              "
+            >
+              <span class="material-icons" aria-hidden="true">badge</span>
+              <input
+                id="last-name"
+                formControlName="lastName"
+                autocomplete="family-name"
+                placeholder="Mansour"
+                [attr.aria-invalid]="
+                  form.controls.lastName.touched && form.controls.lastName.invalid
+                "
+              />
+            </div>
+            <p class="auth-field__error" aria-live="polite">
+              @if (form.controls.lastName.touched && form.controls.lastName.invalid) {
+                Enter your last name.
+              }
+            </p>
+          </div>
+
+          <div class="auth-field auth-field--wide">
+            <label for="register-email">Work email</label>
+            <div
+              class="auth-control"
+              [class.auth-control--invalid]="
+                form.controls.email.touched && form.controls.email.invalid
+              "
+            >
+              <span class="material-icons" aria-hidden="true">mail_outline</span>
+              <input
+                id="register-email"
+                type="email"
+                formControlName="email"
+                autocomplete="email"
+                inputmode="email"
+                placeholder="owner@clinic.com"
+                [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
+              />
+            </div>
+            <p class="auth-field__error" aria-live="polite">
+              @if (form.controls.email.touched && form.controls.email.hasError('required')) {
+                Enter your work email.
+              } @else if (form.controls.email.touched && form.controls.email.hasError('email')) {
+                Enter a valid email address.
+              }
+            </p>
+          </div>
+
+          <div class="auth-field auth-field--wide">
+            <label for="owner-phone"
+              >Your phone <span class="auth-field__optional">Optional</span></label
+            >
+            <div
+              class="auth-control"
+              [class.auth-control--invalid]="
+                form.controls.phone.touched && form.controls.phone.invalid
+              "
+            >
+              <span class="material-icons" aria-hidden="true">phone</span>
+              <input
+                id="owner-phone"
+                type="tel"
+                formControlName="phone"
+                autocomplete="tel"
+                inputmode="tel"
+                placeholder="+216 20 123 456"
+                [attr.aria-invalid]="form.controls.phone.touched && form.controls.phone.invalid"
+              />
+            </div>
+            <p class="auth-field__error" aria-live="polite">
+              @if (form.controls.phone.touched && form.controls.phone.invalid) {
+                Enter a valid phone number.
+              }
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="auth-form-section">
+        <h3 class="auth-form-section__title">
+          <span class="material-icons" aria-hidden="true">local_hospital</span>Your clinic
+        </h3>
+
+        <div class="auth-form-grid">
+          <div class="auth-field">
+            <label for="clinic-name">Clinic name</label>
+            <div
+              class="auth-control"
+              [class.auth-control--invalid]="
+                form.controls.clinicName.touched && form.controls.clinicName.invalid
+              "
+            >
+              <span class="material-icons" aria-hidden="true">local_hospital</span>
+              <input
+                id="clinic-name"
+                formControlName="clinicName"
+                autocomplete="organization"
+                placeholder="Al Amal Orthodontics"
+                [attr.aria-invalid]="
+                  form.controls.clinicName.touched && form.controls.clinicName.invalid
+                "
+              />
+            </div>
+            <p class="auth-field__error" aria-live="polite">
+              @if (form.controls.clinicName.touched && form.controls.clinicName.invalid) {
+                Enter the clinic name.
+              }
+            </p>
+          </div>
+
+          <div class="auth-field">
+            <label for="clinic-phone"
+              >Clinic phone <span class="auth-field__optional">Optional</span></label
+            >
+            <div
+              class="auth-control"
+              [class.auth-control--invalid]="
+                form.controls.clinicPhone.touched && form.controls.clinicPhone.invalid
+              "
+            >
+              <span class="material-icons" aria-hidden="true">call</span>
+              <input
+                id="clinic-phone"
+                type="tel"
+                formControlName="clinicPhone"
+                autocomplete="tel"
+                inputmode="tel"
+                placeholder="Front desk number"
+                [attr.aria-invalid]="
+                  form.controls.clinicPhone.touched && form.controls.clinicPhone.invalid
+                "
+              />
+            </div>
+            <p class="auth-field__error" aria-live="polite">
+              @if (form.controls.clinicPhone.touched && form.controls.clinicPhone.invalid) {
+                Enter a valid phone number.
+              }
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="auth-form-section">
+        <h3 class="auth-form-section__title">
+          <span class="material-icons" aria-hidden="true">lock_outline</span>Secure your account
+        </h3>
+
+        <div class="auth-form-grid">
+          <div class="auth-field auth-field--wide">
+            <label for="register-password">Password</label>
+            <div
+              class="auth-control"
+              [class.auth-control--invalid]="
+                form.controls.password.touched && form.controls.password.invalid
+              "
+            >
+              <span class="material-icons" aria-hidden="true">lock_outline</span>
+              <input
+                id="register-password"
+                [type]="passwordVisible() ? 'text' : 'password'"
+                formControlName="password"
+                autocomplete="new-password"
+                placeholder="Create a password"
+                aria-describedby="password-requirements"
+                [attr.aria-invalid]="
+                  form.controls.password.touched && form.controls.password.invalid
+                "
+              />
+              <button
+                class="auth-control__action"
+                type="button"
+                (click)="togglePassword()"
+                [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
+                [attr.aria-pressed]="passwordVisible()"
+              >
+                <span class="material-icons" aria-hidden="true">{{
+                  passwordVisible() ? 'visibility_off' : 'visibility'
+                }}</span>
+              </button>
+            </div>
+            <p class="auth-field__error" aria-live="polite">
+              @if (form.controls.password.touched && form.controls.password.invalid) {
+                Meet all three requirements below.
+              }
+            </p>
+          </div>
+
+          <div class="auth-field auth-field--wide">
+            <label for="confirm-password">Confirm password</label>
+            <div
+              class="auth-control"
+              [class.auth-control--invalid]="
+                form.controls.confirmPassword.touched && form.hasError('fieldsMismatch')
+              "
+            >
+              <span class="material-icons" aria-hidden="true">lock_reset</span>
+              <input
+                id="confirm-password"
+                [type]="passwordVisible() ? 'text' : 'password'"
+                formControlName="confirmPassword"
+                autocomplete="new-password"
+                placeholder="Repeat password"
+                [attr.aria-invalid]="
+                  form.controls.confirmPassword.touched && form.hasError('fieldsMismatch')
+                "
+              />
+            </div>
+            <p class="auth-field__error" aria-live="polite">
+              @if (form.controls.confirmPassword.touched && form.hasError('fieldsMismatch')) {
+                Passwords do not match.
+              }
+            </p>
+          </div>
         </div>
 
-        <div class="auth-field">
-          <label for="confirm-password">Confirm password</label>
-          <div
-            class="auth-control"
-            [class.auth-control--invalid]="
-              form.controls.confirmPassword.touched && form.hasError('fieldsMismatch')
-            "
-          >
-            <span class="material-icons" aria-hidden="true">lock_reset</span>
-            <input
-              id="confirm-password"
-              [type]="passwordVisible() ? 'text' : 'password'"
-              formControlName="confirmPassword"
-              autocomplete="new-password"
-              placeholder="Repeat password"
-            />
+        <div class="password-meter" [attr.data-score]="passwordScore()">
+          <div class="password-meter__track" aria-hidden="true">
+            <span></span><span></span><span></span>
           </div>
-          <p class="auth-field__error">
-            @if (form.controls.confirmPassword.touched && form.hasError('fieldsMismatch')) {
-              Passwords do not match.
-            }
-          </p>
+          <p class="password-meter__label">Password strength: {{ passwordStrengthLabel() }}</p>
         </div>
-      </div>
 
-      <div class="password-guide" aria-label="Password requirements">
-        <span [attr.data-met]="passwordChecks().length">10+ characters</span>
-        <span [attr.data-met]="passwordChecks().letter">One letter</span>
-        <span [attr.data-met]="passwordChecks().number">One number</span>
-      </div>
+        <div id="password-requirements" class="password-guide" aria-label="Password requirements">
+          <span [attr.data-met]="passwordChecks().length">10+ characters</span>
+          <span [attr.data-met]="passwordChecks().letter">One letter</span>
+          <span [attr.data-met]="passwordChecks().number">One number</span>
+        </div>
+      </section>
 
       <button class="auth-submit" type="submit" [disabled]="submitting()">
         @if (submitting()) {
@@ -245,5 +304,13 @@
     </form>
 
     <p class="auth-switch">Already have an account? <a routerLink="/login">Sign in</a></p>
+
+    <div class="auth-assurance">
+      <span class="material-icons" aria-hidden="true">shield</span>
+      <span
+        ><strong>You stay in control.</strong> You are the clinic owner — teammates only ever get
+        the access their role allows.</span
+      >
+    </div>
   </div>
 </app-auth-frame>

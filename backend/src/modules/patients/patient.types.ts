@@ -2,6 +2,8 @@ import type { Types } from 'mongoose';
 
 export const PATIENT_STATUSES = {
   ACTIVE: 'ACTIVE',
+  /** Temporarily not receiving administrative follow-up. */
+  INACTIVE: 'INACTIVE',
   /** Left the practice. Retained — records back a treatment and money history. */
   ARCHIVED: 'ARCHIVED',
 } as const;
@@ -52,6 +54,7 @@ export interface PatientAttributes {
   clinicId: Types.ObjectId;
   firstName: string;
   lastName: string;
+  referenceNumber: string | null;
   birthDate: Date | null;
   gender: PatientGender;
   phone: string | null;
@@ -74,6 +77,7 @@ export interface CreatePatientInput {
   createdBy: string;
   firstName: string;
   lastName: string;
+  referenceNumber?: string | null;
   birthDate?: string | null;
   gender?: PatientGender;
   phone?: string | null;
@@ -85,18 +89,22 @@ export interface CreatePatientInput {
 export interface UpdatePatientInput {
   firstName?: string;
   lastName?: string;
+  referenceNumber?: string | null;
   birthDate?: string | null;
   gender?: PatientGender;
   phone?: string | null;
   email?: string | null;
   address?: Partial<PatientAddress>;
   notes?: string | null;
+  status?: PatientStatus;
 }
 
 export interface PatientListFilters {
   status?: PatientStatus;
   /** Matched against first name, last name and phone. */
   search?: string;
+  sortBy?: 'name' | 'createdAt' | 'birthDate';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface PatientDto {
@@ -105,14 +113,31 @@ export interface PatientDto {
   firstName: string;
   lastName: string;
   fullName: string;
+  referenceNumber: string | null;
   birthDate: string | null;
+  age: number | null;
   gender: PatientGender;
   phone: string | null;
   email: string | null;
   address: PatientAddress;
   status: PatientStatus;
   notes: string | null;
+  createdBy: string;
   createdAt: string;
   updatedAt: string;
   archivedAt: string | null;
+  primaryGuardian: {
+    id: string;
+    fullName: string;
+    relationship: string;
+  } | null;
+}
+
+export interface PatientActivityDto {
+  id: string;
+  action: string;
+  actorUserId: string | null;
+  actorName: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
 }

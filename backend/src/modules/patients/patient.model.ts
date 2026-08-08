@@ -22,6 +22,7 @@ const patientSchema = new Schema<PatientAttributes>(
     clinicId: { type: Schema.Types.ObjectId, ref: 'Clinic', required: true },
     firstName: { type: String, required: true, trim: true, maxlength: 80 },
     lastName: { type: String, required: true, trim: true, maxlength: 80 },
+    referenceNumber: { type: String, default: null, trim: true, uppercase: true, maxlength: 48 },
     birthDate: { type: Date, default: null },
     gender: {
       type: String,
@@ -58,6 +59,10 @@ const patientSchema = new Schema<PatientAttributes>(
  * enforces: there is no such thing as a query across clinics.
  */
 patientSchema.index({ clinicId: 1, status: 1, lastName: 1, firstName: 1 });
+patientSchema.index(
+  { clinicId: 1, referenceNumber: 1 },
+  { unique: true, partialFilterExpression: { referenceNumber: { $type: 'string' } } },
+);
 patientSchema.index({ clinicId: 1, phone: 1 });
 patientSchema.index({ clinicId: 1, createdAt: -1 });
 

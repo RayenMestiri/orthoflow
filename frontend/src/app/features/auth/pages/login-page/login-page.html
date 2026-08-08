@@ -1,24 +1,24 @@
 <app-auth-frame>
-  <div class="login">
-    <header class="login__header">
-      <p class="login__eyebrow">Welcome back</p>
+  <div class="auth-form-page auth-form-page--compact login">
+    <header class="auth-form-header">
+      <p class="auth-form-eyebrow">Welcome back</p>
       <h2>Sign in to your clinic</h2>
       <p>Use your work email to continue to OrthoFlow.</p>
     </header>
 
-    <form class="login__form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
       @if (errorMessage()) {
-        <div class="login__alert" role="alert">
+        <div class="auth-alert" role="alert">
           <span class="material-icons" aria-hidden="true">error_outline</span>
           <span>{{ errorMessage() }}</span>
         </div>
       }
 
-      <div class="form-field">
+      <div class="auth-field">
         <label for="email">Work email</label>
         <div
-          class="form-control"
-          [class.form-control--invalid]="form.controls.email.touched && form.controls.email.invalid"
+          class="auth-control"
+          [class.auth-control--invalid]="form.controls.email.touched && form.controls.email.invalid"
         >
           <span class="material-icons" aria-hidden="true">mail_outline</span>
           <input
@@ -32,7 +32,7 @@
             aria-describedby="email-error"
           />
         </div>
-        <p id="email-error" class="form-field__error" aria-live="polite">
+        <p id="email-error" class="auth-field__error" aria-live="polite">
           @if (form.controls.email.touched && form.controls.email.hasError('required')) {
             Enter your work email.
           } @else if (form.controls.email.touched && form.controls.email.hasError('email')) {
@@ -41,14 +41,14 @@
         </p>
       </div>
 
-      <div class="form-field">
-        <div class="form-field__label-row">
+      <div class="auth-field">
+        <div class="auth-field__label-row">
           <label for="password">Password</label>
-          <a routerLink="/forgot-password">Forgot password?</a>
+          <a class="login__forgot" routerLink="/forgot-password">Forgot password?</a>
         </div>
         <div
-          class="form-control"
-          [class.form-control--invalid]="
+          class="auth-control"
+          [class.auth-control--invalid]="
             form.controls.password.touched && form.controls.password.invalid
           "
         >
@@ -63,7 +63,7 @@
             aria-describedby="password-error"
           />
           <button
-            class="form-control__action"
+            class="auth-control__action"
             type="button"
             (click)="togglePassword()"
             [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
@@ -74,16 +74,16 @@
             }}</span>
           </button>
         </div>
-        <p id="password-error" class="form-field__error" aria-live="polite">
+        <p id="password-error" class="auth-field__error" aria-live="polite">
           @if (form.controls.password.touched && form.controls.password.hasError('required')) {
             Enter your password.
           }
         </p>
       </div>
 
-      <button class="login__submit" type="submit" [disabled]="submitting()">
+      <button class="auth-submit" type="submit" [disabled]="submitting()">
         @if (submitting()) {
-          <span class="login__spinner" aria-hidden="true"></span>
+          <span class="auth-spinner" aria-hidden="true"></span>
           Signing in…
         } @else {
           Sign in securely
@@ -92,11 +92,11 @@
       </button>
     </form>
 
-    <p class="login__register">
+    <p class="auth-switch">
       New to OrthoFlow? <a routerLink="/register">Create your clinic workspace</a>
     </p>
 
-    <div class="login__security">
+    <div class="auth-assurance">
       <span class="material-icons" aria-hidden="true">verified_user</span>
       <span
         ><strong>Your session is protected.</strong> Access follows your clinic role and can be

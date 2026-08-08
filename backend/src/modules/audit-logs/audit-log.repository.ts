@@ -50,6 +50,9 @@ export class AuditLogRepository {
     if (filters.resourceType !== undefined) {
       filter.resourceType = filters.resourceType;
     }
+    if (filters.resourceId !== undefined) {
+      filter.resourceId = toObjectId(filters.resourceId, 'resourceId');
+    }
     if (filters.actorUserId !== undefined) {
       filter.actorUserId = toObjectId(filters.actorUserId, 'actorUserId');
     }

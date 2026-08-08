@@ -46,12 +46,25 @@ export class PatientRepository {
     if (filters.search !== undefined && filters.search.length > 0) {
       // The term is escaped before it becomes a regex — see `containsInsensitive`.
       const term = containsInsensitive(filters.search);
-      filter.$or = [{ firstName: term }, { lastName: term }, { phone: term }];
+      filter.$or = [
+        { firstName: term },
+        { lastName: term },
+        { phone: term },
+        { referenceNumber: term },
+      ];
     }
+
+    const direction: 1 | -1 = filters.sortOrder === 'desc' ? -1 : 1;
+    const sort: Record<string, 1 | -1> =
+      filters.sortBy === 'createdAt'
+        ? { createdAt: direction }
+        : filters.sortBy === 'birthDate'
+          ? { birthDate: direction, lastName: 1, firstName: 1 }
+          : { lastName: direction, firstName: direction };
 
     const [items, total] = await Promise.all([
       PatientModel.find(filter)
-        .sort({ lastName: 1, firstName: 1 })
+        .sort(sort)
         .skip(pagination.skip)
         .limit(pagination.limit)
         .lean<PatientRecord[]>()
@@ -70,6 +83,7 @@ export class PatientRepository {
         createdBy: toObjectId(input.createdBy, 'createdBy'),
         firstName: input.firstName,
         lastName: input.lastName,
+        referenceNumber: input.referenceNumber?.toUpperCase() ?? null,
         birthDate: input.birthDate ? new Date(input.birthDate) : null,
         ...(input.gender === undefined ? {} : { gender: input.gender }),
         phone: input.phone ?? null,
@@ -100,10 +114,14 @@ export class PatientRepository {
 
     if (changes.firstName !== undefined) set.firstName = changes.firstName;
     if (changes.lastName !== undefined) set.lastName = changes.lastName;
+    if (changes.referenceNumber !== undefined) {
+      set.referenceNumber = changes.referenceNumber?.toUpperCase() ?? null;
+    }
     if (changes.gender !== undefined) set.gender = changes.gender;
     if (changes.phone !== undefined) set.phone = changes.phone;
     if (changes.email !== undefined) set.email = changes.email;
     if (changes.notes !== undefined) set.notes = changes.notes;
+    if (changes.status !== undefined) set.status = changes.status;
     if (changes.birthDate !== undefined) {
       set.birthDate = changes.birthDate ? new Date(changes.birthDate) : null;
     }

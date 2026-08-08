@@ -1,0 +1,184 @@
+<section class="patients-page" aria-labelledby="patients-title">
+  <header class="patients-page__header">
+    <div>
+      <p class="patients-page__eyebrow">Patient directory</p>
+      <h1 id="patients-title">Patients</h1>
+      <p>Find the right record quickly, then continue the clinic workflow with confidence.</p>
+    </div>
+    @if (canCreate) {
+      <a class="patients-page__primary" routerLink="/app/patients/new">
+        <span class="material-icons" aria-hidden="true">person_add</span>
+        Add patient
+      </a>
+    }
+  </header>
+
+  <div class="patients-toolbar" aria-label="Patient filters">
+    <label class="patients-toolbar__search">
+      <span class="sr-only">Search patients</span>
+      <span class="material-icons" aria-hidden="true">search</span>
+      <input
+        type="search"
+        autocomplete="off"
+        placeholder="Search name, phone, or reference"
+        [formControl]="search"
+      />
+      @if (search.value) {
+        <button type="button" aria-label="Clear patient search" (click)="clearSearch()">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      }
+    </label>
+    <label>
+      <span>Status</span>
+      <select [value]="store.query().status" (change)="setStatus($event)">
+        <option value="ACTIVE">Active</option>
+        <option value="INACTIVE">Inactive</option>
+        <option value="ARCHIVED">Archived</option>
+      </select>
+    </label>
+    <label>
+      <span>Sort</span>
+      <select
+        [value]="store.query().sortBy + ':' + store.query().sortOrder"
+        (change)="setSort($event)"
+      >
+        <option value="name:asc">Name A–Z</option>
+        <option value="name:desc">Name Z–A</option>
+        <option value="createdAt:desc">Newest first</option>
+        <option value="createdAt:asc">Oldest first</option>
+        <option value="birthDate:desc">Youngest first</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="patients-workspace" [attr.aria-busy]="store.loading()">
+    <div class="patients-workspace__summary">
+      <span
+        ><strong>{{ store.total() }}</strong>
+        {{ store.query().status.toLowerCase() }} patients</span
+      >
+      <span>Page {{ store.query().page }} of {{ store.pages() }}</span>
+    </div>
+
+    @if (store.loading()) {
+      <div class="patients-state patients-state--loading" role="status">
+        <span class="patients-state__spinner" aria-hidden="true"></span>
+        <strong>Loading patient records</strong>
+        <small>Retrieving the selected clinic’s secure directory.</small>
+      </div>
+    } @else if (store.error()) {
+      <div class="patients-state" role="alert">
+        <span class="material-icons" aria-hidden="true">cloud_off</span>
+        <strong>Patient records could not be loaded</strong>
+        <small>{{ store.error() }}</small>
+        <button type="button" (click)="store.load()">Try again</button>
+      </div>
+    } @else if (!store.hasResults()) {
+      <div class="patients-state">
+        <span class="material-icons" aria-hidden="true">person_search</span>
+        <strong>{{ search.value ? 'No matching patients' : 'No patients in this view' }}</strong>
+        <small>
+          {{
+            search.value
+              ? 'Try a different name, phone number, or patient reference.'
+              : 'Change the status filter or add the clinic’s first patient.'
+          }}
+        </small>
+        @if (search.value) {
+          <button type="button" (click)="clearSearch()">Clear search</button>
+        } @else if (canCreate && store.query().status === 'ACTIVE') {
+          <a routerLink="/app/patients/new">Add first patient</a>
+        }
+      </div>
+    } @else {
+      <div class="patients-table" role="region" aria-label="Patient directory" tabindex="0">
+        <table>
+          <thead>
+            <tr>
+              <th>Patient</th>
+              <th>Guardian</th>
+              <th>Age</th>
+              <th>Phone</th>
+              <th>Status</th>
+              <th>Last visit</th>
+              <th>Next visit</th>
+              <th>Treatment</th>
+              <th>Balance</th>
+              <th><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (patient of store.items(); track patient.id) {
+              <tr>
+                <td data-label="Patient">
+                  <a class="patient-identity" [routerLink]="['/app/patients', patient.id]">
+                    <span class="patient-avatar">{{
+                      initials(patient.firstName, patient.lastName)
+                    }}</span>
+                    <span>
+                      <strong>{{ patient.fullName }}</strong>
+                      <small>{{ patient.referenceNumber ?? 'No reference' }}</small>
+                    </span>
+                  </a>
+                </td>
+                <td data-label="Guardian">
+                  @if (patient.primaryGuardian) {
+                    <span class="patient-guardian">
+                      <strong>{{ patient.primaryGuardian.fullName }}</strong>
+                      <small>{{ relationshipLabel(patient.primaryGuardian.relationship) }}</small>
+                    </span>
+                  } @else {
+                    <span class="patient-placeholder">—</span>
+                  }
+                </td>
+                <td data-label="Age">{{ patient.age ?? '—' }}</td>
+                <td data-label="Phone">{{ patient.phone ?? '—' }}</td>
+                <td data-label="Status">
+                  <span class="patient-status" [attr.data-status]="patient.status">
+                    <i aria-hidden="true"></i>{{ patient.status.toLowerCase() }}
+                  </span>
+                </td>
+                <td data-label="Last visit" class="patient-placeholder">—</td>
+                <td data-label="Next visit" class="patient-placeholder">—</td>
+                <td data-label="Treatment" class="patient-placeholder">—</td>
+                <td data-label="Balance" class="patient-placeholder">—</td>
+                <td class="patient-action">
+                  <a
+                    [routerLink]="['/app/patients', patient.id]"
+                    [attr.aria-label]="'Open ' + patient.fullName"
+                  >
+                    <span class="material-icons" aria-hidden="true">arrow_forward</span>
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <nav class="patients-pagination" aria-label="Patient pages">
+        <button
+          type="button"
+          [disabled]="store.query().page === 1"
+          (click)="goToPage(store.query().page - 1)"
+        >
+          <span class="material-icons" aria-hidden="true">arrow_back</span> Previous
+        </button>
+        <span
+          >{{ (store.query().page - 1) * store.query().limit + 1 }}–{{
+            (store.query().page - 1) * store.query().limit + store.items().length
+          }}
+          of {{ store.total() }}</span
+        >
+        <button
+          type="button"
+          [disabled]="store.query().page === store.pages()"
+          (click)="goToPage(store.query().page + 1)"
+        >
+          Next <span class="material-icons" aria-hidden="true">arrow_forward</span>
+        </button>
+      </nav>
+    }
+  </div>
+</section>

@@ -22,14 +22,30 @@ import type {
  */
 
 export async function listPatientsHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { page, limit, status, search } = validatedQuery<PatientListQuery>(request);
+  const { page, limit, status, search, sortBy, sortOrder } =
+    validatedQuery<PatientListQuery>(request);
 
   const { result, pagination } = await patientService.list(
     requireTenant(request).clinicId,
-    { ...(status ? { status } : {}), ...(search ? { search } : {}) },
+    {
+      ...(status ? { status } : {}),
+      ...(search ? { search } : {}),
+      ...(sortBy ? { sortBy } : {}),
+      ...(sortOrder ? { sortOrder } : {}),
+    },
     { page, limit },
   );
 
+  return reply.send(paginated(result, pagination));
+}
+
+export async function getPatientActivityHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { page, limit } = validatedQuery<PatientListQuery>(request);
+  const { result, pagination } = await patientService.getActivity(
+    requireTenant(request).clinicId,
+    validatedParams<PatientIdParam>(request).patientId,
+    { page, limit },
+  );
   return reply.send(paginated(result, pagination));
 }
 

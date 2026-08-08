@@ -1,0 +1,187 @@
+<section class="patient-editor" aria-labelledby="patient-editor-title">
+  <header class="patient-editor__header">
+    <a routerLink="/app/patients"
+      ><span class="material-icons" aria-hidden="true">arrow_back</span> Patients</a
+    >
+    <p>{{ editing ? 'Administrative record' : 'New patient intake' }}</p>
+    <h1 id="patient-editor-title">{{ title() }}</h1>
+    <span>{{
+      editing
+        ? 'Keep contact and clinic information accurate.'
+        : 'Capture the essentials quickly. Clinical details come later.'
+    }}</span>
+  </header>
+
+  @if (loading()) {
+    <div class="patient-editor__loading" role="status">Loading secure patient information…</div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @if (error()) {
+        <div class="patient-editor__error" role="alert">
+          <span class="material-icons" aria-hidden="true">error_outline</span>{{ error() }}
+        </div>
+      }
+
+      <section class="editor-section" aria-labelledby="personal-heading">
+        <header>
+          <span>01</span>
+          <div>
+            <h2 id="personal-heading">Personal information</h2>
+            <p>The information staff use to identify the patient.</p>
+          </div>
+        </header>
+        <div class="editor-grid">
+          <label
+            >First name<input formControlName="firstName" autocomplete="given-name" required />
+            @if (form.controls.firstName.touched && form.controls.firstName.invalid) {
+              <small>First name is required.</small>
+            }
+          </label>
+          <label
+            >Last name<input formControlName="lastName" autocomplete="family-name" required />
+            @if (form.controls.lastName.touched && form.controls.lastName.invalid) {
+              <small>Last name is required.</small>
+            }
+          </label>
+          <label>Date of birth<input type="date" formControlName="birthDate" /></label>
+          <label
+            >Gender<select formControlName="gender">
+              <option value="UNSPECIFIED">Not specified</option>
+              <option value="FEMALE">Female</option>
+              <option value="MALE">Male</option>
+            </select></label
+          >
+          <label>Phone<input type="tel" formControlName="phone" autocomplete="tel" /></label>
+          <label
+            >Email<input type="email" formControlName="email" autocomplete="email" />
+            @if (form.controls.email.touched && form.controls.email.invalid) {
+              <small>Enter a valid email address.</small>
+            }
+          </label>
+        </div>
+      </section>
+
+      <section class="editor-section" aria-labelledby="contact-heading">
+        <header>
+          <span>02</span>
+          <div>
+            <h2 id="contact-heading">Contact information</h2>
+            <p>Optional location details for administrative follow-up.</p>
+          </div>
+        </header>
+        <div class="editor-grid">
+          <label class="editor-grid__wide"
+            >Address<input formControlName="line1" autocomplete="street-address"
+          /></label>
+          <label>City<input formControlName="city" autocomplete="address-level2" /></label>
+          <label
+            >Postal code<input formControlName="postalCode" autocomplete="postal-code"
+          /></label>
+          <label>Country<input formControlName="country" autocomplete="country-name" /></label>
+        </div>
+      </section>
+
+      @if (!editing) {
+        <section class="editor-section editor-section--guardian" aria-labelledby="guardian-heading">
+          <header>
+            <span>03</span>
+            <div>
+              <h2 id="guardian-heading">Responsible adult</h2>
+              <p>Link a parent or guardian now when the patient is a minor.</p>
+            </div>
+            <button
+              type="button"
+              [attr.aria-expanded]="guardianEnabled()"
+              (click)="toggleGuardian()"
+            >
+              {{ guardianEnabled() ? 'Remove' : 'Add guardian' }}
+            </button>
+          </header>
+          @if (guardianEnabled()) {
+            <div class="editor-grid" formGroupName="guardian">
+              <label
+                >First name<input formControlName="firstName" autocomplete="off" required
+              /></label>
+              <label
+                >Last name<input formControlName="lastName" autocomplete="off" required
+              /></label>
+              <label
+                >Relationship<select formControlName="relationship">
+                  <option value="MOTHER">Mother</option>
+                  <option value="FATHER">Father</option>
+                  <option value="LEGAL_GUARDIAN">Legal guardian</option>
+                  <option value="OTHER">Other</option>
+                </select></label
+              >
+              <label>Phone<input type="tel" formControlName="phone" autocomplete="off" /></label>
+              <label>Email<input type="email" formControlName="email" autocomplete="off" /></label>
+              <label
+                >Contact preference<select formControlName="contactPreference">
+                  <option value="NO_PREFERENCE">No preference</option>
+                  <option value="PHONE">Phone</option>
+                  <option value="EMAIL">Email</option>
+                </select></label
+              >
+              <label class="editor-check"
+                ><input type="checkbox" formControlName="isPrimary" /><span
+                  ><strong>Primary guardian</strong
+                  ><small>Shown first in the patient workspace.</small></span
+                ></label
+              >
+              <label class="editor-check"
+                ><input type="checkbox" formControlName="financiallyResponsible" /><span
+                  ><strong>Financially responsible</strong
+                  ><small>Administrative marker only; no payment functionality.</small></span
+                ></label
+              >
+            </div>
+          }
+        </section>
+      }
+
+      <section class="editor-section" aria-labelledby="internal-heading">
+        <header>
+          <span>{{ editing ? '03' : '04' }}</span>
+          <div>
+            <h2 id="internal-heading">Internal information</h2>
+            <p>Clinic-owned administrative context, never clinical findings.</p>
+          </div>
+        </header>
+        <div class="editor-grid">
+          <label
+            >Patient reference<input
+              formControlName="referenceNumber"
+              autocomplete="off"
+              placeholder="Optional, e.g. PT-1042"
+          /></label>
+          @if (editing) {
+            <label
+              >Administrative status<select formControlName="status">
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+              </select></label
+            >
+          }
+          <label class="editor-grid__wide"
+            >Administrative note<textarea
+              formControlName="notes"
+              rows="4"
+              placeholder="Optional reception or administrative note"
+            ></textarea
+            ><small>{{ form.controls.notes.value.length }}/2000</small></label
+          >
+        </div>
+      </section>
+
+      <footer class="patient-editor__actions">
+        <a [routerLink]="patientId ? ['/app/patients', patientId] : ['/app/patients']">Cancel</a>
+        <button type="submit" [disabled]="submitting()">
+          <span class="material-icons" aria-hidden="true">{{
+            editing ? 'save' : 'person_add'
+          }}</span
+          >{{ submitting() ? 'Saving…' : editing ? 'Save changes' : 'Create patient' }}
+        </button>
+      </footer>
+    </form>
+  }
+</section>

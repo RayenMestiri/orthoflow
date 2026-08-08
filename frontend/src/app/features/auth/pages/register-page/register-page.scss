@@ -1,3 +1,11 @@
+/**
+ * Clinic owner sign-up.
+ *
+ * Fields, sections, buttons and the password meter come from the shared auth
+ * form system in `styles/_auth-forms.scss`; only the step rail and this page's
+ * scroll behaviour live here.
+ */
+
 :host {
   display: block;
   width: 100%;
@@ -7,13 +15,59 @@
   padding-block: 2rem;
 }
 
-.register__optional {
-  margin-left: 0.3rem;
-  color: var(--color-muted);
-  font-size: 0.65rem;
-  font-weight: 500;
+/* Sets expectations up front: creating the account is one of three short steps. */
+.register__steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.85rem;
+  margin: 0 0 1.6rem;
+  padding: 0;
+  list-style: none;
 }
 
+.register__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.register__step + .register__step::before {
+  width: 1rem;
+  height: 1px;
+  margin-right: 0.4rem;
+  background: var(--color-line);
+  content: '';
+}
+
+.register__step span {
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  background: var(--color-white);
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
+.register__step--current {
+  color: var(--color-pine-800);
+}
+
+.register__step--current span {
+  border-color: var(--color-pine-700);
+  color: var(--color-white);
+  background: var(--color-pine-700);
+}
+
+/**
+ * The form is taller than the viewport on most laptops, so the form column
+ * scrolls while the story panel stays put.
+ */
 @media (min-width: 48.0625rem) {
   :host ::ng-deep .auth-frame__content {
     place-items: start center;
@@ -30,5 +84,11 @@
 @media (max-width: 48rem) {
   .register {
     padding-block: 0;
+  }
+}
+
+@media (max-width: 26rem) {
+  .register__step:not(.register__step--current) {
+    display: none;
   }
 }
