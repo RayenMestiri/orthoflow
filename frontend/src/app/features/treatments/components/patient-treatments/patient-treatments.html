@@ -1,0 +1,384 @@
+<section class="treatments">
+  @if (store.error(); as message) {
+    <div class="treatments__alert" role="alert">
+      <span class="material-icons" aria-hidden="true">error_outline</span>
+      <span>{{ message }}</span>
+      <button type="button" (click)="store.dismissError()" aria-label="Dismiss">
+        <span class="material-icons" aria-hidden="true">close</span>
+      </button>
+    </div>
+  }
+
+  @if (store.isLoading() && !store.isLoaded()) {
+    <div class="treatments__loading" role="status">
+      <span class="treatments__spinner" aria-hidden="true"></span>
+      Loading treatment history…
+    </div>
+  } @else {
+    <!-- Current course of care -->
+    <header class="treatments__header">
+      <div>
+        <h2>Orthodontic treatment</h2>
+        <p>The plan for this patient, how far it has run and what happened along the way.</p>
+      </div>
+      @if (canManage) {
+        <button type="button" class="tx-btn tx-btn--primary" (click)="openPlan()">
+          <span class="material-icons" aria-hidden="true">add</span>
+          Plan treatment
+        </button>
+      }
+    </header>
+
+    @if (current(); as treatment) {
+      <article class="tx-card tx-card--current">
+        <div class="tx-card__head">
+          <div class="tx-card__title">
+            <span class="tx-status" [attr.data-status]="treatment.status">
+              {{ statusLabel(treatment.status) }}
+            </span>
+            <h3>{{ treatment.treatmentType }}</h3>
+          </div>
+
+          @if (canManage) {
+            <div class="tx-card__actions">
+              @switch (treatment.status) {
+                @case ('ACTIVE') {
+                  <button
+                    type="button"
+                    class="tx-btn"
+                    [disabled]="store.isSaving()"
+                    (click)="pause(treatment.id)"
+                  >
+                    <span class="material-icons" aria-hidden="true">pause</span> Pause
+                  </button>
+                  <button
+                    type="button"
+                    class="tx-btn"
+                    [disabled]="store.isSaving()"
+                    (click)="complete(treatment.id)"
+                  >
+                    <span class="material-icons" aria-hidden="true">task_alt</span> Complete
+                  </button>
+                }
+                @case ('PAUSED') {
+                  <button
+                    type="button"
+                    class="tx-btn"
+                    [disabled]="store.isSaving()"
+                    (click)="resume(treatment.id)"
+                  >
+                    <span class="material-icons" aria-hidden="true">play_arrow</span> Resume
+                  </button>
+                  <button
+                    type="button"
+                    class="tx-btn"
+                    [disabled]="store.isSaving()"
+                    (click)="complete(treatment.id)"
+                  >
+                    <span class="material-icons" aria-hidden="true">task_alt</span> Complete
+                  </button>
+                }
+              }
+              <button
+                type="button"
+                class="tx-btn tx-btn--danger"
+                [disabled]="store.isSaving()"
+                (click)="openCancel(treatment.id)"
+              >
+                Cancel
+              </button>
+            </div>
+          }
+        </div>
+
+        <dl class="tx-facts">
+          <div>
+            <dt>Started</dt>
+            <dd>{{ treatment.startDate ? (treatment.startDate | date: 'mediumDate') : '—' }}</dd>
+          </div>
+          <div>
+            <dt>Time in treatment</dt>
+            <dd>{{ duration(treatment) }}</dd>
+          </div>
+          <div>
+            <dt>Expected end</dt>
+            <dd>
+              {{ treatment.expectedEndDate ? (treatment.expectedEndDate | date: 'mediumDate') : '—' }}
+            </dd>
+          </div>
+          <div>
+            <dt>Agreed cost</dt>
+            <dd>{{ treatment.totalPlannedCost !== null ? treatment.totalPlannedCost : '—' }}</dd>
+          </div>
+        </dl>
+
+        @if (treatment.notes) {
+          <p class="tx-card__notes">{{ treatment.notes }}</p>
+        }
+
+        <!-- Progress timeline -->
+        <div class="tx-timeline__head">
+          <h4>Progress</h4>
+          @if (canLogProgress) {
+            <button type="button" class="tx-btn tx-btn--ghost" (click)="openProgress()">
+              <span class="material-icons" aria-hidden="true">add_comment</span>
+              Record entry
+            </button>
+          }
+        </div>
+
+        @if (currentProgress().length === 0) {
+          <p class="tx-empty-line">Nothing recorded yet for this course of care.</p>
+        } @else {
+          <ol class="tx-timeline">
+            @for (entry of currentProgress(); track entry.id) {
+              <li class="tx-timeline__item" [attr.data-type]="entry.type">
+                <span class="tx-timeline__icon material-icons" aria-hidden="true">
+                  {{ eventIcon(entry.type) }}
+                </span>
+                <div class="tx-timeline__body">
+                  <p class="tx-timeline__label">
+                    {{ eventLabel(entry.type) }}
+                    <time [attr.datetime]="entry.occurredAt">
+                      {{ entry.occurredAt | date: 'mediumDate' }}
+                    </time>
+                  </p>
+                  @if (entry.note) {
+                    <p class="tx-timeline__note">{{ entry.note }}</p>
+                  }
+                </div>
+              </li>
+            }
+          </ol>
+        }
+      </article>
+    } @else {
+      <div class="tx-empty">
+        <span class="material-icons" aria-hidden="true">medical_services</span>
+        <p><strong>No treatment in progress</strong></p>
+        <p>
+          @if (canManage) {
+            Plan a course of care to start tracking appliances, checkpoints and duration.
+          } @else {
+            This patient has no active course of care.
+          }
+        </p>
+      </div>
+    }
+
+    <!-- Agreed but not yet started -->
+    @if (planned().length > 0) {
+      <section class="tx-group">
+        <h4>Planned</h4>
+        @for (treatment of planned(); track treatment.id) {
+          <article class="tx-card tx-card--compact">
+            <div class="tx-card__head">
+              <div class="tx-card__title">
+                <span class="tx-status" [attr.data-status]="treatment.status">
+                  {{ statusLabel(treatment.status) }}
+                </span>
+                <h3>{{ treatment.treatmentType }}</h3>
+              </div>
+              @if (canManage) {
+                <div class="tx-card__actions">
+                  <button
+                    type="button"
+                    class="tx-btn"
+                    [disabled]="store.isSaving()"
+                    (click)="start(treatment.id)"
+                  >
+                    <span class="material-icons" aria-hidden="true">play_arrow</span> Start
+                  </button>
+                  <button
+                    type="button"
+                    class="tx-btn tx-btn--danger"
+                    [disabled]="store.isSaving()"
+                    (click)="openCancel(treatment.id)"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              }
+            </div>
+            <p class="tx-card__meta">
+              Expected start
+              {{ treatment.startDate ? (treatment.startDate | date: 'mediumDate') : 'not set' }}
+            </p>
+          </article>
+        }
+      </section>
+    }
+
+    <!-- Closed courses -->
+    @if (past().length > 0) {
+      <section class="tx-group">
+        <button type="button" class="tx-group__toggle" (click)="toggleHistory()">
+          <span class="material-icons" aria-hidden="true">
+            {{ historyOpen() ? 'expand_less' : 'expand_more' }}
+          </span>
+          Treatment history ({{ past().length }})
+        </button>
+
+        @if (historyOpen()) {
+          @for (treatment of past(); track treatment.id) {
+            <article class="tx-card tx-card--compact">
+              <div class="tx-card__head">
+                <div class="tx-card__title">
+                  <span class="tx-status" [attr.data-status]="treatment.status">
+                    {{ statusLabel(treatment.status) }}
+                  </span>
+                  <h3>{{ treatment.treatmentType }}</h3>
+                </div>
+              </div>
+              <p class="tx-card__meta">
+                {{ treatment.startDate ? (treatment.startDate | date: 'mediumDate') : '—' }}
+                →
+                {{ treatment.actualEndDate ? (treatment.actualEndDate | date: 'mediumDate') : '—' }}
+                · {{ duration(treatment) }}
+              </p>
+              @if (treatment.cancellationReason) {
+                <p class="tx-card__meta tx-card__meta--muted">
+                  Reason: {{ treatment.cancellationReason }}
+                </p>
+              }
+            </article>
+          }
+        }
+      </section>
+    }
+  }
+
+  <!-- Plan a treatment -->
+  @if (planOpen()) {
+    <div class="tx-modal" role="dialog" aria-modal="true" aria-labelledby="tx-plan-title">
+      <form class="tx-modal__panel" [formGroup]="planForm" (ngSubmit)="savePlan()" novalidate>
+        <h3 id="tx-plan-title">Plan a treatment</h3>
+
+        <div class="tx-field">
+          <label for="tx-type">Treatment type *</label>
+          <input id="tx-type" list="tx-type-options" formControlName="treatmentType" />
+          <datalist id="tx-type-options">
+            @for (suggestion of typeSuggestions; track suggestion) {
+              <option [value]="suggestion"></option>
+            }
+          </datalist>
+          <p class="tx-field__error" aria-live="polite">
+            @if (planForm.controls.treatmentType.touched && planForm.controls.treatmentType.invalid) {
+              Enter the treatment type.
+            }
+          </p>
+        </div>
+
+        <div class="tx-field-row">
+          <div class="tx-field">
+            <label for="tx-start">Start date</label>
+            <input id="tx-start" type="date" formControlName="startDate" />
+          </div>
+          <div class="tx-field">
+            <label for="tx-end">Expected end date</label>
+            <input id="tx-end" type="date" formControlName="expectedEndDate" />
+          </div>
+        </div>
+
+        <div class="tx-field">
+          <label for="tx-cost">Agreed total cost</label>
+          <input id="tx-cost" type="number" min="0" step="1" formControlName="totalPlannedCost" />
+        </div>
+
+        <div class="tx-field">
+          <label for="tx-notes">Clinical notes</label>
+          <textarea id="tx-notes" rows="3" formControlName="notes"></textarea>
+        </div>
+
+        @if (current() === null) {
+          <label class="tx-check">
+            <input type="checkbox" formControlName="startNow" />
+            <span>Start this treatment now</span>
+          </label>
+        } @else {
+          <p class="tx-hint">
+            This patient already has a course in progress, so the new plan is saved as
+            <strong>Planned</strong> and can be started once the current one ends.
+          </p>
+        }
+
+        <footer class="tx-modal__actions">
+          <button type="button" class="tx-btn" (click)="closePlan()">Cancel</button>
+          <button type="submit" class="tx-btn tx-btn--primary" [disabled]="store.isSaving()">
+            {{ store.isSaving() ? 'Saving…' : 'Save treatment' }}
+          </button>
+        </footer>
+      </form>
+    </div>
+  }
+
+  <!-- Record a progress entry -->
+  @if (progressOpen()) {
+    <div class="tx-modal" role="dialog" aria-modal="true" aria-labelledby="tx-progress-title">
+      <form
+        class="tx-modal__panel"
+        [formGroup]="progressForm"
+        (ngSubmit)="saveProgress()"
+        novalidate
+      >
+        <h3 id="tx-progress-title">Record a progress entry</h3>
+
+        <div class="tx-field-row">
+          <div class="tx-field">
+            <label for="tx-event-type">Entry type</label>
+            <select id="tx-event-type" formControlName="type">
+              @for (type of eventTypes; track type) {
+                <option [value]="type">{{ eventLabel(type) }}</option>
+              }
+            </select>
+          </div>
+          <div class="tx-field">
+            <label for="tx-occurred">Date</label>
+            <input id="tx-occurred" type="date" formControlName="occurredAt" />
+          </div>
+        </div>
+
+        <div class="tx-field">
+          <label for="tx-note">Note</label>
+          <textarea id="tx-note" rows="3" formControlName="note"></textarea>
+        </div>
+
+        <footer class="tx-modal__actions">
+          <button type="button" class="tx-btn" (click)="closeProgress()">Cancel</button>
+          <button type="submit" class="tx-btn tx-btn--primary" [disabled]="store.isSaving()">
+            {{ store.isSaving() ? 'Saving…' : 'Add entry' }}
+          </button>
+        </footer>
+      </form>
+    </div>
+  }
+
+  <!-- Cancel a course of care -->
+  @if (cancelling()) {
+    <div class="tx-modal" role="dialog" aria-modal="true" aria-labelledby="tx-cancel-title">
+      <form class="tx-modal__panel" (ngSubmit)="confirmCancel()" novalidate>
+        <h3 id="tx-cancel-title">Cancel this treatment</h3>
+        <p class="tx-hint">
+          The course stays in the patient file as cancelled — nothing is deleted.
+        </p>
+
+        <div class="tx-field">
+          <label for="tx-cancel-reason">Reason *</label>
+          <input id="tx-cancel-reason" [formControl]="cancelReason" />
+          <p class="tx-field__error" aria-live="polite">
+            @if (cancelReason.touched && cancelReason.invalid) {
+              Give a short reason for the record.
+            }
+          </p>
+        </div>
+
+        <footer class="tx-modal__actions">
+          <button type="button" class="tx-btn" (click)="closeCancel()">Keep treatment</button>
+          <button type="submit" class="tx-btn tx-btn--danger" [disabled]="store.isSaving()">
+            {{ store.isSaving() ? 'Cancelling…' : 'Cancel treatment' }}
+          </button>
+        </footer>
+      </form>
+    </div>
+  }
+</section>

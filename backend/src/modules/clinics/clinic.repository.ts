@@ -79,7 +79,6 @@ export class ClinicRepository {
     }
     // Replaced whole: a partial week would leave the calendar with gaps the
     // conflict checks could not reason about.
-    if (changes.schedule !== undefined) set.schedule = changes.schedule;
 
     if (Object.keys(set).length === 0) {
       return this.findById(clinicId);

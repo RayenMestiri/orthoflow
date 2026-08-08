@@ -1,17 +1,20 @@
 <section class="settings-page" aria-labelledby="settings-title">
+  <!-- Page Header -->
   <header class="settings-page__header">
-    <p class="settings-page__eyebrow">Clinic administration</p>
-    <h1 id="settings-title">Settings</h1>
-    <p class="settings-page__lead">
-      Operating configuration for this clinic. Other modules read these values.
-    </p>
+    <div class="settings-page__header-left">
+      <span class="settings-page__eyebrow">Clinic Administration</span>
+      <h1 id="settings-title">Settings & Operating Policy</h1>
+      <p class="settings-page__lead">
+        Configure clinic identity, opening shifts, and appointment scheduling rules across all team workflows.
+      </p>
+    </div>
   </header>
 
   @if (!canEdit()) {
-    <p class="settings-page__readonly" role="status">
+    <div class="settings-page__readonly" role="status">
       <span class="material-icons" aria-hidden="true">visibility</span>
-      You can view this configuration. Only the clinic owner can change it.
-    </p>
+      <span>Read-only configuration. Only clinic owner-doctors can change administrative settings.</span>
+    </div>
   }
 
   @if (store.error(); as message) {
@@ -24,7 +27,9 @@
     </div>
   }
 
+  <!-- Settings Main Layout -->
   <div class="settings-page__body">
+    <!-- Sub Navigation Tabs Sidebar -->
     <nav class="settings-nav" aria-label="Settings sections">
       @for (tab of tabs; track tab.id) {
         <button
@@ -34,20 +39,23 @@
           [attr.aria-current]="activeSection() === tab.id ? 'page' : null"
           (click)="select(tab.id)"
         >
-          <span class="material-icons" aria-hidden="true">{{ tab.icon }}</span>
-          <span class="settings-nav__copy">
+          <div class="settings-nav__icon-box">
+            <span class="material-icons" aria-hidden="true">{{ tab.icon }}</span>
+          </div>
+          <div class="settings-nav__copy">
             <strong>{{ tab.label }}</strong>
             <small>{{ tab.description }}</small>
-          </span>
+          </div>
         </button>
       }
     </nav>
 
+    <!-- Main Section Content -->
     <div class="settings-page__content">
       @if (store.isLoading() && !store.isLoaded()) {
         <div class="settings-page__loading" role="status">
           <span class="settings-page__spinner" aria-hidden="true"></span>
-          Loading clinic configuration…
+          <span>Loading clinic configuration...</span>
         </div>
       } @else if (store.settings(); as settings) {
         @switch (activeSection()) {
@@ -66,7 +74,7 @@
         }
       } @else if (!store.isLoading()) {
         <div class="settings-page__loading" role="status">
-          Clinic configuration is unavailable.
+          <span>Clinic configuration is currently unavailable.</span>
           <button type="button" class="settings-btn" (click)="store.load(true)">Try again</button>
         </div>
       }

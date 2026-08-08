@@ -22,7 +22,7 @@ import timeGridPlugin from '@fullcalendar/angular/timegrid';
 import type {
   Appointment,
   CalendarViewName,
-  ClinicScheduleSettings,
+  ClinicScheduleConfiguration,
   VisibleRange,
 } from '../../models/schedule.models';
 import {
@@ -62,7 +62,7 @@ export interface SlotSelection {
 })
 export class ScheduleCalendar {
   readonly appointments = input.required<Appointment[]>();
-  readonly clinicSchedule = input.required<ClinicScheduleSettings>();
+  readonly clinicSchedule = input.required<ClinicScheduleConfiguration>();
   readonly initialView = input.required<CalendarViewName>();
   readonly canEdit = input(false);
 
@@ -122,7 +122,7 @@ export class ScheduleCalendar {
     },
   }));
 
-  protected readonly formatTime = formatTime;
+  protected readonly formatTime = (iso: string) => formatTime(iso, this.clinicSchedule().timezone);
 
   protected appointmentOf(arg: { event?: { extendedProps?: unknown } }): Appointment | undefined {
     return (arg?.event?.extendedProps as AppointmentEventProps | undefined)?.appointment;

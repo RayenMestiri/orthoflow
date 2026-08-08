@@ -96,7 +96,12 @@ export class AppointmentDrawer {
     if (!date || !startTime) {
       return null;
     }
-    return formatTime(addMinutes(fromDateAndTimeInputs(date, startTime), durationMinutes));
+    const schedule = this.store.clinicSchedule();
+    if (!schedule) return null;
+    return formatTime(
+      addMinutes(fromDateAndTimeInputs(date, startTime, schedule.timezone), durationMinutes),
+      schedule.timezone,
+    );
   });
 
   protected readonly computedEndTime = this.endPreview;
@@ -180,8 +185,10 @@ export class AppointmentDrawer {
   });
 
   protected readonly statusLabels = STATUS_LABELS;
-  protected readonly formatDateTime = formatDateTime;
-  protected readonly formatTime = formatTime;
+  protected readonly formatDateTime = (iso: string) =>
+    formatDateTime(iso, this.store.clinicSchedule()?.timezone);
+  protected readonly formatTime = (iso: string) =>
+    formatTime(iso, this.store.clinicSchedule()?.timezone);
 
   constructor() {
     // Re-seed the form whenever the drawer opens or its subject changes.
@@ -201,7 +208,11 @@ export class AppointmentDrawer {
     this.form.controls.appointmentTypeId.valueChanges.subscribe((typeId) => {
       const type = this.store.appointmentTypes().find((candidate) => candidate.id === typeId);
       if (type && !this.isClosed()) {
-        this.form.controls.durationMinutes.setValue(type.durationMinutes);
+        this.form.controls.durationMinutes.setValue(
+          type.durationMinutes ??
+            this.store.clinicSchedule()?.scheduling.defaultAppointmentDurationMinutes ??
+            this.form.controls.durationMinutes.value,
+        );
       }
     });
   }
@@ -241,7 +252,9 @@ export class AppointmentDrawer {
     }
 
     const { appointmentTypeId, date, startTime, durationMinutes, note } = this.form.getRawValue();
-    const startAt = fromDateAndTimeInputs(date, startTime);
+    const schedule = this.store.clinicSchedule();
+    if (!schedule) return;
+    const startAt = fromDateAndTimeInputs(date, startTime, schedule.timezone);
     const payload = {
       patientId: patient.id,
       appointmentTypeId,
@@ -294,9 +307,11 @@ export class AppointmentDrawer {
   private seedCreateForm(): void {
     const slot = this.store.draftSlot();
     const defaultType = this.store.activeTypes()[0] ?? null;
-    const slotMinutes = this.store.clinicSchedule().slotMinutes;
-    const startIso =
-      slot?.startAt ?? this.nextBookableSlot(defaultType?.durationMinutes ?? slotMinutes);
+    const schedule = this.store.clinicSchedule();
+    if (!schedule) return;
+    const defaultDuration = schedule.scheduling.defaultAppointmentDurationMinutes;
+    const duration = defaultType?.durationMinutes ?? defaultDuration;
+    const startIso = slot?.startAt ?? this.nextBookableSlot(duration);
 
     this.submitted.set(false);
     this.selectedPatient.set(null);
@@ -304,9 +319,9 @@ export class AppointmentDrawer {
     this.form.reset({
       patientSearch: '',
       appointmentTypeId: defaultType?.id ?? '',
-      date: toDateInputValue(startIso),
-      startTime: toTimeInputValue(startIso),
-      durationMinutes: defaultType?.durationMinutes ?? slotMinutes,
+      date: toDateInputValue(startIso, schedule.timezone),
+      startTime: toTimeInputValue(startIso, schedule.timezone),
+      durationMinutes: duration,
       note: '',
     });
     this.searchOpen.set(true);
@@ -314,24 +329,39 @@ export class AppointmentDrawer {
 
   private nextBookableSlot(durationMinutes: number): string {
     const schedule = this.store.clinicSchedule();
+    if (!schedule) return new Date().toISOString();
+    const slotMinutes = schedule.scheduling.slotIntervalMinutes;
     const now = new Date();
-    for (let offset = 0; offset < 8; offset += 1) {
-      const date = new Date(now);
-      date.setDate(now.getDate() + offset);
-      const day = schedule.workingHours.find((entry) => entry.weekday === date.getDay());
-      if (!day || day.isClosed) continue;
-      const [openHour = 8, openMinute = 0] = day.opensAt.split(':').map(Number);
-      const [closeHour = 18, closeMinute = 0] = day.closesAt.split(':').map(Number);
-      const opens = new Date(date);
-      opens.setHours(openHour, openMinute, 0, 0);
-      const closes = new Date(date);
-      closes.setHours(closeHour, closeMinute, 0, 0);
-      const candidate = offset === 0 && now > opens ? new Date(snapToSlot(now.toISOString(), schedule.slotMinutes)) : opens;
-      if (candidate.getTime() + durationMinutes * 60_000 <= closes.getTime()) {
-        return candidate.toISOString();
+    const weekdayNames = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ] as const;
+    const clinicToday = toDateInputValue(now.toISOString(), schedule.timezone);
+    const [year = 0, month = 1, day = 1] = clinicToday.split('-').map(Number);
+    for (let offset = 0; offset < 14; offset += 1) {
+      const date = new Date(Date.UTC(year, month - 1, day + offset));
+      const dateValue = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+      for (const period of schedule.workingHours[weekdayNames[date.getUTCDay()] ?? 'sunday']) {
+        const opens = fromDateAndTimeInputs(dateValue, period.start, schedule.timezone);
+        const closes = fromDateAndTimeInputs(dateValue, period.end, schedule.timezone);
+        const candidate =
+          offset === 0 && now.getTime() > new Date(opens).getTime()
+            ? snapToSlot(now.toISOString(), slotMinutes)
+            : opens;
+        if (
+          new Date(candidate).getTime() >= new Date(opens).getTime() &&
+          new Date(candidate).getTime() + durationMinutes * 60_000 <= new Date(closes).getTime()
+        ) {
+          return candidate;
+        }
       }
     }
-    return snapToSlot(now.toISOString(), schedule.slotMinutes);
+    return snapToSlot(now.toISOString(), slotMinutes);
   }
 
   private seedEditForm(): void {
@@ -356,8 +386,11 @@ export class AppointmentDrawer {
     this.form.reset({
       patientSearch: appointment.patient?.fullName ?? '',
       appointmentTypeId: appointment.appointmentTypeId,
-      date: toDateInputValue(appointment.startAt),
-      startTime: toTimeInputValue(appointment.startAt),
+      date: toDateInputValue(appointment.startAt, this.store.clinicSchedule()?.timezone ?? 'UTC'),
+      startTime: toTimeInputValue(
+        appointment.startAt,
+        this.store.clinicSchedule()?.timezone ?? 'UTC',
+      ),
       durationMinutes: appointment.durationMinutes,
       note: appointment.note ?? '',
     });
@@ -391,5 +424,30 @@ export class AppointmentDrawer {
       'appointment.overbooked': 'Overbooking approved',
     };
     return labels[action] ?? action.replace('appointment.', '').replaceAll('_', ' ');
+  }
+
+  protected arrivalTiming(appointment: Appointment): string | null {
+    if (!appointment.arrivedAt) return null;
+    const minutes = Math.round(
+      (new Date(appointment.arrivedAt).getTime() - new Date(appointment.startAt).getTime()) /
+        60_000,
+    );
+    if (minutes < 0) return `${this.humanizeMinutes(Math.abs(minutes))} early`;
+    if (minutes > 0) return `${this.humanizeMinutes(minutes)} late`;
+    return 'On time';
+  }
+
+  private humanizeMinutes(minutes: number): string {
+    if (minutes >= 24 * 60) {
+      const days = Math.floor(minutes / (24 * 60));
+      const hours = Math.floor((minutes % (24 * 60)) / 60);
+      return `${days}d${hours ? ` ${hours}h` : ''}`;
+    }
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const rest = minutes % 60;
+      return `${hours}h${rest ? ` ${rest}m` : ''}`;
+    }
+    return `${minutes} min`;
   }
 }

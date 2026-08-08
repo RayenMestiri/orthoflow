@@ -4,6 +4,10 @@
  * Statuses live here once; components import from this module instead of
  * scattering status strings through templates.
  */
+import type {
+  ClinicSchedulingSettings,
+  WeeklyWorkingHours,
+} from '../../settings/models/clinic-settings.models';
 
 export const APPOINTMENT_STATUSES = [
   'SCHEDULED',
@@ -121,17 +125,10 @@ export interface AppointmentType {
   updatedAt: string;
 }
 
-export interface ClinicWorkingDay {
-  weekday: number;
-  opensAt: string;
-  closesAt: string;
-  isClosed: boolean;
-}
-
-export interface ClinicScheduleSettings {
-  slotMinutes: number;
-  defaultConcurrentCapacity: number;
-  workingHours: ClinicWorkingDay[];
+export interface ClinicScheduleConfiguration {
+  timezone: string;
+  workingHours: WeeklyWorkingHours;
+  scheduling: ClinicSchedulingSettings;
 }
 
 export interface CreateAppointmentInput {

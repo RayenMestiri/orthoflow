@@ -43,6 +43,15 @@ export const AUDIT_ACTIONS = {
   APPOINTMENT_CANCELLED: 'appointment.cancelled',
   APPOINTMENT_NO_SHOW: 'appointment.no_show',
 
+  TREATMENT_CREATED: 'treatment.created',
+  TREATMENT_UPDATED: 'treatment.updated',
+  TREATMENT_STARTED: 'treatment.started',
+  TREATMENT_PAUSED: 'treatment.paused',
+  TREATMENT_RESUMED: 'treatment.resumed',
+  TREATMENT_COMPLETED: 'treatment.completed',
+  TREATMENT_CANCELLED: 'treatment.cancelled',
+  TREATMENT_PROGRESS_ADDED: 'treatment.progress_added',
+
   APPOINTMENT_TYPE_CREATED: 'appointment_type.created',
   APPOINTMENT_TYPE_UPDATED: 'appointment_type.updated',
 } as const;
@@ -59,6 +68,7 @@ export const AUDIT_RESOURCE_TYPES = {
   GUARDIAN: 'guardian',
   APPOINTMENT: 'appointment',
   APPOINTMENT_TYPE: 'appointment_type',
+  TREATMENT: 'treatment',
   AUTH_SESSION: 'auth_session',
 } as const;
 

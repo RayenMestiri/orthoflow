@@ -13,6 +13,7 @@ import { filter } from 'rxjs';
 import { AuthStore } from '../../core/auth/auth.store';
 import { CLINIC_ROLES, PLATFORM_ROLES } from '../../core/auth/auth.models';
 import { PermissionService, PERMISSIONS } from '../../core/auth/permissions';
+import { ClinicSettingsStore } from '../../features/settings/data-access/clinic-settings.store';
 
 interface AppNavigationItem {
   label: string;
@@ -32,15 +33,26 @@ export class AppShell {
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly router = inject(Router);
   private readonly permissions = inject(PermissionService);
+  private readonly settingsStore = inject(ClinicSettingsStore);
   readonly auth = inject(AuthStore);
 
   readonly compact = signal(false);
   readonly navigationOpen = signal(false);
   readonly accountOpen = signal(false);
+  readonly logoFailed = signal(false);
+
+  readonly clinicLogoUrl = computed(() => {
+    if (this.logoFailed()) return null;
+    const settings = this.settingsStore.settings();
+    const logo = settings?.general?.logoUrl?.trim();
+    return logo ? logo : null;
+  });
+
   readonly initials = computed(() => {
     const user = this.auth.user();
     return user ? `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase() : 'OF';
   });
+
   readonly roleLabel = computed(() => {
     if (this.auth.user()?.platformRole === PLATFORM_ROLES.SUPER_ADMIN) {
       return 'Platform administrator';
@@ -55,6 +67,7 @@ export class AppShell {
     const role = this.auth.activeMembership()?.role;
     return role ? labels[role] : 'OrthoFlow team';
   });
+
   readonly navigation = computed<AppNavigationItem[]>(() => [
     { label: 'Dashboard', icon: 'space_dashboard', route: '/app/dashboard', visible: true },
     {
@@ -88,6 +101,9 @@ export class AppShell {
   ]);
 
   constructor() {
+    // Load clinic settings to retrieve saved logo URL
+    void this.settingsStore.load();
+
     this.breakpointObserver
       .observe('(max-width: 64rem)')
       .pipe(takeUntilDestroyed())
@@ -121,7 +137,13 @@ export class AppShell {
   }
 
   selectClinic(event: Event): void {
+    this.logoFailed.set(false);
     this.auth.selectClinic((event.target as HTMLSelectElement).value);
+    void this.settingsStore.load(true);
+  }
+
+  onLogoError(): void {
+    this.logoFailed.set(true);
   }
 
   async logout(): Promise<void> {

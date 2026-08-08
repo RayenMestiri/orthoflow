@@ -286,9 +286,7 @@ export const appointmentRepositoryMock = {
     ) => ({
       ...appointmentRecord(clinicId, appointmentId),
       status: toStatus as never,
-      ...(cancellation
-        ? { cancellationReason: cancellation.reason, cancelledAt: FIXED_DATE }
-        : {}),
+      ...(cancellation ? { cancellationReason: cancellation.reason, cancelledAt: FIXED_DATE } : {}),
     }),
   ),
   countInRange: vi.fn(async () => 1),
@@ -352,6 +350,64 @@ export const auditLogRepositoryMock = {
   listByClinic: vi.fn(async () => ({ items: [], total: 0 })),
 };
 
+export const TREATMENT_ID = '652f1c9b8a1e4f0012abffff';
+
+export function treatmentRecord(clinicId: string, treatmentId = TREATMENT_ID) {
+  return {
+    _id: new Types.ObjectId(treatmentId),
+    clinicId: new Types.ObjectId(clinicId),
+    patientId: new Types.ObjectId(PATIENT_ID),
+    doctorId: new Types.ObjectId(USER_ID),
+    treatmentType: 'Fixed braces',
+    status: 'PLANNED' as const,
+    startDate: null,
+    expectedEndDate: null,
+    actualEndDate: null,
+    notes: null,
+    totalPlannedCost: null,
+    cancellationReason: null,
+    createdBy: new Types.ObjectId(USER_ID),
+    updatedBy: null,
+    createdAt: FIXED_DATE,
+    updatedAt: FIXED_DATE,
+  };
+}
+
+export const treatmentRepositoryMock = {
+  findByIdInClinic: vi.fn(async (treatmentId: string, clinicId: string) =>
+    treatmentRecord(clinicId, treatmentId),
+  ),
+  listByPatient: vi.fn(async (_patientId: string, clinicId: string) => [treatmentRecord(clinicId)]),
+  /** No live course by default, so creation is allowed unless a test says otherwise. */
+  findOccupyingForPatient: vi.fn(async () => null),
+  create: vi.fn(async (input: { clinicId: string }) => treatmentRecord(input.clinicId)),
+  update: vi.fn(async (treatmentId: string, clinicId: string) =>
+    treatmentRecord(clinicId, treatmentId),
+  ),
+  changeStatus: vi.fn(
+    async (
+      treatmentId: string,
+      clinicId: string,
+      _expectedFrom: string,
+      changes: { status: string },
+    ) => ({ ...treatmentRecord(clinicId, treatmentId), status: changes.status as never }),
+  ),
+  createProgress: vi.fn(async (input: { clinicId: string; treatmentId: string; type: string }) => ({
+    _id: new Types.ObjectId(),
+    clinicId: new Types.ObjectId(input.clinicId),
+    patientId: new Types.ObjectId(PATIENT_ID),
+    treatmentId: new Types.ObjectId(input.treatmentId),
+    occurredAt: FIXED_DATE,
+    type: input.type as never,
+    note: null,
+    createdBy: new Types.ObjectId(USER_ID),
+    createdAt: FIXED_DATE,
+    updatedAt: FIXED_DATE,
+  })),
+  listProgressByTreatment: vi.fn(async () => ({ items: [], total: 0 })),
+  listProgressByTreatmentIds: vi.fn(async () => []),
+};
+
 export function resetRepositoryMocks(): void {
   const repositories = [
     userRepositoryMock,
@@ -363,6 +419,7 @@ export function resetRepositoryMocks(): void {
     patientGuardianRepositoryMock,
     appointmentRepositoryMock,
     appointmentTypeRepositoryMock,
+    treatmentRepositoryMock,
     auditLogRepositoryMock,
   ];
 

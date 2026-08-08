@@ -33,6 +33,13 @@ export const PERMISSIONS = {
   APPOINTMENT_TYPE_READ: 'appointment-type:read',
   APPOINTMENT_TYPE_MANAGE: 'appointment-type:manage',
 
+  TREATMENT_READ: 'treatment:read',
+  TREATMENT_CREATE: 'treatment:create',
+  TREATMENT_UPDATE: 'treatment:update',
+  /** Starting, pausing, resuming and completing care is a clinical decision. */
+  TREATMENT_MANAGE_LIFECYCLE: 'treatment:manage-lifecycle',
+  TREATMENT_PROGRESS_CREATE: 'treatment:progress-create',
+
   AUDIT_LOG_READ: 'audit-log:read',
 } as const;
 
@@ -56,6 +63,12 @@ const PRACTITIONER_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.APPOINTMENT_CANCEL,
   PERMISSIONS.APPOINTMENT_TYPE_READ,
   PERMISSIONS.APPOINTMENT_TYPE_MANAGE,
+  // Treatment is clinical work: practitioners own the whole lifecycle.
+  PERMISSIONS.TREATMENT_READ,
+  PERMISSIONS.TREATMENT_CREATE,
+  PERMISSIONS.TREATMENT_UPDATE,
+  PERMISSIONS.TREATMENT_MANAGE_LIFECYCLE,
+  PERMISSIONS.TREATMENT_PROGRESS_CREATE,
 ];
 
 const SECRETARY_PERMISSIONS: readonly Permission[] = [
@@ -73,6 +86,8 @@ const SECRETARY_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.APPOINTMENT_UPDATE,
   PERMISSIONS.APPOINTMENT_CANCEL,
   PERMISSIONS.APPOINTMENT_TYPE_READ,
+  // The front desk sees the treatment plan but never decides clinical care.
+  PERMISSIONS.TREATMENT_READ,
 ];
 
 const ASSISTANT_PERMISSIONS: readonly Permission[] = [
@@ -83,6 +98,9 @@ const ASSISTANT_PERMISSIONS: readonly Permission[] = [
   // Read-only on the diary: assistants follow it, they do not manage it.
   PERMISSIONS.APPOINTMENT_READ,
   PERMISSIONS.APPOINTMENT_TYPE_READ,
+  PERMISSIONS.TREATMENT_READ,
+  // Chairside assistants record what happened; they cannot alter the plan.
+  PERMISSIONS.TREATMENT_PROGRESS_CREATE,
 ];
 
 export const ROLE_PERMISSIONS: Readonly<Record<ClinicRole, readonly Permission[]>> = {

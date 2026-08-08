@@ -57,6 +57,28 @@ const monthlyControl: AppointmentType = {
   updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
+const clinicSchedule = {
+  timezone: 'Africa/Tunis',
+  workingHours: {
+    monday: [
+      { start: '08:00', end: '12:00' },
+      { start: '14:00', end: '18:00' },
+    ],
+    tuesday: [{ start: '08:00', end: '18:00' }],
+    wednesday: [{ start: '08:00', end: '18:00' }],
+    thursday: [{ start: '08:00', end: '18:00' }],
+    friday: [{ start: '08:00', end: '18:00' }],
+    saturday: [{ start: '08:00', end: '13:00' }],
+    sunday: [],
+  },
+  scheduling: {
+    slotIntervalMinutes: 20,
+    defaultAppointmentDurationMinutes: 40,
+    defaultConcurrentCapacity: 2,
+    allowOwnerOverbooking: false,
+  },
+};
+
 describe('ScheduleStore', () => {
   let store: ScheduleStore;
   let api: {
@@ -79,9 +101,7 @@ describe('ScheduleStore', () => {
         of(buildAppointment({ status: 'CANCELLED', cancellationReason: 'Family emergency' })),
       ),
       listAppointmentTypes: vi.fn(() => of([monthlyControl])),
-      getClinicSchedule: vi.fn(() =>
-        of({ id: 'clinic-1', timezone: 'Africa/Tunis', schedule: null }),
-      ),
+      getClinicSchedule: vi.fn(() => of(clinicSchedule)),
     };
 
     TestBed.configureTestingModule({
@@ -201,11 +221,12 @@ describe('ScheduleStore', () => {
     expect(store.activeTypes()[0]?.name).toBe('Monthly control');
   });
 
-  it('falls back to the default working pattern when the clinic has none', async () => {
+  it('uses the persisted clinic configuration without a local fallback', async () => {
     await store.initialize();
 
     const schedule = store.clinicSchedule();
-    expect(schedule.slotMinutes).toBe(15);
-    expect(schedule.workingHours).toHaveLength(7);
+    expect(schedule?.scheduling.slotIntervalMinutes).toBe(20);
+    expect(schedule?.workingHours.monday).toHaveLength(2);
+    expect(schedule?.scheduling.allowOwnerOverbooking).toBe(false);
   });
 });

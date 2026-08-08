@@ -6,6 +6,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { getApiProblem } from '../../../../core/http/api-error';
+import { PatientTreatments } from '../../../treatments/components/patient-treatments/patient-treatments';
 import { PatientsApiService } from '../../data-access/patients-api.service';
 import type {
   ContactPreference,
@@ -18,7 +19,7 @@ import type {
 
 @Component({
   selector: 'app-patient-detail-page',
-  imports: [A11yModule, DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [A11yModule, DatePipe, PatientTreatments, ReactiveFormsModule, RouterLink],
   templateUrl: './patient-detail-page.html',
   styleUrl: './patient-detail-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -6,6 +6,10 @@ import { toWallClock } from '../../src/common/utils/clinic-time.js';
 import type { MutationContext } from '../../src/common/utils/request-context.js';
 import { AppointmentService } from '../../src/modules/appointments/appointment.service.js';
 import {
+  DEFAULT_CLINIC_SETTINGS,
+  type ClinicSchedulingSettings,
+} from '../../src/modules/clinics/clinic-settings.types.js';
+import {
   APPOINTMENT_STATUSES,
   CAPACITY_CONSUMING_APPOINTMENT_STATUSES,
   canTransition,
@@ -103,14 +107,14 @@ class FakeAppointmentRepository {
     excludeId?: string,
   ) {
     return this.records.filter(
-        (record) =>
-          record.clinicId.toString() === clinicId &&
-          record.doctorId.toString() === doctorId &&
-          CAPACITY_CONSUMING_APPOINTMENT_STATUSES.includes(record.status) &&
-          record.startAt.getTime() < endAt.getTime() &&
-          record.endAt.getTime() > startAt.getTime() &&
-          record._id.toString() !== excludeId,
-      );
+      (record) =>
+        record.clinicId.toString() === clinicId &&
+        record.doctorId.toString() === doctorId &&
+        CAPACITY_CONSUMING_APPOINTMENT_STATUSES.includes(record.status) &&
+        record.startAt.getTime() < endAt.getTime() &&
+        record.endAt.getTime() > startAt.getTime() &&
+        record._id.toString() !== excludeId,
+    );
   }
 
   async listInRange(clinicId: string, query: { start: Date; end: Date }) {
@@ -187,12 +191,15 @@ function patientRecordIn(clinicId: string) {
 interface Fakes {
   service: AppointmentService;
   store: FakeAppointmentRepository;
-  patients: { findByIdInClinic: ReturnType<typeof vi.fn>; findManyByIdsInClinic: ReturnType<typeof vi.fn> };
+  patients: {
+    findByIdInClinic: ReturnType<typeof vi.fn>;
+    findManyByIdsInClinic: ReturnType<typeof vi.fn>;
+  };
   memberships: { findActiveOwner: ReturnType<typeof vi.fn> };
   audit: { record: ReturnType<typeof vi.fn> };
 }
 
-function buildService(): Fakes {
+function buildService(scheduling: Partial<ClinicSchedulingSettings> = {}): Fakes {
   const store = new FakeAppointmentRepository();
   const typeRecord = appointmentTypeRecord();
 
@@ -219,12 +226,14 @@ function buildService(): Fakes {
     }),
   };
   const clinics = {
-    // No `schedule` on the record: exercises the DEFAULT_CLINIC_SCHEDULE
-    // fallback (Mon–Fri 08:00–18:00, Sat morning, Sunday closed).
     findById: vi.fn(async (clinicId: string) => ({
       _id: new Types.ObjectId(clinicId),
       name: 'Cabinet Al Amal',
       timezone: 'Africa/Tunis',
+      settings: {
+        ...DEFAULT_CLINIC_SETTINGS,
+        scheduling: { ...DEFAULT_CLINIC_SETTINGS.scheduling, ...scheduling },
+      },
       status: 'ACTIVE',
     })),
   };
@@ -328,7 +337,12 @@ describe('AppointmentService.create', () => {
   it('accepts two overlaps and asks for explicit owner approval for the third', async () => {
     await fakes.service.create(
       CLINIC_A,
-      { patientId: PATIENT_ID, appointmentTypeId: TYPE_ID, startAt: MONDAY_9_LOCAL, durationMinutes: 30 },
+      {
+        patientId: PATIENT_ID,
+        appointmentTypeId: TYPE_ID,
+        startAt: MONDAY_9_LOCAL,
+        durationMinutes: 30,
+      },
       ACTOR,
     );
 
@@ -385,7 +399,12 @@ describe('AppointmentService.create', () => {
   it('frees the slot again once the blocking appointment is cancelled', async () => {
     const first = await fakes.service.create(
       CLINIC_A,
-      { patientId: PATIENT_ID, appointmentTypeId: TYPE_ID, startAt: MONDAY_9_LOCAL, durationMinutes: 30 },
+      {
+        patientId: PATIENT_ID,
+        appointmentTypeId: TYPE_ID,
+        startAt: MONDAY_9_LOCAL,
+        durationMinutes: 30,
+      },
       ACTOR,
     );
     await fakes.service.cancel(CLINIC_A, first.id, 'Patient called', ACTOR);
@@ -428,6 +447,70 @@ describe('AppointmentService.create', () => {
     } catch (error) {
       expectCode(error, ERROR_CODES.APPOINTMENT_OUTSIDE_WORKING_HOURS);
     }
+  });
+
+  it('rejects appointments in the lunch break between split shifts', async () => {
+    await expect(
+      fakes.service.create(
+        CLINIC_A,
+        {
+          patientId: PATIENT_ID,
+          appointmentTypeId: TYPE_ID,
+          // 12:30 local, between the 08:00–12:00 and 14:00–18:00 periods.
+          startAt: new Date('2026-08-10T11:30:00.000Z'),
+        },
+        ACTOR,
+      ),
+    ).rejects.toMatchObject({ code: ERROR_CODES.APPOINTMENT_OUTSIDE_WORKING_HOURS });
+  });
+
+  it('enforces the configured slot precision', async () => {
+    fakes = buildService({ slotIntervalMinutes: 20 });
+    await expect(
+      fakes.service.create(
+        CLINIC_A,
+        {
+          patientId: PATIENT_ID,
+          appointmentTypeId: TYPE_ID,
+          // 09:10 local is not on a 20-minute boundary.
+          startAt: new Date('2026-08-10T08:10:00.000Z'),
+        },
+        ACTOR,
+      ),
+    ).rejects.toMatchObject({ code: ERROR_CODES.APPOINTMENT_INVALID_TIME_RANGE });
+  });
+
+  it('never permits an explicit override when owner overbooking is disabled', async () => {
+    fakes = buildService({ defaultConcurrentCapacity: 1, allowOwnerOverbooking: false });
+    await fakes.service.create(
+      CLINIC_A,
+      { patientId: PATIENT_ID, appointmentTypeId: TYPE_ID, startAt: MONDAY_9_LOCAL },
+      ACTOR,
+    );
+
+    await expect(
+      fakes.service.create(
+        CLINIC_A,
+        { patientId: PATIENT_ID, appointmentTypeId: TYPE_ID, startAt: MONDAY_9_LOCAL },
+        ACTOR,
+      ),
+    ).rejects.toMatchObject({
+      code: ERROR_CODES.SLOT_CAPACITY_EXCEEDED,
+      details: expect.objectContaining({ overrideAllowed: false }),
+    });
+
+    await expect(
+      fakes.service.create(
+        CLINIC_A,
+        {
+          patientId: PATIENT_ID,
+          appointmentTypeId: TYPE_ID,
+          startAt: MONDAY_9_LOCAL,
+          allowOverbooking: true,
+        },
+        ACTOR,
+      ),
+    ).rejects.toMatchObject({ code: ERROR_CODES.APPOINTMENT_OVERBOOKING_NOT_ALLOWED });
   });
 
   it('accepts an appointment ending exactly at closing time', async () => {
@@ -474,7 +557,13 @@ describe('AppointmentService workflow', () => {
   });
 
   it('walks the full front-desk flow to completion', async () => {
-    for (const status of ['CONFIRMED', 'ARRIVED', 'WAITING', 'IN_TREATMENT', 'COMPLETED'] as const) {
+    for (const status of [
+      'CONFIRMED',
+      'ARRIVED',
+      'WAITING',
+      'IN_TREATMENT',
+      'COMPLETED',
+    ] as const) {
       const dto = await fakes.service.changeStatus(CLINIC_A, appointmentId, status, ACTOR);
       expect(dto.status).toBe(status);
     }

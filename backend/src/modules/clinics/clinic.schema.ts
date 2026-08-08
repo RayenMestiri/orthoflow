@@ -33,31 +33,6 @@ export const clinicAddressSchema = z.object({
 
 export const clinicNameSchema = z.string().trim().min(2, 'is required').max(120);
 
-/** Wall-clock time in the clinic's own timezone. */
-export const clockTimeSchema = z
-  .string()
-  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'must be a 24-hour HH:mm time')
-  .meta({ example: '08:00' });
-
-export const clinicWorkingDaySchema = z
-  .object({
-    weekday: z.number().int().min(0).max(6),
-    opensAt: clockTimeSchema,
-    closesAt: clockTimeSchema,
-    isClosed: z.boolean().default(false),
-  })
-  .refine((day) => day.isClosed || day.opensAt < day.closesAt, {
-    message: 'closesAt must be later than opensAt',
-    path: ['closesAt'],
-  });
-
-export const clinicScheduleSchema = z.object({
-  /** 15 minutes matches short orthodontic controls; 5–60 keeps the grid sane. */
-  slotMinutes: z.number().int().min(5).max(60).default(15),
-  defaultConcurrentCapacity: z.number().int().min(1).max(10).default(2),
-  workingHours: z.array(clinicWorkingDaySchema).length(7, 'must cover all seven weekdays'),
-});
-
 /** Clinic profile as returned by the API. */
 export const clinicDtoSchema = z.object({
   id: objectIdSchema,
@@ -75,18 +50,6 @@ export const clinicDtoSchema = z.object({
   }),
   timezone: z.string(),
   currency: z.string(),
-  schedule: z.object({
-    slotMinutes: z.number().int(),
-    defaultConcurrentCapacity: z.number().int(),
-    workingHours: z.array(
-      z.object({
-        weekday: z.number().int(),
-        opensAt: z.string(),
-        closesAt: z.string(),
-        isClosed: z.boolean(),
-      }),
-    ),
-  }),
   status: z.enum(CLINIC_STATUS_VALUES),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -109,7 +72,6 @@ export const updateClinicBodySchema = z
     address: clinicAddressSchema.optional(),
     timezone: timezoneSchema.optional(),
     currency: currencySchema.optional(),
-    schedule: clinicScheduleSchema.optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'At least one field must be provided',

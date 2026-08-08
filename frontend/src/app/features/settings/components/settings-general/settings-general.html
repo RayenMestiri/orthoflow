@@ -7,8 +7,9 @@
   </header>
 
   <div class="settings-grid">
-    <div class="settings-field settings-field--wide">
-      <label for="clinic-name">Clinic name</label>
+    <!-- Row 1: Clinic Name + Doctor Display Name -->
+    <div class="settings-field">
+      <label for="clinic-name">Clinic name *</label>
       <input id="clinic-name" formControlName="clinicName" autocomplete="organization" />
       <p class="settings-field__error" aria-live="polite">
         @if (form.controls.clinicName.touched && form.controls.clinicName.invalid) {
@@ -17,7 +18,7 @@
       </p>
     </div>
 
-    <div class="settings-field settings-field--wide">
+    <div class="settings-field">
       <label for="doctor-name">Doctor display name</label>
       <input
         id="doctor-name"
@@ -30,6 +31,7 @@
       </p>
     </div>
 
+    <!-- Row 2: Phone + Email -->
     <div class="settings-field">
       <label for="clinic-phone">Phone</label>
       <input
@@ -57,6 +59,7 @@
       </p>
     </div>
 
+    <!-- Row 3: Full Address -->
     <div class="settings-field settings-field--wide">
       <label for="clinic-address">Address</label>
       <input
@@ -68,6 +71,7 @@
       <p class="settings-field__error"></p>
     </div>
 
+    <!-- Row 4: City + Postal Code -->
     <div class="settings-field">
       <label for="clinic-city">City</label>
       <input id="clinic-city" formControlName="city" autocomplete="address-level2" />
@@ -80,6 +84,7 @@
       <p class="settings-field__error"></p>
     </div>
 
+    <!-- Row 5: Country + Timezone -->
     <div class="settings-field">
       <label for="clinic-country">Country</label>
       <input id="clinic-country" formControlName="country" autocomplete="country-name" />
@@ -98,6 +103,7 @@
       </p>
     </div>
 
+    <!-- Row 6: Default Language + Logo URL -->
     <div class="settings-field">
       <label for="clinic-language">Default language</label>
       <select id="clinic-language" formControlName="defaultLanguage">
@@ -108,16 +114,16 @@
       <p class="settings-field__error"></p>
     </div>
 
-    <div class="settings-field settings-field--wide">
+    <div class="settings-field">
       <label for="clinic-logo">Logo URL</label>
       <input
         id="clinic-logo"
         type="url"
         formControlName="logoUrl"
-        placeholder="https://…"
+        placeholder="https://example.com/logo.png"
         aria-describedby="logo-hint"
       />
-      <p id="logo-hint" class="settings-field__hint">Optional. Used on printed documents later.</p>
+      <p id="logo-hint" class="settings-field__hint">Optional custom image logo URL.</p>
       <p class="settings-field__error" aria-live="polite">
         @if (form.controls.logoUrl.touched && form.controls.logoUrl.invalid) {
           Enter a full URL beginning with http:// or https://.

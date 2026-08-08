@@ -19,7 +19,12 @@ import {
   type AppointmentTypeService,
 } from '../appointment-types/appointment-type.service.js';
 import { clinicRepository, type ClinicRepository } from '../clinics/clinic.repository.js';
-import { DEFAULT_CLINIC_SCHEDULE, type ClinicRecord } from '../clinics/clinic.types.js';
+import {
+  DEFAULT_CLINIC_SETTINGS,
+  type ClinicSchedulingSettings,
+  type Weekday,
+} from '../clinics/clinic-settings.types.js';
+import type { ClinicRecord } from '../clinics/clinic.types.js';
 import {
   membershipRepository,
   type MembershipRepository,
@@ -67,6 +72,15 @@ export interface UpdateAppointmentCommand {
 /** The visible calendar window may not exceed ~2 months per request. */
 const MAX_RANGE_DAYS = 62;
 const MINUTE_MS = 60_000;
+const WEEKDAY_BY_NUMBER: readonly Weekday[] = [
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+];
 
 /** Drops seconds and milliseconds — the diary works in whole minutes. */
 function truncateToMinute(date: Date): Date {
@@ -183,7 +197,10 @@ export class AppointmentService {
     );
 
     const startAt = truncateToMinute(command.startAt);
-    const durationMinutes = command.durationMinutes ?? appointmentType.durationMinutes;
+    const durationMinutes =
+      command.durationMinutes ??
+      appointmentType.durationMinutes ??
+      this.schedulingFor(clinic).defaultAppointmentDurationMinutes;
     const endAt = new Date(startAt.getTime() + durationMinutes * MINUTE_MS);
 
     this.assertWithinWorkingHours(clinic, startAt, endAt);
@@ -194,6 +211,7 @@ export class AppointmentService {
       endAt,
       this.capacityFor(clinic),
       command.allowOverbooking ?? false,
+      this.schedulingFor(clinic).allowOwnerOverbooking,
       context.actorUserId,
     );
 
@@ -295,6 +313,7 @@ export class AppointmentService {
         endAt,
         this.capacityFor(clinic),
         command.allowOverbooking ?? false,
+        this.schedulingFor(clinic).allowOwnerOverbooking,
         context.actorUserId,
         appointmentId,
       );
@@ -524,7 +543,8 @@ export class AppointmentService {
       });
     }
 
-    const schedule = clinic.schedule ?? DEFAULT_CLINIC_SCHEDULE;
+    const settings = clinic.settings ?? DEFAULT_CLINIC_SETTINGS;
+    const scheduling = this.schedulingFor(clinic);
     const start = toWallClock(startAt, clinic.timezone);
     // Last occupied minute, so an appointment ending exactly at closing time
     // (or local midnight) still counts as the same day.
@@ -536,35 +556,44 @@ export class AppointmentService {
       });
     }
 
-    const day = schedule.workingHours.find((entry) => entry.weekday === start.weekday);
-    if (!day || day.isClosed) {
+    if (start.minutesOfDay % scheduling.slotIntervalMinutes !== 0) {
+      throw new BusinessRuleError(
+        `Appointment starts must align to ${scheduling.slotIntervalMinutes}-minute slots`,
+        {
+          code: ERROR_CODES.APPOINTMENT_INVALID_TIME_RANGE,
+          details: { slotIntervalMinutes: scheduling.slotIntervalMinutes },
+        },
+      );
+    }
+
+    const weekday = WEEKDAY_BY_NUMBER[start.weekday];
+    const periods = weekday ? settings.workingHours[weekday] : [];
+    if (periods.length === 0) {
       throw new BusinessRuleError('The clinic is closed on this day', {
         code: ERROR_CODES.APPOINTMENT_OUTSIDE_WORKING_HOURS,
         details: { weekday: start.weekday },
       });
     }
 
-    const opens = clockToMinutes(day.opensAt);
-    const closes = clockToMinutes(day.closesAt);
     const endMinutes = lastMinute.minutesOfDay + 1;
+    const matchingPeriod = periods.find(
+      (period) =>
+        start.minutesOfDay >= clockToMinutes(period.start) &&
+        endMinutes <= clockToMinutes(period.end),
+    );
 
-    if (start.minutesOfDay < opens || endMinutes > closes) {
+    if (!matchingPeriod) {
       throw new BusinessRuleError(
-        `Appointments on this day must be between ${day.opensAt} and ${day.closesAt}`,
+        'The appointment must fit entirely within one clinic working period',
         {
           code: ERROR_CODES.APPOINTMENT_OUTSIDE_WORKING_HOURS,
-          details: { opensAt: day.opensAt, closesAt: day.closesAt },
+          details: { periods },
         },
       );
     }
   }
 
-  /**
-   * One doctor, one chair: overlapping live appointments are rejected with the
-   * 409 the frontend explains. (Read-then-insert has a small race window; for a
-   * solo practice the harm is two staff double-booking within milliseconds,
-   * which the diary makes immediately visible. Revisit with multi-doctor.)
-   */
+  /** Applies the clinic's soft concurrent-capacity policy to live overlaps. */
   private async assertCapacity(
     clinicId: string,
     doctorId: string,
@@ -572,6 +601,7 @@ export class AppointmentService {
     endAt: Date,
     recommendedCapacity: number,
     allowOverbooking: boolean,
+    ownerOverbookingAllowed: boolean,
     actorUserId: string,
     excludeId?: string,
   ): Promise<CapacityEvaluation> {
@@ -601,7 +631,7 @@ export class AppointmentService {
           concurrentAppointments: evaluation.existingPeak,
           resultingAppointments: evaluation.resultingPeak,
           state: evaluation.state,
-          overrideAllowed: actorUserId === doctorId,
+          overrideAllowed: ownerOverbookingAllowed && actorUserId === doctorId,
           overlappingAppointments: overlaps.map((record) => ({
             id: record._id.toString(),
             patientName: names.get(record.patientId.toString()) ?? 'Patient',
@@ -609,6 +639,11 @@ export class AppointmentService {
             endAt: record.endAt.toISOString(),
           })),
         },
+      });
+    }
+    if (evaluation.requiresConfirmation && !ownerOverbookingAllowed) {
+      throw new BusinessRuleError('Clinic policy does not allow intentional overbooking', {
+        code: ERROR_CODES.APPOINTMENT_OVERBOOKING_NOT_ALLOWED,
       });
     }
     if (evaluation.requiresConfirmation && actorUserId !== doctorId) {
@@ -637,7 +672,7 @@ export class AppointmentService {
   private async joinDetails(
     clinicId: string,
     records: AppointmentRecord[],
-    recommendedCapacity = DEFAULT_CLINIC_SCHEDULE.defaultConcurrentCapacity,
+    recommendedCapacity = DEFAULT_CLINIC_SETTINGS.scheduling.defaultConcurrentCapacity,
   ): Promise<AppointmentDto[]> {
     if (records.length === 0) {
       return [];
@@ -648,7 +683,9 @@ export class AppointmentService {
     ];
 
     const patientIds = [...new Set(uniqueRecords.map((record) => record.patientId.toString()))];
-    const typeIds = [...new Set(uniqueRecords.map((record) => record.appointmentTypeId.toString()))];
+    const typeIds = [
+      ...new Set(uniqueRecords.map((record) => record.appointmentTypeId.toString())),
+    ];
 
     const [patients, types] = await Promise.all([
       this.patients.findManyByIdsInClinic(patientIds, clinicId),
@@ -669,7 +706,11 @@ export class AppointmentService {
   }
 
   private capacityFor(clinic: ClinicRecord): number {
-    return clinic.schedule?.defaultConcurrentCapacity ?? DEFAULT_CLINIC_SCHEDULE.defaultConcurrentCapacity;
+    return this.schedulingFor(clinic).defaultConcurrentCapacity;
+  }
+
+  private schedulingFor(clinic: ClinicRecord): ClinicSchedulingSettings {
+    return clinic.settings?.scheduling ?? DEFAULT_CLINIC_SETTINGS.scheduling;
   }
 
   private async joinOneWithCapacity(
@@ -685,11 +726,7 @@ export class AppointmentService {
         record.endAt,
       ),
     ]);
-    const [dto] = await this.joinDetails(
-      clinicId,
-      [record, ...overlaps],
-      this.capacityFor(clinic),
-    );
+    const [dto] = await this.joinDetails(clinicId, [record, ...overlaps], this.capacityFor(clinic));
     return dto as AppointmentDto;
   }
 

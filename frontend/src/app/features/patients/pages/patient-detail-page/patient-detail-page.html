@@ -1,182 +1,275 @@
 <section class="patient-profile" aria-labelledby="patient-profile-title">
   @if (loading()) {
-    <div class="profile-state" role="status">Loading secure patient profile…</div>
+    <div class="profile-state profile-state--loading" role="status">
+      <span class="profile-state__spinner" aria-hidden="true"></span>
+      <strong>Loading patient profile...</strong>
+      <small>Retrieving clinical records and medical history.</small>
+    </div>
   } @else if (error() || !patient()) {
     <div class="profile-state" role="alert">
-      <span class="material-icons" aria-hidden="true">error_outline</span
-      ><strong>Patient profile unavailable</strong><small>{{ error() }}</small
-      ><button type="button" (click)="load()">Try again</button>
+      <span class="material-icons error-icon" aria-hidden="true">error_outline</span>
+      <strong>Patient profile unavailable</strong>
+      <small>{{ error() }}</small>
+      <button type="button" class="btn-retry" (click)="load()">
+        <span class="material-icons" aria-hidden="true">refresh</span>
+        <span>Try again</span>
+      </button>
     </div>
   } @else {
     @let current = patient()!;
-    <a class="patient-profile__back" routerLink="/app/patients"
-      ><span class="material-icons" aria-hidden="true">arrow_back</span>Patient directory</a
-    >
+    
+    <!-- Top Back Navigation -->
+    <a class="patient-profile__back" routerLink="/app/patients">
+      <span class="material-icons" aria-hidden="true">arrow_back</span>
+      <span>Patient directory</span>
+    </a>
+
     @if (notice()) {
       <div class="profile-notice" role="status">
-        <span class="material-icons" aria-hidden="true">check_circle</span>{{ notice()
-        }}<button type="button" aria-label="Dismiss message" (click)="notice.set(null)">
+        <span class="material-icons" aria-hidden="true">check_circle</span>
+        <span>{{ notice() }}</span>
+        <button type="button" aria-label="Dismiss message" (click)="notice.set(null)">
           <span class="material-icons" aria-hidden="true">close</span>
         </button>
       </div>
     }
 
+    <!-- Hero Header -->
     <header class="profile-header">
       <div class="profile-header__identity">
         <span class="profile-avatar">{{ initials(current.firstName, current.lastName) }}</span>
-        <div>
-          <p>Patient profile</p>
+        <div class="profile-header__title-block">
+          <span class="profile-header__eyebrow">Patient File</span>
           <h1 id="patient-profile-title">{{ current.fullName }}</h1>
-          <span>{{ current.referenceNumber ?? 'No patient reference' }}</span>
+          <div class="profile-header__tags">
+            <span class="ref-badge">{{ current.referenceNumber || 'REF-NEW' }}</span>
+            <span class="profile-status" [attr.data-status]="current.status">
+              <i aria-hidden="true"></i>
+              <span>{{ current.status.toLowerCase() }}</span>
+            </span>
+          </div>
         </div>
       </div>
+
       <div class="profile-header__actions">
         @if (canUpdate && current.status !== 'ARCHIVED') {
-          <a [routerLink]="['/app/patients', current.id, 'edit']"
-            ><span class="material-icons" aria-hidden="true">edit</span>Edit</a
-          >
+          <a class="btn-edit-profile" [routerLink]="['/app/patients', current.id, 'edit']">
+            <span class="material-icons" aria-hidden="true">edit</span>
+            <span>Edit Profile</span>
+          </a>
         }
-        <button type="button" disabled title="Scheduling is planned for a later phase">
-          New appointment
+        <button type="button" class="btn-action-disabled" disabled title="Scheduling is planned for a later phase">
+          <span class="material-icons" aria-hidden="true">calendar_today</span>
+          <span>New appointment</span>
         </button>
-        <button type="button" disabled title="Treatment management is planned for a later phase">
-          Add treatment
+        <button type="button" class="btn-action-disabled" disabled title="Treatment management is planned for a later phase">
+          <span class="material-icons" aria-hidden="true">medical_services</span>
+          <span>Add treatment</span>
         </button>
-        <button type="button" disabled title="Cash records are planned for a later phase">
-          Record payment
+        <button type="button" class="btn-action-disabled" disabled title="Cash records are planned for a later phase">
+          <span class="material-icons" aria-hidden="true">payments</span>
+          <span>Record payment</span>
         </button>
       </div>
     </header>
 
+    <!-- Quick Fact Cards -->
     <div class="profile-facts" aria-label="Patient summary">
-      <span
-        ><small>Status</small
-        ><strong class="profile-status" [attr.data-status]="current.status"
-          ><i></i>{{ current.status.toLowerCase() }}</strong
-        ></span
-      >
-      <span
-        ><small>Age</small
-        ><strong>{{ current.age === null ? '—' : current.age + ' years' }}</strong></span
-      >
-      <span
-        ><small>Primary guardian</small
-        ><strong>{{ primaryGuardian()?.fullName ?? '—' }}</strong></span
-      >
-      <span
-        ><small>Phone</small><strong>{{ current.phone ?? '—' }}</strong></span
-      >
+      <div class="fact-card">
+        <span class="material-icons fact-card__icon">verified</span>
+        <div class="fact-card__content">
+          <span class="fact-card__label">Status</span>
+          <span class="profile-status" [attr.data-status]="current.status">
+            <i aria-hidden="true"></i>
+            <strong>{{ current.status.toLowerCase() }}</strong>
+          </span>
+        </div>
+      </div>
+
+      <div class="fact-card">
+        <span class="material-icons fact-card__icon">cake</span>
+        <div class="fact-card__content">
+          <span class="fact-card__label">Age</span>
+          <strong>{{ current.age === null ? '—' : current.age + ' years old' }}</strong>
+        </div>
+      </div>
+
+      <div class="fact-card">
+        <span class="material-icons fact-card__icon">family_restroom</span>
+        <div class="fact-card__content">
+          <span class="fact-card__label">Primary Guardian</span>
+          <strong>{{ primaryGuardian()?.fullName ?? 'None linked' }}</strong>
+        </div>
+      </div>
+
+      <div class="fact-card">
+        <span class="material-icons fact-card__icon">phone</span>
+        <div class="fact-card__content">
+          <span class="fact-card__label">Contact Phone</span>
+          <strong>{{ current.phone ?? 'No phone' }}</strong>
+        </div>
+      </div>
     </div>
 
+    <!-- Navigation Tabs -->
     <nav class="profile-tabs" aria-label="Patient profile sections">
       <button
         type="button"
         [class.active]="activeView() === 'overview'"
         (click)="activeView.set('overview')"
       >
-        Overview
+        <span class="material-icons" aria-hidden="true">info</span>
+        <span>Overview</span>
       </button>
       <button
         type="button"
         [class.active]="activeView() === 'activity'"
         (click)="activeView.set('activity')"
       >
-        Activity <span>{{ activity().length }}</span>
+        <span class="material-icons" aria-hidden="true">history</span>
+        <span>Activity Log</span>
+        <span class="tab-badge">{{ activity().length }}</span>
       </button>
-      <div aria-label="Future patient sections">
-        <span>Appointments</span><span>Treatment</span><span>Payments</span><span>Documents</span>
+      @if (canViewTreatments) {
+        <button
+          type="button"
+          [class.active]="activeView() === 'treatments'"
+          (click)="activeView.set('treatments')"
+        >
+          <span class="material-icons" aria-hidden="true">medical_services</span>
+          <span>Treatment</span>
+        </button>
+      }
+
+      <div class="future-tabs" aria-label="Future modules">
+        <span title="Coming soon">Appointments</span>
+        <span title="Coming soon">Payments</span>
+        <span title="Coming soon">Documents</span>
       </div>
     </nav>
 
+    <!-- Main Content Panels -->
     @if (activeView() === 'overview') {
       <div class="profile-overview">
+        <!-- Administrative Info Panel -->
         <section class="profile-panel">
-          <header>
+          <header class="panel-header">
             <div>
-              <p>Administrative record</p>
-              <h2>Patient information</h2>
+              <span class="panel-eyebrow">Administrative Record</span>
+              <h2>Patient Information</h2>
             </div>
             @if (canUpdate && current.status !== 'ARCHIVED') {
-              <a [routerLink]="['/app/patients', current.id, 'edit']">Edit information</a>
+              <a class="btn-panel-action" [routerLink]="['/app/patients', current.id, 'edit']">
+                <span class="material-icons" aria-hidden="true">edit</span>
+                <span>Edit Info</span>
+              </a>
             }
           </header>
+
           <dl class="profile-definition">
-            <div>
-              <dt>Full name</dt>
-              <dd>{{ current.fullName }}</dd>
+            <div class="def-item">
+              <span class="material-icons def-icon">person</span>
+              <div>
+                <dt>Full Name</dt>
+                <dd>{{ current.fullName }}</dd>
+              </div>
             </div>
-            <div>
-              <dt>Birth date</dt>
-              <dd>{{ formatBirthDate(current.birthDate) }}</dd>
+
+            <div class="def-item">
+              <span class="material-icons def-icon">cake</span>
+              <div>
+                <dt>Birth Date</dt>
+                <dd>{{ formatBirthDate(current.birthDate) }}</dd>
+              </div>
             </div>
-            <div>
-              <dt>Gender</dt>
-              <dd>
-                {{ current.gender === 'UNSPECIFIED' ? '—' : formatEnumLabel(current.gender) }}
-              </dd>
+
+            <div class="def-item">
+              <span class="material-icons def-icon">wc</span>
+              <div>
+                <dt>Gender</dt>
+                <dd>{{ current.gender === 'UNSPECIFIED' ? '—' : formatEnumLabel(current.gender) }}</dd>
+              </div>
             </div>
-            <div>
-              <dt>Phone</dt>
-              <dd>{{ current.phone ?? '—' }}</dd>
+
+            <div class="def-item">
+              <span class="material-icons def-icon">phone</span>
+              <div>
+                <dt>Phone Number</dt>
+                <dd>{{ current.phone ?? '—' }}</dd>
+              </div>
             </div>
-            <div>
-              <dt>Email</dt>
-              <dd>{{ current.email ?? '—' }}</dd>
+
+            <div class="def-item">
+              <span class="material-icons def-icon">email</span>
+              <div>
+                <dt>Email Address</dt>
+                <dd>{{ current.email ?? '—' }}</dd>
+              </div>
             </div>
-            <div>
-              <dt>Address</dt>
-              <dd>{{ formatAddress(current) }}</dd>
+
+            <div class="def-item">
+              <span class="material-icons def-icon">location_on</span>
+              <div>
+                <dt>Address</dt>
+                <dd>{{ formatAddress(current) }}</dd>
+              </div>
             </div>
-            <div class="wide">
-              <dt>Administrative note</dt>
-              <dd>{{ current.notes ?? '—' }}</dd>
+
+            <div class="def-item wide">
+              <span class="material-icons def-icon">notes</span>
+              <div>
+                <dt>Administrative Note</dt>
+                <dd>{{ current.notes ?? 'No special notes recorded.' }}</dd>
+              </div>
             </div>
           </dl>
         </section>
 
+        <!-- Guardians Panel -->
         <section class="profile-panel guardians-panel">
-          <header>
+          <header class="panel-header">
             <div>
-              <p>Responsible adults</p>
+              <span class="panel-eyebrow">Responsible Adults</span>
               <h2>Guardians</h2>
             </div>
             @if (canUpdate && current.status !== 'ARCHIVED') {
-              <button type="button" (click)="openGuardian()">
-                <span class="material-icons" aria-hidden="true">add</span>Add guardian
+              <button type="button" class="btn-panel-action" (click)="openGuardian()">
+                <span class="material-icons" aria-hidden="true">add</span>
+                <span>Add Guardian</span>
               </button>
             }
           </header>
+
           @if (guardians().length === 0) {
             <div class="guardian-empty">
-              <span class="material-icons" aria-hidden="true">family_restroom</span
-              ><strong>No guardian linked</strong
-              ><small>Add a responsible adult when this patient is a minor.</small>
+              <span class="material-icons" aria-hidden="true">family_restroom</span>
+              <strong>No guardian linked</strong>
+              <small>Add a responsible adult when this patient is a minor or requires a proxy.</small>
             </div>
           } @else {
             <div class="guardian-list">
               @for (guardian of guardians(); track guardian.id) {
-                <article>
-                  <span class="guardian-avatar">{{
-                    initials(guardian.firstName, guardian.lastName)
-                  }}</span>
-                  <div>
+                <article class="guardian-card">
+                  <span class="guardian-avatar">
+                    {{ initials(guardian.firstName, guardian.lastName) }}
+                  </span>
+                  <div class="guardian-info">
                     <h3>{{ guardian.fullName }}</h3>
-                    <p>{{ relationshipLabel(guardian.relationship) }}</p>
-                    <small>{{
-                      guardian.phone ?? guardian.email ?? 'No contact information'
-                    }}</small>
+                    <p class="guardian-rel">{{ relationshipLabel(guardian.relationship) }}</p>
+                    <small class="guardian-contact">{{ guardian.phone ?? guardian.email ?? 'No contact info' }}</small>
                   </div>
                   <div class="guardian-markers">
                     @if (guardian.isPrimary) {
-                      <span>Primary</span>
+                      <span class="marker-pill marker-pill--primary">Primary</span>
                     }
                     @if (guardian.financiallyResponsible) {
-                      <span>Financially responsible</span>
+                      <span class="marker-pill">Financially Responsible</span>
                     }
                   </div>
                   @if (canUpdate && current.status !== 'ARCHIVED') {
                     <button
                       type="button"
+                      class="btn-icon-action"
                       [attr.aria-label]="'Edit ' + guardian.fullName"
                       (click)="openGuardian(guardian)"
                     >
@@ -189,75 +282,101 @@
           }
         </section>
 
+        <!-- Clinic Metadata Panel -->
         <section class="profile-panel clinic-panel">
-          <header>
+          <header class="panel-header">
             <div>
-              <p>Record provenance</p>
-              <h2>Clinic information</h2>
+              <span class="panel-eyebrow">Record Provenance</span>
+              <h2>Clinic Metadata</h2>
             </div>
           </header>
+
           <dl class="profile-definition">
-            <div>
-              <dt>Patient since</dt>
-              <dd>{{ current.createdAt | date: 'longDate' }}</dd>
+            <div class="def-item">
+              <span class="material-icons def-icon">calendar_today</span>
+              <div>
+                <dt>Patient Since</dt>
+                <dd>{{ current.createdAt | date: 'longDate' }}</dd>
+              </div>
             </div>
-            <div>
-              <dt>Created by</dt>
-              <dd>{{ createdBy() }}</dd>
+
+            <div class="def-item">
+              <span class="material-icons def-icon">badge</span>
+              <div>
+                <dt>Created By</dt>
+                <dd>{{ createdBy() }}</dd>
+              </div>
             </div>
-            <div>
-              <dt>Last updated</dt>
-              <dd>{{ current.updatedAt | date: 'medium' }}</dd>
+
+            <div class="def-item">
+              <span class="material-icons def-icon">update</span>
+              <div>
+                <dt>Last Updated</dt>
+                <dd>{{ current.updatedAt | date: 'medium' }}</dd>
+              </div>
             </div>
-            <div>
-              <dt>Status</dt>
-              <dd>{{ formatEnumLabel(current.status) }}</dd>
+
+            <div class="def-item">
+              <span class="material-icons def-icon">flag</span>
+              <div>
+                <dt>Current Status</dt>
+                <dd>{{ formatEnumLabel(current.status) }}</dd>
+              </div>
             </div>
           </dl>
+
           @if (canArchive && current.status !== 'ARCHIVED') {
             <div class="archive-zone">
-              <div>
-                <strong>Archive patient</strong
-                ><small
-                  >Removes this patient from the default directory without deleting history.</small
-                >
+              <div class="archive-zone__info">
+                <strong>Archive Patient File</strong>
+                <small>Removes this patient from active directory while preserving complete history.</small>
               </div>
-              <button type="button" (click)="archiveOpen.set(true)">Archive</button>
+              <button type="button" class="btn-archive" (click)="archiveOpen.set(true)">
+                <span class="material-icons" aria-hidden="true">inventory_2</span>
+                <span>Archive</span>
+              </button>
             </div>
           }
         </section>
       </div>
+    } @else if (activeView() === 'treatments') {
+      <!-- Orthodontic treatment — owned by the treatments feature module -->
+      <app-patient-treatments [patientId]="current.id" />
     } @else {
+      <!-- Activity Log Panel -->
       <section class="profile-panel activity-panel">
-        <header>
+        <header class="panel-header">
           <div>
-            <p>Real audit history</p>
-            <h2>Patient activity</h2>
+            <span class="panel-eyebrow">Audit Trail</span>
+            <h2>Patient Activity History</h2>
           </div>
-          <span>Newest first</span>
+          <span class="sort-tag">Newest First</span>
         </header>
+
         @if (activity().length === 0) {
           <div class="guardian-empty">
-            <span class="material-icons" aria-hidden="true">history</span
-            ><strong>No activity recorded</strong
-            ><small>Auditable patient changes will appear here.</small>
+            <span class="material-icons" aria-hidden="true">history</span>
+            <strong>No activity recorded yet</strong>
+            <small>Auditable changes and profile edits will appear here in chronological order.</small>
           </div>
         }
+
         <ol class="activity-list">
           @for (item of activity(); track item.id) {
-            <li>
+            <li class="activity-item">
               <span class="activity-dot" aria-hidden="true"></span>
-              <div>
-                <strong>{{ actionLabel(item.action) }}</strong>
-                <p>By {{ item.actorName }}</p>
+              <div class="activity-content">
+                <strong class="activity-title">{{ actionLabel(item.action) }}</strong>
+                <p class="activity-actor">By {{ item.actorName }}</p>
               </div>
-              <time [attr.datetime]="item.createdAt">{{ item.createdAt | date: 'medium' }}</time>
+              <time class="activity-time" [attr.datetime]="item.createdAt">{{ item.createdAt | date: 'medium' }}</time>
             </li>
           }
         </ol>
       </section>
     }
 
+    <!-- Guardian Modal Editor -->
     @if (guardianPanelOpen()) {
       <div
         class="profile-overlay"
@@ -275,58 +394,87 @@
           (click)="$event.stopPropagation()"
           (keydown.escape)="closeGuardian()"
         >
-          <header>
+          <header class="modal-header">
             <div>
-              <p>Responsible adult</p>
+              <span class="modal-eyebrow">Responsible Adult</span>
               <h2 id="guardian-editor-title">
-                {{ editingGuardian() ? 'Edit guardian' : 'Add guardian' }}
+                {{ editingGuardian() ? 'Edit Guardian' : 'Add Guardian' }}
               </h2>
             </div>
-            <button type="button" aria-label="Close guardian form" (click)="closeGuardian()">
+            <button type="button" aria-label="Close form" (click)="closeGuardian()">
               <span class="material-icons" aria-hidden="true">close</span>
             </button>
           </header>
+
           <form [formGroup]="guardianForm" (ngSubmit)="saveGuardian()">
             @if (guardianError()) {
-              <div class="guardian-editor__error" role="alert">{{ guardianError() }}</div>
+              <div class="guardian-editor__error" role="alert">
+                <span class="material-icons">error_outline</span>
+                <span>{{ guardianError() }}</span>
+              </div>
             }
+
             <div class="guardian-editor__grid">
-              <label>First name<input formControlName="firstName" required /></label
-              ><label>Last name<input formControlName="lastName" required /></label>
-              <label
-                >Relationship<select formControlName="relationship">
+              <label class="form-field">
+                <span>First Name *</span>
+                <input formControlName="firstName" placeholder="First name" required />
+              </label>
+
+              <label class="form-field">
+                <span>Last Name *</span>
+                <input formControlName="lastName" placeholder="Last name" required />
+              </label>
+
+              <label class="form-field">
+                <span>Relationship *</span>
+                <select formControlName="relationship">
                   <option value="MOTHER">Mother</option>
                   <option value="FATHER">Father</option>
-                  <option value="LEGAL_GUARDIAN">Legal guardian</option>
+                  <option value="LEGAL_GUARDIAN">Legal Guardian</option>
                   <option value="OTHER">Other</option>
-                </select></label
-              >
-              <label>Phone<input type="tel" formControlName="phone" /></label
-              ><label>Email<input type="email" formControlName="email" /></label>
-              <label
-                >Contact preference<select formControlName="contactPreference">
+                </select>
+              </label>
+
+              <label class="form-field">
+                <span>Phone Number</span>
+                <input type="tel" formControlName="phone" placeholder="+216 20 000 000" />
+              </label>
+
+              <label class="form-field">
+                <span>Email Address</span>
+                <input type="email" formControlName="email" placeholder="guardian@email.com" />
+              </label>
+
+              <label class="form-field">
+                <span>Contact Preference</span>
+                <select formControlName="contactPreference">
                   <option value="NO_PREFERENCE">No preference</option>
-                  <option value="PHONE">Phone</option>
+                  <option value="PHONE">Phone call / SMS</option>
                   <option value="EMAIL">Email</option>
-                </select></label
-              >
-              <label class="guardian-check"
-                ><input type="checkbox" formControlName="isPrimary" /><span
-                  ><strong>Primary guardian</strong
-                  ><small>Shown first on this profile.</small></span
-                ></label
-              >
-              <label class="guardian-check"
-                ><input type="checkbox" formControlName="financiallyResponsible" /><span
-                  ><strong>Financially responsible</strong
-                  ><small>Administrative responsibility marker.</small></span
-                ></label
-              >
+                </select>
+              </label>
+
+              <label class="guardian-check">
+                <input type="checkbox" formControlName="isPrimary" />
+                <span class="check-text">
+                  <strong>Primary Guardian</strong>
+                  <small>Displayed prominently on the patient profile header.</small>
+                </span>
+              </label>
+
+              <label class="guardian-check">
+                <input type="checkbox" formControlName="financiallyResponsible" />
+                <span class="check-text">
+                  <strong>Financially Responsible</strong>
+                  <small>Receives billing notices and financial summaries.</small>
+                </span>
+              </label>
             </div>
-            <footer>
-              <button type="button" (click)="closeGuardian()">Cancel</button
-              ><button type="submit" [disabled]="guardianSaving()">
-                {{ guardianSaving() ? 'Saving…' : 'Save guardian' }}
+
+            <footer class="modal-footer">
+              <button type="button" class="btn-cancel" (click)="closeGuardian()">Cancel</button>
+              <button type="submit" class="btn-submit" [disabled]="guardianSaving()">
+                {{ guardianSaving() ? 'Saving...' : 'Save Guardian' }}
               </button>
             </footer>
           </form>
@@ -334,6 +482,7 @@
       </div>
     }
 
+    <!-- Archive Confirmation Dialog -->
     @if (archiveOpen()) {
       <div
         class="profile-overlay"
@@ -352,16 +501,17 @@
           (click)="$event.stopPropagation()"
           (keydown.escape)="archiveOpen.set(false)"
         >
-          <span class="material-icons" aria-hidden="true">inventory_2</span>
+          <div class="archive-icon-wrapper">
+            <span class="material-icons" aria-hidden="true">inventory_2</span>
+          </div>
           <h2 id="archive-title">Archive {{ current.fullName }}?</h2>
           <p id="archive-description">
-            The record and audit history remain intact. The patient will move to the archived
-            directory.
+            The profile and full medical history will remain stored safely. The record will move to the archived patient directory.
           </p>
-          <footer>
-            <button type="button" (click)="archiveOpen.set(false)">Keep active</button
-            ><button type="button" [disabled]="archiving()" (click)="archive()">
-              {{ archiving() ? 'Archiving…' : 'Archive patient' }}
+          <footer class="modal-footer">
+            <button type="button" class="btn-cancel" (click)="archiveOpen.set(false)">Keep Active</button>
+            <button type="button" class="btn-confirm-archive" [disabled]="archiving()" (click)="archive()">
+              {{ archiving() ? 'Archiving...' : 'Archive Patient' }}
             </button>
           </footer>
         </section>

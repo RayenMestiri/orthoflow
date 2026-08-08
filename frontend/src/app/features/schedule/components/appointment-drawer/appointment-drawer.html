@@ -64,16 +64,49 @@
           </p>
         }
 
+        @if (current.arrivedAt || current.treatmentStartedAt || current.completedAt) {
+          <dl class="drawer__timing" aria-label="Operational timestamps">
+            @if (current.arrivedAt) {
+              <div>
+                <dt>Arrived</dt>
+                <dd>{{ formatDateTime(current.arrivedAt) }} · {{ arrivalTiming(current) }}</dd>
+              </div>
+            }
+            @if (current.treatmentStartedAt) {
+              <div>
+                <dt>Treatment started</dt>
+                <dd>{{ formatDateTime(current.treatmentStartedAt) }}</dd>
+              </div>
+            }
+            @if (current.completedAt) {
+              <div>
+                <dt>Completed</dt>
+                <dd>{{ formatDateTime(current.completedAt) }}</dd>
+              </div>
+            }
+          </dl>
+        }
+
         @if (primaryAction(); as action) {
           <section class="drawer__section" aria-label="Appointment workflow">
             <h3>Next step</h3>
             <div class="drawer__actions">
-              <button type="button" class="drawer__action drawer__action--primary" [disabled]="store.isMutating()" (click)="applyStatus(action.status)">
+              <button
+                type="button"
+                class="drawer__action drawer__action--primary"
+                [disabled]="store.isMutating()"
+                (click)="applyStatus(action.status)"
+              >
                 <span class="material-icons" aria-hidden="true">{{ action.icon }}</span>
                 {{ action.label }}
               </button>
               @if (secondaryActions().length > 0) {
-                <button type="button" class="drawer__action" [attr.aria-expanded]="moreActionsOpen()" (click)="moreActionsOpen.set(!moreActionsOpen())">
+                <button
+                  type="button"
+                  class="drawer__action"
+                  [attr.aria-expanded]="moreActionsOpen()"
+                  (click)="moreActionsOpen.set(!moreActionsOpen())"
+                >
                   More <span class="material-icons" aria-hidden="true">expand_more</span>
                 </button>
               }
@@ -81,8 +114,14 @@
             @if (moreActionsOpen()) {
               <div class="drawer__more-actions">
                 @for (secondary of secondaryActions(); track secondary.status) {
-                  <button type="button" [class.drawer__action--warn]="secondary.status === 'NO_SHOW'" [disabled]="store.isMutating()" (click)="applyStatus(secondary.status)">
-                    <span class="material-icons" aria-hidden="true">{{ secondary.icon }}</span>{{ secondary.label }}
+                  <button
+                    type="button"
+                    [class.drawer__action--warn]="secondary.status === 'NO_SHOW'"
+                    [disabled]="store.isMutating()"
+                    (click)="applyStatus(secondary.status)"
+                  >
+                    <span class="material-icons" aria-hidden="true">{{ secondary.icon }}</span
+                    >{{ secondary.label }}
                   </button>
                 }
               </div>
@@ -174,7 +213,14 @@
             <select id="appointment-type" formControlName="appointmentTypeId">
               <option value="" disabled>Choose a type</option>
               @for (type of store.activeTypes(); track type.id) {
-                <option [value]="type.id">{{ type.name }} · {{ type.durationMinutes }} min</option>
+                <option [value]="type.id">
+                  {{ type.name }} ·
+                  {{
+                    type.durationMinutes ??
+                      store.clinicSchedule()?.scheduling?.defaultAppointmentDurationMinutes
+                  }}
+                  min
+                </option>
               }
             </select>
           </div>
@@ -195,7 +241,12 @@
           <div class="drawer__field">
             <label for="appointment-start">Start</label>
             <div class="drawer__control">
-              <input id="appointment-start" type="time" formControlName="startTime" />
+              <input
+                id="appointment-start"
+                type="time"
+                [step]="(store.clinicSchedule()?.scheduling?.slotIntervalMinutes ?? 1) * 60"
+                formControlName="startTime"
+              />
             </div>
           </div>
         </div>
@@ -281,7 +332,6 @@
             }
           </section>
         }
-
 
         <section class="drawer__section drawer__activity" aria-label="Appointment activity">
           <h3>Activity</h3>

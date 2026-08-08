@@ -9,31 +9,16 @@ import type {
   AppointmentType,
   CapacityWarning,
   CalendarViewName,
-  ClinicScheduleSettings,
+  ClinicScheduleConfiguration,
   CreateAppointmentInput,
   DraftSlot,
   UpdateAppointmentInput,
   VisibleRange,
 } from '../models/schedule.models';
-import { isSameLocalDay } from '../utils/appointment-time.utils';
+import { isSameClinicDay, todayRange } from '../utils/appointment-time.utils';
 import { ScheduleApiService } from './schedule-api.service';
 
 export type DrawerMode = 'create' | 'edit' | null;
-
-/** Fallback pattern while the clinic record loads — mirrors the backend default. */
-const FALLBACK_SCHEDULE: ClinicScheduleSettings = {
-  slotMinutes: 15,
-  defaultConcurrentCapacity: 2,
-  workingHours: [
-    { weekday: 0, opensAt: '08:00', closesAt: '13:00', isClosed: true },
-    { weekday: 1, opensAt: '08:00', closesAt: '18:00', isClosed: false },
-    { weekday: 2, opensAt: '08:00', closesAt: '18:00', isClosed: false },
-    { weekday: 3, opensAt: '08:00', closesAt: '18:00', isClosed: false },
-    { weekday: 4, opensAt: '08:00', closesAt: '18:00', isClosed: false },
-    { weekday: 5, opensAt: '08:00', closesAt: '18:00', isClosed: false },
-    { weekday: 6, opensAt: '08:00', closesAt: '13:00', isClosed: false },
-  ],
-};
 
 /**
  * Owns every piece of schedule state; components read signals and call intents.
@@ -47,7 +32,7 @@ export class ScheduleStore {
   private readonly appointmentsState = signal<Appointment[]>([]);
   private readonly todayState = signal<Appointment[]>([]);
   private readonly typesState = signal<AppointmentType[]>([]);
-  private readonly clinicScheduleState = signal<ClinicScheduleSettings>(FALLBACK_SCHEDULE);
+  private readonly clinicScheduleState = signal<ClinicScheduleConfiguration | null>(null);
   private readonly loadingState = signal(false);
   private readonly mutatingState = signal(false);
   private readonly errorState = signal<string | null>(null);
@@ -84,17 +69,45 @@ export class ScheduleStore {
     return this.typesState().filter((type) => type.isActive !== false);
   });
 
-  readonly todayAppointments = computed(() => {
-    return [...this.todayState()].sort((a, b) => a.startAt.localeCompare(b.startAt));
+  readonly activeRangeAppointments = computed(() =>
+    this.todayState().filter((appointment) => appointment.status !== 'CANCELLED'),
+  );
+
+  readonly receptionQueue = computed(() =>
+    this.activeRangeAppointments()
+      .filter((appointment) => ['ARRIVED', 'WAITING', 'IN_TREATMENT'].includes(appointment.status))
+      .sort((a, b) => a.startAt.localeCompare(b.startAt)),
+  );
+
+  readonly needsAttention = computed(() =>
+    this.activeRangeAppointments()
+      .filter(
+        (appointment) =>
+          ['SCHEDULED', 'CONFIRMED'].includes(appointment.status) &&
+          new Date(appointment.startAt).getTime() < Date.now(),
+      )
+      .sort((a, b) => a.startAt.localeCompare(b.startAt)),
+  );
+
+  readonly todayCount = computed(() => this.activeRangeAppointments().length);
+
+  readonly waitingCount = computed(() => {
+    return this.activeRangeAppointments().filter(
+      (a) => a.status === 'WAITING' || a.status === 'SCHEDULED' || a.status === 'CONFIRMED',
+    ).length;
   });
 
-  readonly todayCount = computed(
-    () => this.todayAppointments().filter((a) => a.status !== 'CANCELLED').length,
-  );
-  readonly waitingCount = computed(() => this.countToday('WAITING'));
-  readonly arrivedCount = computed(() => this.countToday('ARRIVED'));
-  readonly inTreatmentCount = computed(() => this.countToday('IN_TREATMENT'));
-  readonly completedCount = computed(() => this.countToday('COMPLETED'));
+  readonly arrivedCount = computed(() => {
+    return this.activeRangeAppointments().filter((a) => a.status === 'ARRIVED').length;
+  });
+
+  readonly inTreatmentCount = computed(() => {
+    return this.activeRangeAppointments().filter((a) => a.status === 'IN_TREATMENT').length;
+  });
+
+  readonly completedCount = computed(() => {
+    return this.activeRangeAppointments().filter((a) => a.status === 'COMPLETED').length;
+  });
 
   readonly hasAppointmentsInView = computed(() =>
     this.appointmentsState().some((appointment) => appointment.status !== 'CANCELLED'),
@@ -110,22 +123,13 @@ export class ScheduleStore {
     this.loadedForClinic = clinicId;
 
     try {
-      const [types, clinic] = await Promise.all([
+      const [types, schedule] = await Promise.all([
         firstValueFrom(this.api.listAppointmentTypes()),
-        firstValueFrom(this.api.getClinicSchedule(clinicId)).catch(() => ({
-          id: clinicId,
-          timezone: 'UTC',
-          schedule: FALLBACK_SCHEDULE,
-        })),
+        firstValueFrom(this.api.getClinicSchedule()),
       ]);
       this.typesState.set(types);
-      if (clinic?.schedule?.workingHours?.length) {
-        this.clinicScheduleState.set(clinic.schedule);
-      }
-      const today = new Date();
-      const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const end = new Date(start);
-      end.setDate(end.getDate() + 1);
+      this.clinicScheduleState.set(schedule);
+      const { start, end } = todayRange(schedule.timezone);
       this.todayState.set(
         await firstValueFrom(
           this.api.listAppointments(start.toISOString(), end.toISOString()),
@@ -190,7 +194,9 @@ export class ScheduleStore {
 
   openEdit(appointmentId: string, preserveCapacityWarning = false): void {
     void this.initialize(true);
-    const appointment = this.appointmentsState().find((a) => a.id === appointmentId);
+    const appointment =
+      this.appointmentsState().find((a) => a.id === appointmentId) ??
+      this.todayState().find((a) => a.id === appointmentId);
     if (!appointment) {
       return;
     }
@@ -212,21 +218,27 @@ export class ScheduleStore {
   // --- mutations -----------------------------------------------------------
 
   async createAppointment(input: CreateAppointmentInput): Promise<boolean> {
-    return this.mutate(async () => {
-      const created = await firstValueFrom(this.api.createAppointment(input));
-      this.upsert(created);
-      this.closeDrawer();
-      this.showNotice('Appointment created');
-    }, () => this.createAppointment({ ...input, allowOverbooking: true }));
+    return this.mutate(
+      async () => {
+        const created = await firstValueFrom(this.api.createAppointment(input));
+        this.upsert(created);
+        this.closeDrawer();
+        this.showNotice('Appointment created');
+      },
+      () => this.createAppointment({ ...input, allowOverbooking: true }),
+    );
   }
 
   async updateAppointment(appointmentId: string, input: UpdateAppointmentInput): Promise<boolean> {
-    return this.mutate(async () => {
-      const updated = await firstValueFrom(this.api.updateAppointment(appointmentId, input));
-      this.upsert(updated);
-      this.closeDrawer();
-      this.showNotice('Appointment updated');
-    }, () => this.updateAppointment(appointmentId, { ...input, allowOverbooking: true }));
+    return this.mutate(
+      async () => {
+        const updated = await firstValueFrom(this.api.updateAppointment(appointmentId, input));
+        this.upsert(updated);
+        this.closeDrawer();
+        this.showNotice('Appointment updated');
+      },
+      () => this.updateAppointment(appointmentId, { ...input, allowOverbooking: true }),
+    );
   }
 
   /**
@@ -234,19 +246,20 @@ export class ScheduleStore {
    * optimistically; on failure the caller reverts it and we surface why.
    */
   async reschedule(appointmentId: string, startAt: string, endAt: string): Promise<boolean> {
-    return this.mutate(async () => {
-      const updated = await firstValueFrom(
-        this.api.updateAppointment(appointmentId, {
-          startAt,
-          durationMinutes: Math.round(
-            (new Date(endAt).getTime() - new Date(startAt).getTime()) / 60_000,
-          ),
-        }),
-      );
-      this.upsert(updated);
-      this.showNotice('Appointment moved');
-    }, () =>
-      this.rescheduleWithOverride(appointmentId, startAt, endAt),
+    return this.mutate(
+      async () => {
+        const updated = await firstValueFrom(
+          this.api.updateAppointment(appointmentId, {
+            startAt,
+            durationMinutes: Math.round(
+              (new Date(endAt).getTime() - new Date(startAt).getTime()) / 60_000,
+            ),
+          }),
+        );
+        this.upsert(updated);
+        this.showNotice('Appointment moved');
+      },
+      () => this.rescheduleWithOverride(appointmentId, startAt, endAt),
     );
   }
 
@@ -313,20 +326,21 @@ export class ScheduleStore {
     this.appointmentsState.set([]);
     this.todayState.set([]);
     this.typesState.set([]);
+    this.clinicScheduleState.set(null);
     this.closeDrawer();
   }
 
   // --- internals -----------------------------------------------------------
 
   private countToday(status: AppointmentStatus): number {
-    return this.todayAppointments().filter((a) => a.status === status).length;
+    return this.activeRangeAppointments().filter((a: Appointment) => a.status === status).length;
   }
 
   private upsert(appointment: Appointment): void {
     this.appointmentsState.update((appointments) => this.upsertIn(appointments, appointment));
-    const today = new Date();
+    const schedule = this.clinicScheduleState();
     this.todayState.update((appointments) =>
-      isSameLocalDay(new Date(appointment.startAt), today)
+      schedule && isSameClinicDay(appointment.startAt, new Date(), schedule.timezone)
         ? this.upsertIn(appointments, appointment)
         : appointments.filter((candidate) => candidate.id !== appointment.id),
     );
@@ -336,13 +350,13 @@ export class ScheduleStore {
   }
 
   private upsertIn(appointments: Appointment[], appointment: Appointment): Appointment[] {
-      const index = appointments.findIndex((a) => a.id === appointment.id);
-      if (index === -1) {
-        return [...appointments, appointment];
-      }
-      const next = [...appointments];
-      next[index] = appointment;
-      return next;
+    const index = appointments.findIndex((a) => a.id === appointment.id);
+    if (index === -1) {
+      return [...appointments, appointment];
+    }
+    const next = [...appointments];
+    next[index] = appointment;
+    return next;
   }
 
   private async mutate(

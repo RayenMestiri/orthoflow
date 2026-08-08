@@ -8,15 +8,15 @@ import type {
   AppointmentActivity,
   AppointmentStatus,
   AppointmentType,
-  ClinicScheduleSettings,
+  ClinicScheduleConfiguration,
   CreateAppointmentInput,
   UpdateAppointmentInput,
 } from '../models/schedule.models';
 
-interface ClinicWithSchedule {
-  id: string;
-  timezone: string;
-  schedule: ClinicScheduleSettings;
+interface ClinicSettingsResponse {
+  general: { timezone: string };
+  workingHours: ClinicScheduleConfiguration['workingHours'];
+  scheduling: ClinicScheduleConfiguration['scheduling'];
 }
 
 interface PaginatedEnvelope<T> {
@@ -83,10 +83,16 @@ export class ScheduleApiService {
       .pipe(map((response) => response.data));
   }
 
-  /** The clinic's opening pattern — drives the grid and its slot size. */
-  getClinicSchedule(clinicId: string): Observable<ClinicWithSchedule> {
+  /** Authoritative operating configuration used by both Settings and Schedule. */
+  getClinicSchedule(): Observable<ClinicScheduleConfiguration> {
     return this.http
-      .get<ApiEnvelope<ClinicWithSchedule>>(`${this.baseUrl}/clinics/${clinicId}`)
-      .pipe(map((response) => response.data));
+      .get<ApiEnvelope<ClinicSettingsResponse>>(`${this.baseUrl}/clinic/settings`)
+      .pipe(
+        map(({ data }) => ({
+          timezone: data.general.timezone,
+          workingHours: data.workingHours,
+          scheduling: data.scheduling,
+        })),
+      );
   }
 }

@@ -16,8 +16,8 @@ import {
 } from '../../components/schedule-calendar/schedule-calendar';
 import { ScheduleToolbar } from '../../components/schedule-toolbar/schedule-toolbar';
 import { ScheduleStore } from '../../data-access/schedule.store';
-import type { CalendarViewName } from '../../models/schedule.models';
-import { formatLongDate } from '../../utils/appointment-time.utils';
+import type { Appointment, CalendarViewName } from '../../models/schedule.models';
+import { formatLongDate, formatTime } from '../../utils/appointment-time.utils';
 
 /**
  * The scheduling workspace. Pure composition: the store owns state, the
@@ -49,7 +49,9 @@ export class SchedulePage implements OnInit {
       ? 'timeGridDay'
       : 'timeGridWeek';
 
-  protected readonly todayLabel = formatLongDate(new Date().toISOString());
+  protected readonly todayLabel = computed(() =>
+    formatLongDate(new Date().toISOString(), this.store.clinicSchedule()?.timezone),
+  );
 
   protected readonly title = computed(() => this.store.visibleRange()?.title ?? '');
 
@@ -65,9 +67,16 @@ export class SchedulePage implements OnInit {
     return parts.join(' · ');
   });
 
+  protected readonly receptionAppointments = computed(() => {
+    const rows = [...this.store.needsAttention(), ...this.store.receptionQueue()];
+    return [...new Map(rows.map((appointment) => [appointment.id, appointment])).values()];
+  });
+
   ngOnInit(): void {
     this.store.setView(this.initialView);
-    void this.store.initialize();
+    // Settings may have changed since the last visit; refresh the authoritative
+    // clinic policy whenever the Schedule route is entered.
+    void this.store.initialize(true);
   }
 
   @HostListener('document:keydown.escape')
@@ -83,7 +92,7 @@ export class SchedulePage implements OnInit {
   }
 
   onSlotSelected(slot: SlotSelection): void {
-    if (!this.canEdit) {
+    if (!this.canEdit()) {
       return;
     }
     this.store.openCreate({ startAt: slot.startAt, endAt: slot.endAt });
@@ -105,5 +114,22 @@ export class SchedulePage implements OnInit {
         this.store.openEdit(request.appointmentId, true);
       }
     }
+  }
+
+  protected appointmentTime(iso: string): string {
+    return formatTime(iso, this.store.clinicSchedule()?.timezone);
+  }
+
+  protected receptionNote(appointment: Appointment): string {
+    if (['SCHEDULED', 'CONFIRMED'].includes(appointment.status)) return 'Late arrival';
+    if (appointment.arrivedAt) {
+      const minutes = Math.round(
+        (new Date(appointment.arrivedAt).getTime() - new Date(appointment.startAt).getTime()) /
+          60_000,
+      );
+      if (minutes < 0) return `${Math.abs(minutes)} min early`;
+      if (minutes > 0) return `${minutes} min late`;
+    }
+    return appointment.status.replace('_', ' ').toLowerCase();
   }
 }
