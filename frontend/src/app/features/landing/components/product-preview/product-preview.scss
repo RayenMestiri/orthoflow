@@ -282,11 +282,69 @@
   line-height: 1.5;
 }
 
-.progress-block {
+.treatment-progress {
+  display: grid;
   padding-block: var(--space-5);
   margin-block: var(--space-5);
   border-block: 1px solid var(--color-line);
+  align-items: center;
+  grid-template-columns: 3.25rem 1fr;
+  gap: var(--space-3);
+}
+
+.progress-ring {
+  position: relative;
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+}
+
+.progress-ring svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.progress-ring circle {
+  fill: none;
+  stroke-width: 4;
+}
+
+.progress-ring__track {
+  stroke: var(--color-mist);
+}
+
+.progress-ring__value {
+  stroke: var(--color-copper-600);
+  stroke-dasharray: 100;
+  stroke-dashoffset: 56;
+  stroke-linecap: round;
+  animation: draw-progress 1.2s 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.progress-ring > strong {
   font-size: 0.62rem;
+}
+
+.progress-block {
+  font-size: 0.62rem;
+}
+
+.progress-block > span,
+.progress-block > strong {
+  display: block;
+}
+
+.progress-block > span:first-child {
+  color: var(--color-muted);
+}
+
+.progress-block > strong {
+  margin-top: 0.15rem;
+  font-size: 0.65rem;
 }
 
 .progress-track {
@@ -302,6 +360,12 @@
   height: 100%;
   border-radius: inherit;
   background: var(--color-copper-600);
+}
+
+@keyframes draw-progress {
+  from {
+    stroke-dashoffset: 100;
+  }
 }
 
 .clinical-note {

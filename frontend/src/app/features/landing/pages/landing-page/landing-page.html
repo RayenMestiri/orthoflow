@@ -1,5 +1,6 @@
 <section class="hero relative isolate" aria-labelledby="hero-title">
   <div class="hero__grid"></div>
+  <app-dental-ambient />
   <div class="container hero__content">
     <div class="hero__copy">
       <span class="eyebrow">Practice management, rethought</span>
@@ -11,10 +12,10 @@
       <div class="hero__actions">
         <a class="button button--primary" href="#waitlist">
           Join the waitlist
-          <span aria-hidden="true">↗</span>
+          <span class="material-icons" aria-hidden="true">arrow_outward</span>
         </a>
         <a class="text-link" href="#how-it-works">
-          <span class="play" aria-hidden="true">▶</span>
+          <span class="play material-icons" aria-hidden="true">play_arrow</span>
           See how it works
         </a>
       </div>
@@ -24,8 +25,21 @@
       </div>
     </div>
 
-    <div class="hero__preview">
+    <div
+      class="hero__preview"
+      (pointermove)="onPreviewPointerMove($event)"
+      (pointerleave)="resetPreviewPerspective($event)"
+    >
+      <span class="hero__preview-halo" aria-hidden="true"></span>
       <app-product-preview />
+      <div class="hero__floating-signal hero__floating-signal--record" aria-hidden="true">
+        <span class="material-icons">link</span>
+        <div><strong>Record connected</strong><small>Patient · payment · staff</small></div>
+      </div>
+      <div class="hero__floating-signal hero__floating-signal--visit" aria-hidden="true">
+        <span class="material-icons">event_available</span>
+        <div><strong>Next visit set</strong><small>16 June · 09:30</small></div>
+      </div>
       <div class="preview-caption">
         <span class="preview-caption__line"></span>
         <p>
@@ -94,7 +108,7 @@
     <div class="capability-layout">
       <article class="capability-feature">
         <div class="capability__meta">
-          <span>01</span>
+          <span><i class="material-icons" aria-hidden="true">calendar_month</i>01</span>
           <span>{{ featuredCapability.name }}</span>
         </div>
         <div class="capability-feature__copy">
@@ -112,7 +126,16 @@
         @for (capability of supportingCapabilities; track capability.name; let index = $index) {
           <article class="capability-row capability-row--{{ capability.tone }}">
             <div class="capability__meta">
-              <span>0{{ index + 2 }}</span>
+              <span>
+                @if (index === 0) {
+                  <i class="material-icons" aria-hidden="true">medical_services</i>
+                } @else if (index === 1) {
+                  <i class="material-icons" aria-hidden="true">receipt_long</i>
+                } @else {
+                  <i class="material-icons" aria-hidden="true">manage_accounts</i>
+                }
+                0{{ index + 2 }}
+              </span>
               <span>{{ capability.name }}</span>
             </div>
             <div class="capability-row__copy">

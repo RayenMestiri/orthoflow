@@ -1,0 +1,35 @@
+:host {
+  position: absolute;
+  z-index: -1;
+  inset: 4rem -5rem auto auto;
+  display: block;
+  width: min(63vw, 59rem);
+  height: 42rem;
+  opacity: 0.56;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse at center, black 28%, transparent 74%);
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+:host.ambient-unavailable {
+  display: none;
+}
+
+@media (max-width: 68rem) {
+  :host {
+    right: -10rem;
+    width: 52rem;
+    opacity: 0.38;
+  }
+}
+
+@media (max-width: 56rem), (prefers-reduced-motion: reduce) {
+  :host {
+    display: none;
+  }
+}
