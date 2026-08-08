@@ -1,0 +1,61 @@
+<main class="auth-frame">
+  <a class="auth-frame__brand" routerLink="/" aria-label="OrthoFlow home">
+    <span class="auth-frame__mark" aria-hidden="true">
+      <svg viewBox="0 0 32 32" role="img">
+        <path
+          d="M8 5.8c2.1-1.7 5.1-1.4 8 .2 2.9-1.6 5.9-1.9 8-.2 3 2.4 1.4 7.2-.1 10.1-1.3 2.5-1.6 8.6-4.6 10.1-1.8.9-2.2-2.3-3.3-5.6-.4-1.2-1.2-1.2-1.6 0-1.1 3.3-1.5 6.5-3.3 5.6-3-1.5-3.3-7.6-4.6-10.1C6.6 13 5 8.2 8 5.8Z"
+        />
+      </svg>
+    </span>
+    <span>OrthoFlow</span>
+  </a>
+
+  <section class="auth-frame__story" aria-labelledby="auth-story-title">
+    <div class="auth-frame__story-copy">
+      <p class="auth-frame__eyebrow"><span></span>{{ eyebrow() }}</p>
+      <h1 id="auth-story-title">{{ storyTitle() }}</h1>
+      <p>{{ storyCopy() }}</p>
+    </div>
+
+    <div class="auth-frame__workflow" aria-label="A preview of today's clinic flow">
+      <div class="auth-frame__workflow-head">
+        <div>
+          <span>Today’s handoff</span>
+          <strong>Thursday · 08:40</strong>
+        </div>
+        <span class="auth-frame__live"><i></i>Clinic live</span>
+      </div>
+      <div class="auth-frame__patient">
+        <span class="auth-frame__time">09:00</span>
+        <span class="auth-frame__avatar">LM</span>
+        <span><strong>Lina M.</strong><small>Adjustment · Room 2</small></span>
+        <span class="auth-frame__status">Confirmed</span>
+      </div>
+      <div class="auth-frame__patient auth-frame__patient--muted">
+        <span class="auth-frame__time">09:30</span>
+        <span class="auth-frame__avatar">YS</span>
+        <span><strong>Youssef S.</strong><small>Records review · Room 1</small></span>
+        <span class="auth-frame__status auth-frame__status--warm">Arrived</span>
+      </div>
+      <div class="auth-frame__handoff">
+        <span class="material-icons" aria-hidden="true">task_alt</span>
+        <span
+          ><strong>Front desk handoff complete</strong
+          ><small>Guardian and receipt notes attached</small></span
+        >
+      </div>
+    </div>
+
+    <ul class="auth-frame__trust" aria-label="Security commitments">
+      <li><span class="material-icons" aria-hidden="true">lock</span>Protected access</li>
+      <li><span class="material-icons" aria-hidden="true">history</span>Traceable activity</li>
+      <li><span class="material-icons" aria-hidden="true">groups</span>Role-aware workspace</li>
+    </ul>
+  </section>
+
+  <section class="auth-frame__content">
+    <ng-content />
+  </section>
+
+  <p class="auth-frame__legal">© 2026 OrthoFlow · Built for focused clinic teams</p>
+</main>

@@ -1,6 +1,16 @@
 import { Routes } from '@angular/router';
+import { guestGuard } from './core/auth/auth.guards';
 
 export const routes: Routes = [
+  {
+    path: 'login',
+    title: 'Sign in — OrthoFlow',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/pages/login-page/login-page').then(
+        (component) => component.LoginPage,
+      ),
+  },
   {
     path: '',
     loadComponent: () =>

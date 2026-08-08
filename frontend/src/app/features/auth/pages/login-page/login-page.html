@@ -1,0 +1,107 @@
+<app-auth-frame>
+  <div class="login">
+    <header class="login__header">
+      <p class="login__eyebrow">Welcome back</p>
+      <h2>Sign in to your clinic</h2>
+      <p>Use your work email to continue to OrthoFlow.</p>
+    </header>
+
+    <form class="login__form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @if (errorMessage()) {
+        <div class="login__alert" role="alert">
+          <span class="material-icons" aria-hidden="true">error_outline</span>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <div class="form-field">
+        <label for="email">Work email</label>
+        <div
+          class="form-control"
+          [class.form-control--invalid]="form.controls.email.touched && form.controls.email.invalid"
+        >
+          <span class="material-icons" aria-hidden="true">mail_outline</span>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            autocomplete="email"
+            inputmode="email"
+            placeholder="you@clinic.com"
+            [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
+            aria-describedby="email-error"
+          />
+        </div>
+        <p id="email-error" class="form-field__error" aria-live="polite">
+          @if (form.controls.email.touched && form.controls.email.hasError('required')) {
+            Enter your work email.
+          } @else if (form.controls.email.touched && form.controls.email.hasError('email')) {
+            Enter a valid email address.
+          }
+        </p>
+      </div>
+
+      <div class="form-field">
+        <div class="form-field__label-row">
+          <label for="password">Password</label>
+          <a routerLink="/forgot-password">Forgot password?</a>
+        </div>
+        <div
+          class="form-control"
+          [class.form-control--invalid]="
+            form.controls.password.touched && form.controls.password.invalid
+          "
+        >
+          <span class="material-icons" aria-hidden="true">lock_outline</span>
+          <input
+            id="password"
+            [type]="passwordVisible() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="current-password"
+            placeholder="Enter your password"
+            [attr.aria-invalid]="form.controls.password.touched && form.controls.password.invalid"
+            aria-describedby="password-error"
+          />
+          <button
+            class="form-control__action"
+            type="button"
+            (click)="togglePassword()"
+            [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
+            [attr.aria-pressed]="passwordVisible()"
+          >
+            <span class="material-icons" aria-hidden="true">{{
+              passwordVisible() ? 'visibility_off' : 'visibility'
+            }}</span>
+          </button>
+        </div>
+        <p id="password-error" class="form-field__error" aria-live="polite">
+          @if (form.controls.password.touched && form.controls.password.hasError('required')) {
+            Enter your password.
+          }
+        </p>
+      </div>
+
+      <button class="login__submit" type="submit" [disabled]="submitting()">
+        @if (submitting()) {
+          <span class="login__spinner" aria-hidden="true"></span>
+          Signing in…
+        } @else {
+          Sign in securely
+          <span class="material-icons" aria-hidden="true">arrow_forward</span>
+        }
+      </button>
+    </form>
+
+    <p class="login__register">
+      New to OrthoFlow? <a routerLink="/register">Create your clinic workspace</a>
+    </p>
+
+    <div class="login__security">
+      <span class="material-icons" aria-hidden="true">verified_user</span>
+      <span
+        ><strong>Your session is protected.</strong> Access follows your clinic role and can be
+        revoked immediately.</span
+      >
+    </div>
+  </div>
+</app-auth-frame>
