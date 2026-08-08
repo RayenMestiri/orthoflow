@@ -12,35 +12,29 @@ import type {
   CancelTreatmentBody,
   CompleteTreatmentBody,
   CreateTreatmentBody,
-  CreateTreatmentProgressBody,
+  CreateTreatmentMilestoneBody,
   PatientIdParam,
   PatientTreatmentsQuery,
   PauseTreatmentBody,
   ResumeTreatmentBody,
   StartTreatmentBody,
   TreatmentIdParam,
-  TreatmentProgressQuery,
+  TreatmentMilestoneIdParam,
+  TreatmentMilestonesQuery,
   UpdateTreatmentBody,
+  UpdateTreatmentMilestoneBody,
 } from './treatment.schema.js';
 
-/**
- * Thin HTTP adapter: read validated input, call a use case, shape the response.
- * No business rules, no database access, no try/catch — errors bubble to the
- * centralized handler.
- */
-
 export async function listPatientTreatmentsHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { status, includeProgress } = validatedQuery<PatientTreatmentsQuery>(request);
-
+  const { status, includeMilestones } = validatedQuery<PatientTreatmentsQuery>(request);
   const treatments = await treatmentService.listForPatient(
     requireTenant(request).clinicId,
     validatedParams<PatientIdParam>(request).patientId,
     {
       ...(status ? { status } : {}),
-      ...(includeProgress === undefined ? {} : { includeProgress }),
+      ...(includeMilestones === undefined ? {} : { includeMilestones }),
     },
   );
-
   return reply.send(ok(treatments));
 }
 
@@ -55,76 +49,97 @@ export async function createTreatmentHandler(request: FastifyRequest, reply: Fas
 }
 
 export async function getTreatmentHandler(request: FastifyRequest, reply: FastifyReply) {
-  const treatment = await treatmentService.getById(
-    requireTenant(request).clinicId,
-    validatedParams<TreatmentIdParam>(request).treatmentId,
+  return reply.send(
+    ok(
+      await treatmentService.getById(
+        requireTenant(request).clinicId,
+        validatedParams<TreatmentIdParam>(request).treatmentId,
+      ),
+    ),
   );
-  return reply.send(ok(treatment));
 }
 
 export async function updateTreatmentHandler(request: FastifyRequest, reply: FastifyReply) {
-  const treatment = await treatmentService.update(
-    requireTenant(request).clinicId,
-    validatedParams<TreatmentIdParam>(request).treatmentId,
-    validatedBody<UpdateTreatmentBody>(request),
-    mutationContext(request),
+  return reply.send(
+    ok(
+      await treatmentService.update(
+        requireTenant(request).clinicId,
+        validatedParams<TreatmentIdParam>(request).treatmentId,
+        validatedBody<UpdateTreatmentBody>(request),
+        mutationContext(request),
+      ),
+    ),
   );
-  return reply.send(ok(treatment));
 }
 
 export async function startTreatmentHandler(request: FastifyRequest, reply: FastifyReply) {
-  const treatment = await treatmentService.start(
-    requireTenant(request).clinicId,
-    validatedParams<TreatmentIdParam>(request).treatmentId,
-    validatedBody<StartTreatmentBody>(request),
-    mutationContext(request),
+  return reply.send(
+    ok(
+      await treatmentService.start(
+        requireTenant(request).clinicId,
+        validatedParams<TreatmentIdParam>(request).treatmentId,
+        validatedBody<StartTreatmentBody>(request),
+        mutationContext(request),
+      ),
+    ),
   );
-  return reply.send(ok(treatment));
 }
 
 export async function pauseTreatmentHandler(request: FastifyRequest, reply: FastifyReply) {
-  const treatment = await treatmentService.pause(
-    requireTenant(request).clinicId,
-    validatedParams<TreatmentIdParam>(request).treatmentId,
-    validatedBody<PauseTreatmentBody>(request),
-    mutationContext(request),
+  return reply.send(
+    ok(
+      await treatmentService.pause(
+        requireTenant(request).clinicId,
+        validatedParams<TreatmentIdParam>(request).treatmentId,
+        validatedBody<PauseTreatmentBody>(request),
+        mutationContext(request),
+      ),
+    ),
   );
-  return reply.send(ok(treatment));
 }
 
 export async function resumeTreatmentHandler(request: FastifyRequest, reply: FastifyReply) {
-  const treatment = await treatmentService.resume(
-    requireTenant(request).clinicId,
-    validatedParams<TreatmentIdParam>(request).treatmentId,
-    validatedBody<ResumeTreatmentBody>(request),
-    mutationContext(request),
+  return reply.send(
+    ok(
+      await treatmentService.resume(
+        requireTenant(request).clinicId,
+        validatedParams<TreatmentIdParam>(request).treatmentId,
+        validatedBody<ResumeTreatmentBody>(request),
+        mutationContext(request),
+      ),
+    ),
   );
-  return reply.send(ok(treatment));
 }
 
 export async function completeTreatmentHandler(request: FastifyRequest, reply: FastifyReply) {
-  const treatment = await treatmentService.complete(
-    requireTenant(request).clinicId,
-    validatedParams<TreatmentIdParam>(request).treatmentId,
-    validatedBody<CompleteTreatmentBody>(request),
-    mutationContext(request),
+  return reply.send(
+    ok(
+      await treatmentService.complete(
+        requireTenant(request).clinicId,
+        validatedParams<TreatmentIdParam>(request).treatmentId,
+        validatedBody<CompleteTreatmentBody>(request),
+        mutationContext(request),
+      ),
+    ),
   );
-  return reply.send(ok(treatment));
 }
 
 export async function cancelTreatmentHandler(request: FastifyRequest, reply: FastifyReply) {
-  const treatment = await treatmentService.cancel(
-    requireTenant(request).clinicId,
-    validatedParams<TreatmentIdParam>(request).treatmentId,
-    validatedBody<CancelTreatmentBody>(request),
-    mutationContext(request),
+  return reply.send(
+    ok(
+      await treatmentService.cancel(
+        requireTenant(request).clinicId,
+        validatedParams<TreatmentIdParam>(request).treatmentId,
+        validatedBody<CancelTreatmentBody>(request),
+        mutationContext(request),
+      ),
+    ),
   );
-  return reply.send(ok(treatment));
 }
 
-export async function listTreatmentProgressHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { page, limit } = validatedQuery<TreatmentProgressQuery>(request);
-  const { result, pagination } = await treatmentService.listProgress(
+export async function listTreatmentMilestonesHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { page, limit } = validatedQuery<TreatmentMilestonesQuery>(request);
+  const { result, pagination } = await treatmentService.listMilestones(
     requireTenant(request).clinicId,
     validatedParams<TreatmentIdParam>(request).treatmentId,
     { page, limit },
@@ -132,12 +147,33 @@ export async function listTreatmentProgressHandler(request: FastifyRequest, repl
   return reply.send(paginated(result, pagination));
 }
 
-export async function createTreatmentProgressHandler(request: FastifyRequest, reply: FastifyReply) {
-  const entry = await treatmentService.addProgress(
+export async function createTreatmentMilestoneHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const milestone = await treatmentService.addMilestone(
     requireTenant(request).clinicId,
     validatedParams<TreatmentIdParam>(request).treatmentId,
-    validatedBody<CreateTreatmentProgressBody>(request),
+    validatedBody<CreateTreatmentMilestoneBody>(request),
     mutationContext(request),
   );
-  return reply.status(201).send(ok(entry));
+  return reply.status(201).send(ok(milestone));
+}
+
+export async function updateTreatmentMilestoneHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const params = validatedParams<TreatmentMilestoneIdParam>(request);
+  return reply.send(
+    ok(
+      await treatmentService.updateMilestone(
+        requireTenant(request).clinicId,
+        params.treatmentId,
+        params.milestoneId,
+        validatedBody<UpdateTreatmentMilestoneBody>(request),
+        mutationContext(request),
+      ),
+    ),
+  );
 }

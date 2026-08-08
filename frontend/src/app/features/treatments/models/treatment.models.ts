@@ -1,38 +1,65 @@
 export type TreatmentStatus = 'PLANNED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
 
-export type TreatmentEventType =
-  | 'STARTED'
-  | 'CHECKPOINT'
-  | 'ADJUSTMENT'
-  | 'NOTE'
-  | 'PAUSED'
-  | 'RESUMED'
-  | 'COMPLETED'
-  | 'CANCELLED';
+export type TreatmentType =
+  | 'METAL_BRACES'
+  | 'CERAMIC_BRACES'
+  | 'CLEAR_ALIGNERS'
+  | 'RETAINER'
+  | 'FUNCTIONAL_APPLIANCE'
+  | 'EXPANDER'
+  | 'OTHER';
 
-/** Event kinds a clinician may record by hand; the rest are written by the server. */
-export const MANUAL_EVENT_TYPES: readonly TreatmentEventType[] = ['CHECKPOINT', 'ADJUSTMENT', 'NOTE'];
+export type TreatmentMilestoneType =
+  | 'CONSULTATION'
+  | 'TREATMENT_PLAN_CREATED'
+  | 'APPLIANCE_FITTED'
+  | 'WIRE_ADJUSTMENT'
+  | 'BRACKET_REPAIR'
+  | 'IMPRESSION'
+  | 'SCAN'
+  | 'CONTROL'
+  | 'APPLIANCE_REMOVAL'
+  | 'RETAINER_DELIVERED'
+  | 'TREATMENT_PAUSED'
+  | 'TREATMENT_RESUMED'
+  | 'TREATMENT_COMPLETED'
+  | 'CUSTOM';
 
-/** Offered in the type picker. Free text on the server, so a clinic may type its own. */
-export const TREATMENT_TYPE_SUGGESTIONS: readonly string[] = [
-  'Fixed braces',
-  'Clear aligners',
-  'Retainer',
-  'Functional appliance',
-  'Expansion treatment',
-  'Mixed orthodontic treatment',
-  'Other',
+export const TREATMENT_TYPES: readonly TreatmentType[] = [
+  'METAL_BRACES',
+  'CERAMIC_BRACES',
+  'CLEAR_ALIGNERS',
+  'RETAINER',
+  'FUNCTIONAL_APPLIANCE',
+  'EXPANDER',
+  'OTHER',
 ];
 
-export interface TreatmentProgressEntry {
+export const MANUAL_MILESTONE_TYPES: readonly TreatmentMilestoneType[] = [
+  'CONSULTATION',
+  'APPLIANCE_FITTED',
+  'WIRE_ADJUSTMENT',
+  'BRACKET_REPAIR',
+  'IMPRESSION',
+  'SCAN',
+  'CONTROL',
+  'APPLIANCE_REMOVAL',
+  'RETAINER_DELIVERED',
+  'CUSTOM',
+];
+
+export interface TreatmentMilestone {
   id: string;
   treatmentId: string;
   patientId: string;
+  type: TreatmentMilestoneType;
+  title: string;
+  description: string | null;
   occurredAt: string;
-  type: TreatmentEventType;
-  note: string | null;
   createdBy: string;
+  updatedBy: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Treatment {
@@ -40,117 +67,122 @@ export interface Treatment {
   clinicId: string;
   patientId: string;
   doctorId: string;
-
-  treatmentType: string;
+  type: TreatmentType;
+  customTypeLabel: string | null;
   status: TreatmentStatus;
-
   startDate: string | null;
   expectedEndDate: string | null;
-  actualEndDate: string | null;
-
+  completedAt: string | null;
+  agreedPrice: number | null;
   notes: string | null;
-  totalPlannedCost: number | null;
   cancellationReason: string | null;
-
   durationDays: number | null;
-  /** True while this course occupies the patient's single care slot. */
   isCurrent: boolean;
-
   createdBy: string;
   updatedBy: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-/** What the patient profile renders: the plan plus its timeline. */
-export interface TreatmentWithProgress extends Treatment {
-  progress: TreatmentProgressEntry[];
+export interface TreatmentWithMilestones extends Treatment {
+  milestones: TreatmentMilestone[];
 }
 
 export interface CreateTreatmentInput {
-  treatmentType: string;
+  type: TreatmentType;
+  customTypeLabel?: string | null;
   status?: 'PLANNED' | 'ACTIVE';
   startDate?: string | null;
   expectedEndDate?: string | null;
+  agreedPrice?: number | null;
   notes?: string | null;
-  totalPlannedCost?: number | null;
 }
 
 export interface UpdateTreatmentInput {
-  treatmentType?: string;
-  startDate?: string | null;
+  type?: TreatmentType;
+  customTypeLabel?: string | null;
   expectedEndDate?: string | null;
+  agreedPrice?: number | null;
   notes?: string | null;
-  totalPlannedCost?: number | null;
 }
 
-export interface CreateProgressInput {
-  type: TreatmentEventType;
+export interface CreateMilestoneInput {
+  type: TreatmentMilestoneType;
+  title: string;
+  description?: string | null;
   occurredAt?: string;
-  note?: string | null;
+}
+
+export interface UpdateMilestoneInput {
+  title?: string;
+  description?: string | null;
+  occurredAt?: string;
 }
 
 const STATUS_LABELS: Record<TreatmentStatus, string> = {
   PLANNED: 'Planned',
-  ACTIVE: 'In progress',
+  ACTIVE: 'Active',
   PAUSED: 'Paused',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
+};
+
+const TYPE_LABELS: Record<TreatmentType, string> = {
+  METAL_BRACES: 'Metal braces',
+  CERAMIC_BRACES: 'Ceramic braces',
+  CLEAR_ALIGNERS: 'Clear aligners',
+  RETAINER: 'Retainer',
+  FUNCTIONAL_APPLIANCE: 'Functional appliance',
+  EXPANDER: 'Expander',
+  OTHER: 'Other',
+};
+
+const MILESTONE_LABELS: Record<TreatmentMilestoneType, string> = {
+  CONSULTATION: 'Consultation',
+  TREATMENT_PLAN_CREATED: 'Treatment plan created',
+  APPLIANCE_FITTED: 'Appliance fitted',
+  WIRE_ADJUSTMENT: 'Wire adjustment',
+  BRACKET_REPAIR: 'Bracket repair',
+  IMPRESSION: 'Impression',
+  SCAN: 'Scan',
+  CONTROL: 'Control',
+  APPLIANCE_REMOVAL: 'Appliance removal',
+  RETAINER_DELIVERED: 'Retainer delivered',
+  TREATMENT_PAUSED: 'Treatment paused',
+  TREATMENT_RESUMED: 'Treatment resumed',
+  TREATMENT_COMPLETED: 'Treatment completed',
+  CUSTOM: 'Custom milestone',
 };
 
 export function treatmentStatusLabel(status: TreatmentStatus): string {
   return STATUS_LABELS[status];
 }
 
-const EVENT_LABELS: Record<TreatmentEventType, string> = {
-  STARTED: 'Treatment started',
-  CHECKPOINT: 'Checkpoint',
-  ADJUSTMENT: 'Adjustment',
-  NOTE: 'Note',
-  PAUSED: 'Treatment paused',
-  RESUMED: 'Treatment resumed',
-  COMPLETED: 'Treatment completed',
-  CANCELLED: 'Treatment cancelled',
-};
-
-export function treatmentEventLabel(type: TreatmentEventType): string {
-  return EVENT_LABELS[type];
+export function treatmentTypeLabel(type: TreatmentType, customTypeLabel?: string | null): string {
+  return type === 'OTHER' && customTypeLabel ? customTypeLabel : TYPE_LABELS[type];
 }
 
-const EVENT_ICONS: Record<TreatmentEventType, string> = {
-  STARTED: 'play_circle',
-  CHECKPOINT: 'flag',
-  ADJUSTMENT: 'build',
-  NOTE: 'sticky_note_2',
-  PAUSED: 'pause_circle',
-  RESUMED: 'play_circle',
-  COMPLETED: 'task_alt',
-  CANCELLED: 'cancel',
-};
-
-export function treatmentEventIcon(type: TreatmentEventType): string {
-  return EVENT_ICONS[type];
+export function milestoneTypeLabel(type: TreatmentMilestoneType): string {
+  return MILESTONE_LABELS[type];
 }
 
-/**
- * How long a course has run, phrased the way a clinician says it out loud:
- * days for the first month, then months, then years and months.
- */
+export function milestoneIcon(type: TreatmentMilestoneType): string {
+  if (type === 'TREATMENT_COMPLETED') return 'task_alt';
+  if (type === 'TREATMENT_PAUSED') return 'pause_circle';
+  if (type === 'TREATMENT_RESUMED') return 'play_circle';
+  if (type === 'SCAN' || type === 'IMPRESSION') return 'document_scanner';
+  if (type === 'APPLIANCE_FITTED' || type === 'RETAINER_DELIVERED') return 'medical_services';
+  if (type === 'WIRE_ADJUSTMENT' || type === 'BRACKET_REPAIR') return 'build';
+  return 'radio_button_checked';
+}
+
 export function formatTreatmentDuration(days: number | null): string {
-  if (days === null) {
-    return 'Not started';
-  }
-  if (days < 31) {
-    return days === 1 ? '1 day' : `${days} days`;
-  }
-
+  if (days === null) return 'Not started';
+  if (days < 31) return days === 1 ? '1 day' : `${days} days`;
   const months = Math.floor(days / 30.44);
-  if (months < 12) {
-    return months === 1 ? '1 month' : `${months} months`;
-  }
-
+  if (months < 12) return months === 1 ? '1 month' : `${months} months`;
   const years = Math.floor(months / 12);
   const remainder = months % 12;
-  const yearPart = years === 1 ? '1 year' : `${years} years`;
-  return remainder === 0 ? yearPart : `${yearPart} ${remainder}m`;
+  const yearsLabel = years === 1 ? '1 year' : `${years} years`;
+  return remainder ? `${yearsLabel} ${remainder}m` : yearsLabel;
 }

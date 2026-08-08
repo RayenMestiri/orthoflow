@@ -12,8 +12,6 @@ export const PERMISSIONS = {
   TREATMENTS_VIEW: 'treatments.view',
   /** Plan, edit and drive the lifecycle of a course of care — a clinical decision. */
   TREATMENTS_MANAGE: 'treatments.manage',
-  /** Record what happened chairside, without altering the plan. */
-  TREATMENTS_PROGRESS_CREATE: 'treatments.progress-create',
   CASH_RECORDS_VIEW: 'cash-records.view',
   STAFF_MANAGE: 'staff.manage',
   CLINIC_SETTINGS_MANAGE: 'clinic-settings.manage',
@@ -31,7 +29,6 @@ const clinicalPermissions: Permission[] = [
   PERMISSIONS.APPOINTMENTS_VIEW,
   PERMISSIONS.TREATMENTS_VIEW,
   PERMISSIONS.TREATMENTS_MANAGE,
-  PERMISSIONS.TREATMENTS_PROGRESS_CREATE,
   PERMISSIONS.CASH_RECORDS_VIEW,
 ];
 
@@ -49,6 +46,7 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
     PERMISSIONS.PATIENTS_CREATE,
     PERMISSIONS.PATIENTS_UPDATE,
     PERMISSIONS.APPOINTMENTS_VIEW,
+    PERMISSIONS.TREATMENTS_VIEW,
     PERMISSIONS.CASH_RECORDS_VIEW,
   ],
   [CLINIC_ROLES.ASSISTANT]: [
@@ -56,8 +54,6 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
     PERMISSIONS.PATIENTS_VIEW,
     PERMISSIONS.APPOINTMENTS_VIEW,
     PERMISSIONS.TREATMENTS_VIEW,
-    // Chairside assistants log what happened; they never change the plan.
-    PERMISSIONS.TREATMENTS_PROGRESS_CREATE,
   ],
 };
 

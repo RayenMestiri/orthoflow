@@ -4,30 +4,25 @@ import { map, type Observable } from 'rxjs';
 import type { ApiEnvelope } from '../../../core/auth/auth.models';
 import { API_BASE_URL } from '../../../core/config/api.config';
 import type {
-  CreateProgressInput,
+  CreateMilestoneInput,
   CreateTreatmentInput,
   Treatment,
-  TreatmentProgressEntry,
-  TreatmentWithProgress,
+  TreatmentMilestone,
+  TreatmentWithMilestones,
+  UpdateMilestoneInput,
   UpdateTreatmentInput,
 } from '../models/treatment.models';
 
-/**
- * Treatment API.
- *
- * The clinic is never sent: the backend derives it from the authenticated
- * membership. The treating doctor is likewise resolved server-side from the
- * clinic owner, so no request here carries a `doctorId`.
- */
 @Injectable({ providedIn: 'root' })
 export class TreatmentsApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
 
-  /** One request returns the whole history with every timeline attached. */
-  listForPatient(patientId: string): Observable<TreatmentWithProgress[]> {
+  listForPatient(patientId: string): Observable<TreatmentWithMilestones[]> {
     return this.http
-      .get<ApiEnvelope<TreatmentWithProgress[]>>(`${this.baseUrl}/patients/${patientId}/treatments`)
+      .get<ApiEnvelope<TreatmentWithMilestones[]>>(
+        `${this.baseUrl}/patients/${patientId}/treatments`,
+      )
       .pipe(map((response) => response.data));
   }
 
@@ -39,7 +34,7 @@ export class TreatmentsApiService {
 
   update(treatmentId: string, input: UpdateTreatmentInput): Observable<Treatment> {
     return this.http
-      .patch<ApiEnvelope<Treatment>>(`${this.treatmentUrl(treatmentId)}`, input)
+      .patch<ApiEnvelope<Treatment>>(this.treatmentUrl(treatmentId), input)
       .pipe(map((response) => response.data));
   }
 
@@ -51,23 +46,34 @@ export class TreatmentsApiService {
     return this.action(treatmentId, 'pause', reason ? { reason } : {});
   }
 
-  resume(treatmentId: string, note?: string): Observable<Treatment> {
-    return this.action(treatmentId, 'resume', note ? { note } : {});
+  resume(treatmentId: string): Observable<Treatment> {
+    return this.action(treatmentId, 'resume', {});
   }
 
-  complete(treatmentId: string, actualEndDate?: string): Observable<Treatment> {
-    return this.action(treatmentId, 'complete', actualEndDate ? { actualEndDate } : {});
+  complete(treatmentId: string): Observable<Treatment> {
+    return this.action(treatmentId, 'complete', {});
   }
 
   cancel(treatmentId: string, reason: string): Observable<Treatment> {
     return this.action(treatmentId, 'cancel', { reason });
   }
 
-  addProgress(treatmentId: string, input: CreateProgressInput): Observable<TreatmentProgressEntry> {
+  addMilestone(treatmentId: string, input: CreateMilestoneInput): Observable<TreatmentMilestone> {
     return this.http
-      .post<
-        ApiEnvelope<TreatmentProgressEntry>
-      >(`${this.treatmentUrl(treatmentId)}/progress`, input)
+      .post<ApiEnvelope<TreatmentMilestone>>(`${this.treatmentUrl(treatmentId)}/milestones`, input)
+      .pipe(map((response) => response.data));
+  }
+
+  updateMilestone(
+    treatmentId: string,
+    milestoneId: string,
+    input: UpdateMilestoneInput,
+  ): Observable<TreatmentMilestone> {
+    return this.http
+      .patch<ApiEnvelope<TreatmentMilestone>>(
+        `${this.treatmentUrl(treatmentId)}/milestones/${milestoneId}`,
+        input,
+      )
       .pipe(map((response) => response.data));
   }
 

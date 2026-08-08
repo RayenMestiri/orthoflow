@@ -1,3 +1,4 @@
+import { A11yModule } from '@angular/cdk/a11y';
 import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -13,31 +14,24 @@ import { PermissionService, PERMISSIONS } from '../../../../core/auth/permission
 import { TreatmentsStore } from '../../data-access/treatments.store';
 import {
   formatTreatmentDuration,
-  MANUAL_EVENT_TYPES,
-  TREATMENT_TYPE_SUGGESTIONS,
-  treatmentEventIcon,
-  treatmentEventLabel,
+  MANUAL_MILESTONE_TYPES,
+  milestoneIcon,
+  milestoneTypeLabel,
+  TREATMENT_TYPES,
   treatmentStatusLabel,
-  type TreatmentEventType,
+  treatmentTypeLabel,
+  type TreatmentMilestone,
+  type TreatmentMilestoneType,
   type TreatmentStatus,
-  type TreatmentWithProgress,
+  type TreatmentType,
+  type TreatmentWithMilestones,
 } from '../../models/treatment.models';
 
-/**
- * The treatment area of a patient profile.
- *
- * Self-contained on purpose: the patient page adds one tag, and everything from
- * loading to permissions to the forms lives here. It is written as a clinical
- * narrative — what is happening now, what is planned, what already happened —
- * rather than as a CRUD table, because that is how a course of care is read.
- *
- * FUTURE — SCHEDULE INTEGRATION: appointments are deliberately absent. When the
- * two domains are joined, the seam is a visit count and a "next appointment"
- * line on the current-treatment card; nothing here needs restructuring for it.
- */
+type DrawerMode = 'create' | 'edit-treatment' | 'add-milestone' | 'edit-milestone';
+
 @Component({
   selector: 'app-patient-treatments',
-  imports: [DatePipe, ReactiveFormsModule],
+  imports: [A11yModule, DatePipe, ReactiveFormsModule],
   providers: [TreatmentsStore],
   templateUrl: './patient-treatments.html',
   styleUrl: './patient-treatments.scss',
@@ -48,42 +42,54 @@ export class PatientTreatments {
   protected readonly store = inject(TreatmentsStore);
 
   readonly patientId = input.required<string>();
-
-  protected readonly typeSuggestions = TREATMENT_TYPE_SUGGESTIONS;
-  protected readonly eventTypes = MANUAL_EVENT_TYPES;
-
+  protected readonly treatmentTypes = TREATMENT_TYPES;
+  protected readonly milestoneTypes = MANUAL_MILESTONE_TYPES;
   protected readonly canManage = this.permissions.can(PERMISSIONS.TREATMENTS_MANAGE);
-  protected readonly canLogProgress = this.permissions.can(PERMISSIONS.TREATMENTS_PROGRESS_CREATE);
-
-  protected readonly planOpen = signal(false);
-  protected readonly progressOpen = signal(false);
+  protected readonly drawerMode = signal<DrawerMode | null>(null);
+  protected readonly drawerTreatment = signal<TreatmentWithMilestones | null>(null);
+  protected readonly editingMilestone = signal<TreatmentMilestone | null>(null);
   protected readonly historyOpen = signal(false);
-  /** Id of the treatment whose cancellation is being confirmed. */
   protected readonly cancelling = signal<string | null>(null);
 
-  protected readonly current = this.store.currentTreatment;
+  protected readonly current = computed(
+    () => this.store.selectedTreatment() ?? this.store.featuredTreatment(),
+  );
+  protected readonly historicalSelection = computed(() => {
+    const treatment = this.store.selectedTreatment();
+    return treatment?.status === 'COMPLETED' || treatment?.status === 'CANCELLED';
+  });
   protected readonly planned = this.store.plannedTreatments;
+  protected readonly paused = this.store.pausedTreatments;
   protected readonly past = this.store.pastTreatments;
+  protected readonly timeline = computed(() => this.current()?.milestones ?? []);
 
-  /** The timeline shown under the current course, newest first (server order). */
-  protected readonly currentProgress = computed(() => this.current()?.progress ?? []);
-
-  protected readonly planForm = new FormGroup({
-    treatmentType: new FormControl('Fixed braces', {
+  protected readonly treatmentForm = new FormGroup({
+    type: new FormControl<TreatmentType>('METAL_BRACES', { nonNullable: true }),
+    customTypeLabel: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(80)],
+      validators: [Validators.maxLength(80)],
     }),
-    startNow: new FormControl(false, { nonNullable: true }),
+    status: new FormControl<'PLANNED' | 'ACTIVE'>('PLANNED', { nonNullable: true }),
     startDate: new FormControl('', { nonNullable: true }),
     expectedEndDate: new FormControl('', { nonNullable: true }),
-    totalPlannedCost: new FormControl<number | null>(null),
+    agreedPrice: new FormControl<number | null>(null, [Validators.min(0)]),
     notes: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(2000)] }),
   });
 
-  protected readonly progressForm = new FormGroup({
-    type: new FormControl<TreatmentEventType>('CHECKPOINT', { nonNullable: true }),
-    occurredAt: new FormControl(this.todayIso(), { nonNullable: true }),
-    note: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(1000)] }),
+  protected readonly milestoneForm = new FormGroup({
+    type: new FormControl<TreatmentMilestoneType>('CONTROL', { nonNullable: true }),
+    title: new FormControl('Control', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.minLength(2), Validators.maxLength(120)],
+    }),
+    occurredAt: new FormControl(this.todayIso(), {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    description: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(1000)],
+    }),
   });
 
   protected readonly cancelReason = new FormControl('', {
@@ -94,9 +100,7 @@ export class PatientTreatments {
   constructor() {
     effect(() => {
       const patientId = this.patientId();
-      if (patientId) {
-        void this.store.load(patientId);
-      }
+      if (patientId) void this.store.load(patientId);
     });
   }
 
@@ -104,103 +108,164 @@ export class PatientTreatments {
     return treatmentStatusLabel(status);
   }
 
-  protected eventLabel(type: TreatmentEventType): string {
-    return treatmentEventLabel(type);
+  protected typeLabel(type: TreatmentType, customTypeLabel?: string | null): string {
+    return treatmentTypeLabel(type, customTypeLabel);
   }
 
-  protected eventIcon(type: TreatmentEventType): string {
-    return treatmentEventIcon(type);
+  protected milestoneLabel(type: TreatmentMilestoneType): string {
+    return milestoneTypeLabel(type);
   }
 
-  protected duration(treatment: TreatmentWithProgress): string {
+  protected milestoneIcon(type: TreatmentMilestoneType): string {
+    return milestoneIcon(type);
+  }
+
+  protected duration(treatment: TreatmentWithMilestones): string {
     return formatTreatmentDuration(treatment.durationDays);
   }
 
-  protected openPlan(): void {
-    this.planForm.reset({
-      treatmentType: 'Fixed braces',
-      // Only offer to start immediately when the care slot is free.
-      startNow: this.current() === null,
+  protected formatPrice(value: number | null): string {
+    return value === null ? 'Not recorded' : new Intl.NumberFormat('en-US').format(value);
+  }
+
+  protected openCreate(): void {
+    this.drawerTreatment.set(null);
+    this.treatmentForm.reset({
+      type: 'METAL_BRACES',
+      customTypeLabel: '',
+      status: this.store.activeTreatment() ? 'PLANNED' : 'ACTIVE',
       startDate: this.todayIso(),
       expectedEndDate: '',
-      totalPlannedCost: null,
+      agreedPrice: null,
       notes: '',
     });
-    this.planOpen.set(true);
+    this.drawerMode.set('create');
   }
 
-  protected closePlan(): void {
-    if (!this.store.isSaving()) {
-      this.planOpen.set(false);
-    }
-  }
-
-  protected async savePlan(): Promise<void> {
-    if (this.planForm.invalid) {
-      this.planForm.markAllAsTouched();
-      return;
-    }
-
-    const value = this.planForm.getRawValue();
-    const saved = await this.store.create({
-      treatmentType: value.treatmentType.trim(),
-      ...(value.startNow ? { status: 'ACTIVE' as const } : {}),
-      startDate: value.startDate || null,
-      expectedEndDate: value.expectedEndDate || null,
-      totalPlannedCost: value.totalPlannedCost,
-      notes: value.notes.trim() || null,
+  protected openEdit(treatment: TreatmentWithMilestones): void {
+    this.drawerTreatment.set(treatment);
+    this.treatmentForm.reset({
+      type: treatment.type,
+      customTypeLabel: treatment.customTypeLabel ?? '',
+      status: treatment.status === 'ACTIVE' ? 'ACTIVE' : 'PLANNED',
+      startDate: treatment.startDate ?? '',
+      expectedEndDate: treatment.expectedEndDate ?? '',
+      agreedPrice: treatment.agreedPrice,
+      notes: treatment.notes ?? '',
     });
+    this.drawerMode.set('edit-treatment');
+  }
 
-    if (saved) {
-      this.planOpen.set(false);
+  protected openMilestone(treatment: TreatmentWithMilestones): void {
+    this.drawerTreatment.set(treatment);
+    this.editingMilestone.set(null);
+    this.milestoneForm.reset({
+      type: 'CONTROL',
+      title: 'Control',
+      occurredAt: this.todayIso(),
+      description: '',
+    });
+    this.drawerMode.set('add-milestone');
+  }
+
+  protected openMilestoneEdit(
+    treatment: TreatmentWithMilestones,
+    milestone: TreatmentMilestone,
+  ): void {
+    this.drawerTreatment.set(treatment);
+    this.editingMilestone.set(milestone);
+    this.milestoneForm.reset({
+      type: milestone.type,
+      title: milestone.title,
+      occurredAt: milestone.occurredAt.slice(0, 10),
+      description: milestone.description ?? '',
+    });
+    this.drawerMode.set('edit-milestone');
+  }
+
+  protected closeDrawer(): void {
+    if (!this.store.isSaving()) this.drawerMode.set(null);
+  }
+
+  protected treatmentTypeChanged(): void {
+    if (this.treatmentForm.controls.type.value !== 'OTHER') {
+      this.treatmentForm.controls.customTypeLabel.setValue('');
     }
   }
 
-  protected openProgress(): void {
-    this.progressForm.reset({ type: 'CHECKPOINT', occurredAt: this.todayIso(), note: '' });
-    this.progressOpen.set(true);
-  }
-
-  protected closeProgress(): void {
-    if (!this.store.isSaving()) {
-      this.progressOpen.set(false);
+  protected initialStatusChanged(): void {
+    if (this.treatmentForm.controls.status.value === 'PLANNED') {
+      this.treatmentForm.controls.startDate.setValue('');
+    } else if (!this.treatmentForm.controls.startDate.value) {
+      this.treatmentForm.controls.startDate.setValue(this.todayIso());
     }
   }
 
-  protected async saveProgress(): Promise<void> {
-    const treatment = this.current();
-    if (!treatment || this.progressForm.invalid) {
-      this.progressForm.markAllAsTouched();
+  protected milestoneTypeChanged(): void {
+    const type = this.milestoneForm.controls.type.value;
+    if (type !== 'CUSTOM') this.milestoneForm.controls.title.setValue(this.milestoneLabel(type));
+  }
+
+  protected async saveTreatment(): Promise<void> {
+    const value = this.treatmentForm.getRawValue();
+    if (value.type === 'OTHER' && !value.customTypeLabel.trim()) {
+      this.treatmentForm.controls.customTypeLabel.setErrors({ required: true });
+    }
+    if (this.treatmentForm.invalid) {
+      this.treatmentForm.markAllAsTouched();
       return;
     }
-
-    const value = this.progressForm.getRawValue();
-    const saved = await this.store.addProgress(treatment.id, {
+    const editing = this.drawerMode() === 'edit-treatment' ? this.drawerTreatment() : null;
+    const common = {
       type: value.type,
-      // The date input gives a calendar day; the API stores an instant.
-      ...(value.occurredAt ? { occurredAt: this.toInstant(value.occurredAt) } : {}),
-      note: value.note.trim() || null,
-    });
+      customTypeLabel: value.type === 'OTHER' ? value.customTypeLabel.trim() : null,
+      expectedEndDate: value.expectedEndDate || null,
+      agreedPrice: value.agreedPrice,
+      notes: value.notes.trim() || null,
+    };
+    const saved = editing
+      ? await this.store.update(editing.id, common)
+      : await this.store.create({
+          ...common,
+          status: value.status,
+          startDate: value.startDate || null,
+        });
+    if (saved) this.drawerMode.set(null);
+  }
 
-    if (saved) {
-      this.progressOpen.set(false);
+  protected async saveMilestone(): Promise<void> {
+    const treatment = this.drawerTreatment();
+    if (!treatment || this.milestoneForm.invalid) {
+      this.milestoneForm.markAllAsTouched();
+      return;
     }
+    const value = this.milestoneForm.getRawValue();
+    const common = {
+      title: value.title.trim(),
+      description: value.description.trim() || null,
+      occurredAt: this.toInstant(value.occurredAt),
+    };
+    const milestone = this.editingMilestone();
+    const saved = milestone
+      ? await this.store.updateMilestone(treatment.id, milestone.id, common)
+      : await this.store.addMilestone(treatment.id, { ...common, type: value.type });
+    if (saved) this.drawerMode.set(null);
   }
 
-  protected async start(treatmentId: string): Promise<void> {
-    await this.store.start(treatmentId);
+  protected start(treatmentId: string): void {
+    void this.store.start(treatmentId);
   }
 
-  protected async pause(treatmentId: string): Promise<void> {
-    await this.store.pause(treatmentId);
+  protected pause(treatmentId: string): void {
+    void this.store.pause(treatmentId);
   }
 
-  protected async resume(treatmentId: string): Promise<void> {
-    await this.store.resume(treatmentId);
+  protected resume(treatmentId: string): void {
+    void this.store.resume(treatmentId);
   }
 
-  protected async complete(treatmentId: string): Promise<void> {
-    await this.store.complete(treatmentId);
+  protected complete(treatmentId: string): void {
+    void this.store.complete(treatmentId);
   }
 
   protected openCancel(treatmentId: string): void {
@@ -209,9 +274,7 @@ export class PatientTreatments {
   }
 
   protected closeCancel(): void {
-    if (!this.store.isSaving()) {
-      this.cancelling.set(null);
-    }
+    if (!this.store.isSaving()) this.cancelling.set(null);
   }
 
   protected async confirmCancel(): Promise<void> {
@@ -220,7 +283,6 @@ export class PatientTreatments {
       this.cancelReason.markAsTouched();
       return;
     }
-
     if (await this.store.cancel(treatmentId, this.cancelReason.value.trim())) {
       this.cancelling.set(null);
     }
@@ -230,17 +292,18 @@ export class PatientTreatments {
     this.historyOpen.update((open) => !open);
   }
 
-  /** `YYYY-MM-DD` for today, which is what a native date input expects. */
+  protected viewHistory(treatmentId: string): void {
+    this.store.select(treatmentId);
+  }
+
+  protected showCurrent(): void {
+    this.store.select(null);
+  }
+
   private todayIso(): string {
     return new Date().toISOString().slice(0, 10);
   }
 
-  /**
-   * Turns a picked calendar day into an instant the API accepts.
-   *
-   * Today becomes "now" rather than midnight, so an entry recorded this
-   * afternoon is not rejected as being in the future in a positive-offset zone.
-   */
   private toInstant(day: string): string {
     const now = new Date();
     return day === this.todayIso() ? now.toISOString() : new Date(`${day}T12:00:00`).toISOString();

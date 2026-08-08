@@ -15,9 +15,10 @@ describe('role permissions', () => {
     expect(ROLE_PERMISSIONS.ORTHODONTIST).not.toContain(PERMISSIONS.CLINIC_SETTINGS_MANAGE);
   });
 
-  it('gives front-desk roles cash-record visibility without treatment access', () => {
+  it('gives front-desk roles read-only treatment and cash-record visibility', () => {
     expect(ROLE_PERMISSIONS.SECRETARY).toContain(PERMISSIONS.CASH_RECORDS_VIEW);
-    expect(ROLE_PERMISSIONS.SECRETARY).not.toContain(PERMISSIONS.TREATMENTS_VIEW);
+    expect(ROLE_PERMISSIONS.SECRETARY).toContain(PERMISSIONS.TREATMENTS_VIEW);
+    expect(ROLE_PERMISSIONS.SECRETARY).not.toContain(PERMISSIONS.TREATMENTS_MANAGE);
   });
 
   it('keeps patient administration role-aware', () => {

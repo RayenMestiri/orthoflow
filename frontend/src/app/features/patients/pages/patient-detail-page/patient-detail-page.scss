@@ -19,7 +19,9 @@
   font-size: 0.825rem;
   font-weight: 650;
   text-decoration: none;
-  transition: transform var(--transition-fast), color var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    color var(--transition-fast);
 
   &:hover {
     color: var(--color-pine-900);
@@ -91,7 +93,11 @@
   border: 2px solid color-mix(in srgb, var(--color-pine-700) 15%, var(--color-line));
   border-radius: 1.2rem;
   color: var(--color-pine-700);
-  background: linear-gradient(135deg, var(--color-sage) 0%, color-mix(in srgb, var(--color-sage) 70%, white) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-sage) 0%,
+    color-mix(in srgb, var(--color-sage) 70%, white) 100%
+  );
   box-shadow: 0 4px 16px color-mix(in srgb, var(--color-pine-700) 15%, transparent);
   font-size: 1.35rem;
   font-weight: 750;
@@ -161,7 +167,9 @@
   font-size: 0.825rem;
   font-weight: 650;
   text-decoration: none;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
 
   &:hover {
     transform: translateY(-1px);
@@ -298,7 +306,9 @@
   font-weight: 650;
   cursor: pointer;
   margin-bottom: -2px;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast);
 
   &:hover {
     color: var(--color-pine-900);
@@ -393,7 +403,9 @@
   font-weight: 650;
   text-decoration: none;
   cursor: pointer;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
 
   &:hover {
     border-color: var(--color-pine-700);
@@ -990,6 +1002,34 @@
 }
 
 @media (max-width: 44rem) {
+  .profile-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.15rem;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .profile-tabs > button {
+    min-width: 0;
+    justify-content: center;
+    gap: 0.3rem;
+    padding-inline: 0.25rem;
+    font-size: 0.75rem;
+  }
+
+  .profile-tabs > button .material-icons {
+    display: none;
+  }
+
+  .profile-tabs .tab-badge {
+    display: none;
+  }
+
+  .future-tabs {
+    display: none;
+  }
+
   .profile-header__identity {
     flex-direction: column;
     align-items: flex-start;

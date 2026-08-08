@@ -50,7 +50,8 @@ export const AUDIT_ACTIONS = {
   TREATMENT_RESUMED: 'treatment.resumed',
   TREATMENT_COMPLETED: 'treatment.completed',
   TREATMENT_CANCELLED: 'treatment.cancelled',
-  TREATMENT_PROGRESS_ADDED: 'treatment.progress_added',
+  TREATMENT_MILESTONE_CREATED: 'treatment_milestone.created',
+  TREATMENT_MILESTONE_UPDATED: 'treatment_milestone.updated',
 
   APPOINTMENT_TYPE_CREATED: 'appointment_type.created',
   APPOINTMENT_TYPE_UPDATED: 'appointment_type.updated',
@@ -69,6 +70,7 @@ export const AUDIT_RESOURCE_TYPES = {
   APPOINTMENT: 'appointment',
   APPOINTMENT_TYPE: 'appointment_type',
   TREATMENT: 'treatment',
+  TREATMENT_MILESTONE: 'treatment_milestone',
   AUTH_SESSION: 'auth_session',
 } as const;
 

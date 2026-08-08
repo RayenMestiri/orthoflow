@@ -17,7 +17,7 @@
     </div>
   } @else {
     @let current = patient()!;
-    
+
     <!-- Top Back Navigation -->
     <a class="patient-profile__back" routerLink="/app/patients">
       <span class="material-icons" aria-hidden="true">arrow_back</span>
@@ -58,15 +58,27 @@
             <span>Edit Profile</span>
           </a>
         }
-        <button type="button" class="btn-action-disabled" disabled title="Scheduling is planned for a later phase">
+        <button
+          type="button"
+          class="btn-action-disabled"
+          disabled
+          title="Scheduling is planned for a later phase"
+        >
           <span class="material-icons" aria-hidden="true">calendar_today</span>
           <span>New appointment</span>
         </button>
-        <button type="button" class="btn-action-disabled" disabled title="Treatment management is planned for a later phase">
-          <span class="material-icons" aria-hidden="true">medical_services</span>
-          <span>Add treatment</span>
-        </button>
-        <button type="button" class="btn-action-disabled" disabled title="Cash records are planned for a later phase">
+        @if (canManageTreatments) {
+          <button type="button" class="btn-edit-profile" (click)="activeView.set('treatments')">
+            <span class="material-icons" aria-hidden="true">medical_services</span>
+            <span>Manage treatment</span>
+          </button>
+        }
+        <button
+          type="button"
+          class="btn-action-disabled"
+          disabled
+          title="Cash records are planned for a later phase"
+        >
           <span class="material-icons" aria-hidden="true">payments</span>
           <span>Record payment</span>
         </button>
@@ -187,7 +199,9 @@
               <span class="material-icons def-icon">wc</span>
               <div>
                 <dt>Gender</dt>
-                <dd>{{ current.gender === 'UNSPECIFIED' ? '—' : formatEnumLabel(current.gender) }}</dd>
+                <dd>
+                  {{ current.gender === 'UNSPECIFIED' ? '—' : formatEnumLabel(current.gender) }}
+                </dd>
               </div>
             </div>
 
@@ -244,7 +258,9 @@
             <div class="guardian-empty">
               <span class="material-icons" aria-hidden="true">family_restroom</span>
               <strong>No guardian linked</strong>
-              <small>Add a responsible adult when this patient is a minor or requires a proxy.</small>
+              <small
+                >Add a responsible adult when this patient is a minor or requires a proxy.</small
+              >
             </div>
           } @else {
             <div class="guardian-list">
@@ -256,7 +272,9 @@
                   <div class="guardian-info">
                     <h3>{{ guardian.fullName }}</h3>
                     <p class="guardian-rel">{{ relationshipLabel(guardian.relationship) }}</p>
-                    <small class="guardian-contact">{{ guardian.phone ?? guardian.email ?? 'No contact info' }}</small>
+                    <small class="guardian-contact">{{
+                      guardian.phone ?? guardian.email ?? 'No contact info'
+                    }}</small>
                   </div>
                   <div class="guardian-markers">
                     @if (guardian.isPrimary) {
@@ -329,7 +347,10 @@
             <div class="archive-zone">
               <div class="archive-zone__info">
                 <strong>Archive Patient File</strong>
-                <small>Removes this patient from active directory while preserving complete history.</small>
+                <small
+                  >Removes this patient from active directory while preserving complete
+                  history.</small
+                >
               </div>
               <button type="button" class="btn-archive" (click)="archiveOpen.set(true)">
                 <span class="material-icons" aria-hidden="true">inventory_2</span>
@@ -357,7 +378,9 @@
           <div class="guardian-empty">
             <span class="material-icons" aria-hidden="true">history</span>
             <strong>No activity recorded yet</strong>
-            <small>Auditable changes and profile edits will appear here in chronological order.</small>
+            <small
+              >Auditable changes and profile edits will appear here in chronological order.</small
+            >
           </div>
         }
 
@@ -369,7 +392,9 @@
                 <strong class="activity-title">{{ actionLabel(item.action) }}</strong>
                 <p class="activity-actor">By {{ item.actorName }}</p>
               </div>
-              <time class="activity-time" [attr.datetime]="item.createdAt">{{ item.createdAt | date: 'medium' }}</time>
+              <time class="activity-time" [attr.datetime]="item.createdAt">{{
+                item.createdAt | date: 'medium'
+              }}</time>
             </li>
           }
         </ol>
@@ -506,11 +531,19 @@
           </div>
           <h2 id="archive-title">Archive {{ current.fullName }}?</h2>
           <p id="archive-description">
-            The profile and full medical history will remain stored safely. The record will move to the archived patient directory.
+            The profile and full medical history will remain stored safely. The record will move to
+            the archived patient directory.
           </p>
           <footer class="modal-footer">
-            <button type="button" class="btn-cancel" (click)="archiveOpen.set(false)">Keep Active</button>
-            <button type="button" class="btn-confirm-archive" [disabled]="archiving()" (click)="archive()">
+            <button type="button" class="btn-cancel" (click)="archiveOpen.set(false)">
+              Keep Active
+            </button>
+            <button
+              type="button"
+              class="btn-confirm-archive"
+              [disabled]="archiving()"
+              (click)="archive()"
+            >
               {{ archiving() ? 'Archiving...' : 'Archive Patient' }}
             </button>
           </footer>

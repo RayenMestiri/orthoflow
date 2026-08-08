@@ -6,41 +6,56 @@ import {
   paginationQuerySchema,
 } from '../../common/validation/common.schemas.js';
 import {
-  MANUAL_TREATMENT_EVENT_TYPES,
-  TREATMENT_EVENT_TYPE_VALUES,
+  MANUAL_TREATMENT_MILESTONE_TYPES,
+  TREATMENT_MILESTONE_TYPE_VALUES,
+  TREATMENT_STATUSES,
   TREATMENT_STATUS_VALUES,
-  type TreatmentEventType,
+  TREATMENT_TYPES,
+  TREATMENT_TYPE_VALUES,
+  type TreatmentMilestoneType,
 } from './treatment.types.js';
 
-/** Only the human-authored event kinds may be posted; the rest are recorded by the state machine. */
-const manualEventTypeSchema = z.enum(
-  MANUAL_TREATMENT_EVENT_TYPES as [TreatmentEventType, ...TreatmentEventType[]],
+const customTypeLabelSchema = z.string().trim().min(2).max(80);
+const notesSchema = z.string().trim().max(2000);
+const agreedPriceSchema = z.number().finite().nonnegative().max(1_000_000);
+const milestoneTitleSchema = z.string().trim().min(2).max(120);
+const milestoneDescriptionSchema = z.string().trim().max(1000);
+const manualMilestoneTypeSchema = z.enum(
+  MANUAL_TREATMENT_MILESTONE_TYPES as [TreatmentMilestoneType, ...TreatmentMilestoneType[]],
 );
 
-const treatmentTypeSchema = z
-  .string()
-  .trim()
-  .min(2, 'is required')
-  .max(80)
-  .meta({ example: 'Clear aligners' });
+function validateCustomType(
+  value: { type?: string; customTypeLabel?: string | null },
+  context: z.RefinementCtx,
+): void {
+  if (value.type === TREATMENT_TYPES.OTHER && !value.customTypeLabel?.trim()) {
+    context.addIssue({
+      code: 'custom',
+      path: ['customTypeLabel'],
+      message: 'Custom treatment type is required when type is OTHER',
+    });
+  }
+  if (value.type && value.type !== TREATMENT_TYPES.OTHER && value.customTypeLabel) {
+    context.addIssue({
+      code: 'custom',
+      path: ['customTypeLabel'],
+      message: 'Custom treatment type is only allowed when type is OTHER',
+    });
+  }
+}
 
-const treatmentNotesSchema = z.string().trim().max(2000);
-
-const plannedCostSchema = z
-  .number()
-  .nonnegative()
-  .max(1_000_000)
-  .meta({ description: 'Agreed total in the clinic currency', example: 3200 });
-
-export const treatmentProgressDtoSchema = z.object({
+export const treatmentMilestoneDtoSchema = z.object({
   id: objectIdSchema,
   treatmentId: objectIdSchema,
   patientId: objectIdSchema,
+  type: z.enum(TREATMENT_MILESTONE_TYPE_VALUES),
+  title: z.string(),
+  description: z.string().nullable(),
   occurredAt: z.string(),
-  type: z.enum(TREATMENT_EVENT_TYPE_VALUES),
-  note: z.string().nullable(),
   createdBy: objectIdSchema,
+  updatedBy: objectIdSchema.nullable(),
   createdAt: z.string(),
+  updatedAt: z.string(),
 });
 
 export const treatmentDtoSchema = z.object({
@@ -48,100 +63,89 @@ export const treatmentDtoSchema = z.object({
   clinicId: objectIdSchema,
   patientId: objectIdSchema,
   doctorId: objectIdSchema,
-
-  treatmentType: z.string(),
+  type: z.enum(TREATMENT_TYPE_VALUES),
+  customTypeLabel: z.string().nullable(),
   status: z.enum(TREATMENT_STATUS_VALUES),
-
   startDate: z.string().nullable(),
   expectedEndDate: z.string().nullable(),
-  actualEndDate: z.string().nullable(),
-
+  completedAt: z.string().nullable(),
+  agreedPrice: z.number().nullable(),
   notes: z.string().nullable(),
-  totalPlannedCost: z.number().nullable(),
   cancellationReason: z.string().nullable(),
-
   durationDays: z.number().int().nonnegative().nullable(),
   isCurrent: z.boolean(),
-
   createdBy: objectIdSchema,
   updatedBy: objectIdSchema.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 
-export const treatmentWithProgressDtoSchema = treatmentDtoSchema.extend({
-  progress: z.array(treatmentProgressDtoSchema),
+export const treatmentWithMilestonesDtoSchema = treatmentDtoSchema.extend({
+  milestones: z.array(treatmentMilestoneDtoSchema),
 });
 
-/**
- * `clinicId`, `patientId` and `doctorId` are all absent by design: the tenant
- * comes from the verified membership, the patient from the URL, and the doctor
- * from the clinic's owner (ONE CLINIC = ONE OWNER-DOCTOR).
- */
-export const createTreatmentBodySchema = z.object({
-  treatmentType: treatmentTypeSchema,
-  /** Omitted means PLANNED — agreeing a plan is not the same as starting it. */
-  status: z.enum(['PLANNED', 'ACTIVE']).optional(),
-  startDate: isoDateSchema.nullable().optional(),
-  expectedEndDate: isoDateSchema.nullable().optional(),
-  notes: treatmentNotesSchema.nullable().optional(),
-  totalPlannedCost: plannedCostSchema.nullable().optional(),
-});
-
-/** Plan edits only. Status moves have their own endpoints so each can be audited. */
-export const updateTreatmentBodySchema = z
+export const createTreatmentBodySchema = z
   .object({
-    treatmentType: treatmentTypeSchema.optional(),
+    type: z.enum(TREATMENT_TYPE_VALUES),
+    customTypeLabel: customTypeLabelSchema.nullable().optional(),
+    status: z.enum([TREATMENT_STATUSES.PLANNED, TREATMENT_STATUSES.ACTIVE]).optional(),
     startDate: isoDateSchema.nullable().optional(),
     expectedEndDate: isoDateSchema.nullable().optional(),
-    notes: treatmentNotesSchema.nullable().optional(),
-    totalPlannedCost: plannedCostSchema.nullable().optional(),
+    agreedPrice: agreedPriceSchema.nullable().optional(),
+    notes: notesSchema.nullable().optional(),
+  })
+  .superRefine(validateCustomType);
+
+export const updateTreatmentBodySchema = z
+  .object({
+    type: z.enum(TREATMENT_TYPE_VALUES).optional(),
+    customTypeLabel: customTypeLabelSchema.nullable().optional(),
+    expectedEndDate: isoDateSchema.nullable().optional(),
+    agreedPrice: agreedPriceSchema.nullable().optional(),
+    notes: notesSchema.nullable().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'At least one field must be provided',
+  })
+  .superRefine(validateCustomType);
+
+export const startTreatmentBodySchema = z.object({ startDate: isoDateSchema.optional() });
+export const pauseTreatmentBodySchema = z.object({ reason: z.string().trim().max(500).optional() });
+export const resumeTreatmentBodySchema = z.object({});
+export const completeTreatmentBodySchema = z.object({});
+export const cancelTreatmentBodySchema = z.object({
+  reason: z.string().trim().min(1).max(500),
+});
+
+export const createTreatmentMilestoneBodySchema = z.object({
+  type: manualMilestoneTypeSchema,
+  title: milestoneTitleSchema,
+  description: milestoneDescriptionSchema.nullable().optional(),
+  occurredAt: isoDateTimeSchema.optional(),
+});
+
+export const updateTreatmentMilestoneBodySchema = z
+  .object({
+    title: milestoneTitleSchema.optional(),
+    description: milestoneDescriptionSchema.nullable().optional(),
+    occurredAt: isoDateTimeSchema.optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'At least one field must be provided',
   });
 
-export const startTreatmentBodySchema = z.object({
-  /** Defaults to today when omitted. */
-  startDate: isoDateSchema.optional(),
-  note: z.string().trim().max(1000).optional(),
-});
-
-export const pauseTreatmentBodySchema = z.object({
-  reason: z.string().trim().max(500).optional(),
-});
-
-export const resumeTreatmentBodySchema = z.object({
-  note: z.string().trim().max(1000).optional(),
-});
-
-export const completeTreatmentBodySchema = z.object({
-  /** Defaults to today when omitted. */
-  actualEndDate: isoDateSchema.optional(),
-  note: z.string().trim().max(1000).optional(),
-});
-
-export const cancelTreatmentBodySchema = z.object({
-  reason: z.string().trim().min(1).max(500),
-});
-
-export const createTreatmentProgressBodySchema = z.object({
-  type: manualEventTypeSchema,
-  /** When it happened clinically. Defaults to now; may not be in the future. */
-  occurredAt: isoDateTimeSchema.optional(),
-  note: z.string().trim().max(1000).nullable().optional(),
-});
-
 export const patientTreatmentsQuerySchema = z.object({
   status: z.enum(TREATMENT_STATUS_VALUES).optional(),
-  /** Attach each treatment's timeline so the profile renders in one request. */
-  includeProgress: z.stringbool().optional(),
+  includeMilestones: z.stringbool().optional(),
 });
 
-export const treatmentProgressQuerySchema = paginationQuerySchema;
-
+export const treatmentMilestonesQuerySchema = paginationQuerySchema;
 export const patientIdParamSchema = z.object({ patientId: objectIdSchema });
 export const treatmentIdParamSchema = z.object({ treatmentId: objectIdSchema });
+export const treatmentMilestoneIdParamSchema = z.object({
+  treatmentId: objectIdSchema,
+  milestoneId: objectIdSchema,
+});
 
 export type CreateTreatmentBody = z.infer<typeof createTreatmentBodySchema>;
 export type UpdateTreatmentBody = z.infer<typeof updateTreatmentBodySchema>;
@@ -150,8 +154,10 @@ export type PauseTreatmentBody = z.infer<typeof pauseTreatmentBodySchema>;
 export type ResumeTreatmentBody = z.infer<typeof resumeTreatmentBodySchema>;
 export type CompleteTreatmentBody = z.infer<typeof completeTreatmentBodySchema>;
 export type CancelTreatmentBody = z.infer<typeof cancelTreatmentBodySchema>;
-export type CreateTreatmentProgressBody = z.infer<typeof createTreatmentProgressBodySchema>;
+export type CreateTreatmentMilestoneBody = z.infer<typeof createTreatmentMilestoneBodySchema>;
+export type UpdateTreatmentMilestoneBody = z.infer<typeof updateTreatmentMilestoneBodySchema>;
 export type PatientTreatmentsQuery = z.infer<typeof patientTreatmentsQuerySchema>;
-export type TreatmentProgressQuery = z.infer<typeof treatmentProgressQuerySchema>;
+export type TreatmentMilestonesQuery = z.infer<typeof treatmentMilestonesQuerySchema>;
 export type PatientIdParam = z.infer<typeof patientIdParamSchema>;
 export type TreatmentIdParam = z.infer<typeof treatmentIdParamSchema>;
+export type TreatmentMilestoneIdParam = z.infer<typeof treatmentMilestoneIdParamSchema>;

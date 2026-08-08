@@ -2,30 +2,20 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { getApiProblem } from '../../../core/http/api-error';
 import type {
-  CreateProgressInput,
+  CreateMilestoneInput,
   CreateTreatmentInput,
-  TreatmentWithProgress,
+  TreatmentWithMilestones,
+  UpdateMilestoneInput,
   UpdateTreatmentInput,
 } from '../models/treatment.models';
 import { TreatmentsApiService } from './treatments-api.service';
 
-/**
- * Owns one patient's treatment history.
- *
- * Scoped to the component rather than the root injector: a treatment list only
- * makes sense inside a patient file, and a store shared across profiles would
- * show the previous patient's care for a frame after navigation.
- *
- * Every mutation reloads the patient's history instead of patching the cached
- * array, because a single write (starting a course) also appends a timeline
- * entry the response does not carry.
- */
 @Injectable()
 export class TreatmentsStore {
   private readonly api = inject(TreatmentsApiService);
-
   private readonly patientIdState = signal<string | null>(null);
-  private readonly treatmentsState = signal<TreatmentWithProgress[]>([]);
+  private readonly treatmentsState = signal<TreatmentWithMilestones[]>([]);
+  private readonly selectedIdState = signal<string | null>(null);
   private readonly loadingState = signal(false);
   private readonly savingState = signal(false);
   private readonly errorState = signal<string | null>(null);
@@ -36,34 +26,42 @@ export class TreatmentsStore {
   readonly isSaving = this.savingState.asReadonly();
   readonly error = this.errorState.asReadonly();
   readonly isLoaded = this.loadedState.asReadonly();
-
-  /** The course occupying the patient's care slot, if any. */
-  readonly currentTreatment = computed(
-    () => this.treatmentsState().find((treatment) => treatment.isCurrent) ?? null,
+  readonly activeTreatment = computed(
+    () => this.treatmentsState().find((item) => item.status === 'ACTIVE') ?? null,
   );
-
-  /** Agreed but not yet begun — shown as "up next" rather than as history. */
-  readonly plannedTreatments = computed(() =>
-    this.treatmentsState().filter((treatment) => treatment.status === 'PLANNED'),
+  readonly featuredTreatment = computed(
+    () =>
+      this.activeTreatment() ??
+      this.treatmentsState().find((item) => item.status === 'PAUSED') ??
+      null,
   );
-
-  /** Finished and abandoned courses, newest first. */
-  readonly pastTreatments = computed(() =>
+  readonly pausedTreatments = computed(() =>
     this.treatmentsState().filter(
-      (treatment) => treatment.status === 'COMPLETED' || treatment.status === 'CANCELLED',
+      (item) => item.status === 'PAUSED' && item.id !== this.featuredTreatment()?.id,
     ),
   );
+  readonly plannedTreatments = computed(() =>
+    this.treatmentsState().filter((item) => item.status === 'PLANNED'),
+  );
+  readonly pastTreatments = computed(() =>
+    this.treatmentsState().filter(
+      (item) => item.status === 'COMPLETED' || item.status === 'CANCELLED',
+    ),
+  );
+  readonly selectedTreatment = computed(() => {
+    const id = this.selectedIdState();
+    return this.treatmentsState().find((item) => item.id === id) ?? null;
+  });
 
   async load(patientId: string, force = false): Promise<void> {
     if (this.patientIdState() !== patientId) {
-      // A different patient: drop the previous file before fetching.
       this.patientIdState.set(patientId);
       this.treatmentsState.set([]);
+      this.selectedIdState.set(null);
       this.loadedState.set(false);
     } else if (this.loadingState() || (this.loadedState() && !force)) {
       return;
     }
-
     this.loadingState.set(true);
     this.errorState.set(null);
     try {
@@ -76,36 +74,50 @@ export class TreatmentsStore {
     }
   }
 
-  async create(input: CreateTreatmentInput): Promise<boolean> {
+  select(treatmentId: string | null): void {
+    this.selectedIdState.set(treatmentId);
+  }
+
+  create(input: CreateTreatmentInput): Promise<boolean> {
     return this.mutate((patientId) => firstValueFrom(this.api.create(patientId, input)));
   }
 
-  async update(treatmentId: string, input: UpdateTreatmentInput): Promise<boolean> {
+  update(treatmentId: string, input: UpdateTreatmentInput): Promise<boolean> {
     return this.mutate(() => firstValueFrom(this.api.update(treatmentId, input)));
   }
 
-  async start(treatmentId: string, startDate?: string): Promise<boolean> {
+  start(treatmentId: string, startDate?: string): Promise<boolean> {
     return this.mutate(() => firstValueFrom(this.api.start(treatmentId, startDate)));
   }
 
-  async pause(treatmentId: string, reason?: string): Promise<boolean> {
+  pause(treatmentId: string, reason?: string): Promise<boolean> {
     return this.mutate(() => firstValueFrom(this.api.pause(treatmentId, reason)));
   }
 
-  async resume(treatmentId: string): Promise<boolean> {
+  resume(treatmentId: string): Promise<boolean> {
     return this.mutate(() => firstValueFrom(this.api.resume(treatmentId)));
   }
 
-  async complete(treatmentId: string, actualEndDate?: string): Promise<boolean> {
-    return this.mutate(() => firstValueFrom(this.api.complete(treatmentId, actualEndDate)));
+  complete(treatmentId: string): Promise<boolean> {
+    return this.mutate(() => firstValueFrom(this.api.complete(treatmentId)));
   }
 
-  async cancel(treatmentId: string, reason: string): Promise<boolean> {
+  cancel(treatmentId: string, reason: string): Promise<boolean> {
     return this.mutate(() => firstValueFrom(this.api.cancel(treatmentId, reason)));
   }
 
-  async addProgress(treatmentId: string, input: CreateProgressInput): Promise<boolean> {
-    return this.mutate(() => firstValueFrom(this.api.addProgress(treatmentId, input)));
+  addMilestone(treatmentId: string, input: CreateMilestoneInput): Promise<boolean> {
+    return this.mutate(() => firstValueFrom(this.api.addMilestone(treatmentId, input)));
+  }
+
+  updateMilestone(
+    treatmentId: string,
+    milestoneId: string,
+    input: UpdateMilestoneInput,
+  ): Promise<boolean> {
+    return this.mutate(() =>
+      firstValueFrom(this.api.updateMilestone(treatmentId, milestoneId, input)),
+    );
   }
 
   dismissError(): void {
@@ -114,10 +126,7 @@ export class TreatmentsStore {
 
   private async mutate(request: (patientId: string) => Promise<unknown>): Promise<boolean> {
     const patientId = this.patientIdState();
-    if (!patientId) {
-      return false;
-    }
-
+    if (!patientId) return false;
     this.savingState.set(true);
     this.errorState.set(null);
     try {
@@ -132,7 +141,6 @@ export class TreatmentsStore {
     }
   }
 
-  /** Re-reads the history without touching the loading flag, so the list never blanks. */
   private async refresh(patientId: string): Promise<void> {
     this.treatmentsState.set(await firstValueFrom(this.api.listForPatient(patientId)));
     this.loadedState.set(true);

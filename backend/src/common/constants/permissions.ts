@@ -38,7 +38,6 @@ export const PERMISSIONS = {
   TREATMENT_UPDATE: 'treatment:update',
   /** Starting, pausing, resuming and completing care is a clinical decision. */
   TREATMENT_MANAGE_LIFECYCLE: 'treatment:manage-lifecycle',
-  TREATMENT_PROGRESS_CREATE: 'treatment:progress-create',
 
   AUDIT_LOG_READ: 'audit-log:read',
 } as const;
@@ -68,7 +67,6 @@ const PRACTITIONER_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.TREATMENT_CREATE,
   PERMISSIONS.TREATMENT_UPDATE,
   PERMISSIONS.TREATMENT_MANAGE_LIFECYCLE,
-  PERMISSIONS.TREATMENT_PROGRESS_CREATE,
 ];
 
 const SECRETARY_PERMISSIONS: readonly Permission[] = [
@@ -99,8 +97,6 @@ const ASSISTANT_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.APPOINTMENT_READ,
   PERMISSIONS.APPOINTMENT_TYPE_READ,
   PERMISSIONS.TREATMENT_READ,
-  // Chairside assistants record what happened; they cannot alter the plan.
-  PERMISSIONS.TREATMENT_PROGRESS_CREATE,
 ];
 
 export const ROLE_PERMISSIONS: Readonly<Record<ClinicRole, readonly Permission[]>> = {

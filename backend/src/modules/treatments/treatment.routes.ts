@@ -10,20 +10,21 @@ import {
   cancelTreatmentHandler,
   completeTreatmentHandler,
   createTreatmentHandler,
-  createTreatmentProgressHandler,
+  createTreatmentMilestoneHandler,
   getTreatmentHandler,
   listPatientTreatmentsHandler,
-  listTreatmentProgressHandler,
+  listTreatmentMilestonesHandler,
   pauseTreatmentHandler,
   resumeTreatmentHandler,
   startTreatmentHandler,
   updateTreatmentHandler,
+  updateTreatmentMilestoneHandler,
 } from './treatment.controller.js';
 import {
   cancelTreatmentBodySchema,
   completeTreatmentBodySchema,
   createTreatmentBodySchema,
-  createTreatmentProgressBodySchema,
+  createTreatmentMilestoneBodySchema,
   patientIdParamSchema,
   patientTreatmentsQuerySchema,
   pauseTreatmentBodySchema,
@@ -31,19 +32,14 @@ import {
   startTreatmentBodySchema,
   treatmentDtoSchema,
   treatmentIdParamSchema,
-  treatmentProgressDtoSchema,
-  treatmentProgressQuerySchema,
-  treatmentWithProgressDtoSchema,
+  treatmentMilestoneDtoSchema,
+  treatmentMilestoneIdParamSchema,
+  treatmentMilestonesQuerySchema,
+  treatmentWithMilestonesDtoSchema,
   updateTreatmentBodySchema,
+  updateTreatmentMilestoneBodySchema,
 } from './treatment.schema.js';
 
-/**
- * Patient-scoped treatment routes, mounted at `/api/v1/patients`.
- *
- * A treatment only ever exists inside a patient file, so listing and creating
- * live under the patient. Everything that acts on one existing course lives in
- * `treatmentRoutes` below, where the id alone identifies it.
- */
 export const patientTreatmentRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', app.authenticate);
   app.addHook('preHandler', app.requireClinic());
@@ -55,14 +51,11 @@ export const patientTreatmentRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: {
         tags: ['treatments'],
         summary: 'List a patient treatment history',
-        description:
-          'Newest first, with each course’s progress timeline attached unless ' +
-          '`includeProgress=false`.',
         security: [{ bearerAuth: [] }],
         params: patientIdParamSchema,
         querystring: patientTreatmentsQuerySchema,
         response: {
-          200: successSchema(z.array(treatmentWithProgressDtoSchema)),
+          200: successSchema(z.array(treatmentWithMilestonesDtoSchema)),
           ...errorResponses(400, 401, 403, 404),
         },
       },
@@ -76,10 +69,7 @@ export const patientTreatmentRoutes: FastifyPluginAsyncZod = async (app) => {
       preHandler: [app.requirePermission(PERMISSIONS.TREATMENT_CREATE)],
       schema: {
         tags: ['treatments'],
-        summary: 'Plan a treatment for a patient',
-        description:
-          'Defaults to PLANNED. Passing status ACTIVE starts care immediately and is ' +
-          'refused when the patient already has a course in progress.',
+        summary: 'Create an orthodontic treatment plan',
         security: [{ bearerAuth: [] }],
         params: patientIdParamSchema,
         body: createTreatmentBodySchema,
@@ -93,12 +83,6 @@ export const patientTreatmentRoutes: FastifyPluginAsyncZod = async (app) => {
   );
 };
 
-/**
- * Treatment-scoped routes, mounted at `/api/v1/treatments`.
- *
- * Each status move is its own endpoint rather than a `PATCH status`, so the
- * transition rules and the audit trail have somewhere honest to live.
- */
 export const treatmentRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', app.authenticate);
   app.addHook('preHandler', app.requireClinic());
@@ -112,10 +96,7 @@ export const treatmentRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: 'Get one treatment',
         security: [{ bearerAuth: [] }],
         params: treatmentIdParamSchema,
-        response: {
-          200: successSchema(treatmentDtoSchema),
-          ...errorResponses(400, 401, 403, 404),
-        },
+        response: { 200: successSchema(treatmentDtoSchema), ...errorResponses(400, 401, 403, 404) },
       },
     },
     getTreatmentHandler,
@@ -127,8 +108,7 @@ export const treatmentRoutes: FastifyPluginAsyncZod = async (app) => {
       preHandler: [app.requirePermission(PERMISSIONS.TREATMENT_UPDATE)],
       schema: {
         tags: ['treatments'],
-        summary: 'Update a treatment plan',
-        description: 'Plan fields only. Completed and cancelled treatments are read-only.',
+        summary: 'Update editable treatment-plan fields',
         security: [{ bearerAuth: [] }],
         params: treatmentIdParamSchema,
         body: updateTreatmentBodySchema,
@@ -141,10 +121,11 @@ export const treatmentRoutes: FastifyPluginAsyncZod = async (app) => {
     updateTreatmentHandler,
   );
 
+  const lifecycle = PERMISSIONS.TREATMENT_MANAGE_LIFECYCLE;
   app.post(
     '/:treatmentId/start',
     {
-      preHandler: [app.requirePermission(PERMISSIONS.TREATMENT_MANAGE_LIFECYCLE)],
+      preHandler: [app.requirePermission(lifecycle)],
       schema: {
         tags: ['treatments'],
         summary: 'Start a planned treatment',
@@ -159,11 +140,10 @@ export const treatmentRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     startTreatmentHandler,
   );
-
   app.post(
     '/:treatmentId/pause',
     {
-      preHandler: [app.requirePermission(PERMISSIONS.TREATMENT_MANAGE_LIFECYCLE)],
+      preHandler: [app.requirePermission(lifecycle)],
       schema: {
         tags: ['treatments'],
         summary: 'Pause an active treatment',
@@ -178,11 +158,10 @@ export const treatmentRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     pauseTreatmentHandler,
   );
-
   app.post(
     '/:treatmentId/resume',
     {
-      preHandler: [app.requirePermission(PERMISSIONS.TREATMENT_MANAGE_LIFECYCLE)],
+      preHandler: [app.requirePermission(lifecycle)],
       schema: {
         tags: ['treatments'],
         summary: 'Resume a paused treatment',
@@ -191,20 +170,19 @@ export const treatmentRoutes: FastifyPluginAsyncZod = async (app) => {
         body: resumeTreatmentBodySchema,
         response: {
           200: successSchema(treatmentDtoSchema),
-          ...errorResponses(400, 401, 403, 404, 422),
+          ...errorResponses(400, 401, 403, 404, 409, 422),
         },
       },
     },
     resumeTreatmentHandler,
   );
-
   app.post(
     '/:treatmentId/complete',
     {
-      preHandler: [app.requirePermission(PERMISSIONS.TREATMENT_MANAGE_LIFECYCLE)],
+      preHandler: [app.requirePermission(lifecycle)],
       schema: {
         tags: ['treatments'],
-        summary: 'Complete a treatment',
+        summary: 'Complete an active treatment',
         security: [{ bearerAuth: [] }],
         params: treatmentIdParamSchema,
         body: completeTreatmentBodySchema,
@@ -216,15 +194,13 @@ export const treatmentRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     completeTreatmentHandler,
   );
-
   app.post(
     '/:treatmentId/cancel',
     {
-      preHandler: [app.requirePermission(PERMISSIONS.TREATMENT_MANAGE_LIFECYCLE)],
+      preHandler: [app.requirePermission(lifecycle)],
       schema: {
         tags: ['treatments'],
-        summary: 'Cancel a treatment',
-        description: 'Treatments are never deleted — an abandoned course stays in the file.',
+        summary: 'Cancel a treatment without deleting its history',
         security: [{ bearerAuth: [] }],
         params: treatmentIdParamSchema,
         body: cancelTreatmentBodySchema,
@@ -238,43 +214,57 @@ export const treatmentRoutes: FastifyPluginAsyncZod = async (app) => {
   );
 
   app.get(
-    '/:treatmentId/progress',
+    '/:treatmentId/milestones',
     {
       preHandler: [app.requirePermission(PERMISSIONS.TREATMENT_READ)],
       schema: {
         tags: ['treatments'],
-        summary: 'List a treatment progress timeline',
+        summary: 'List treatment milestones',
         security: [{ bearerAuth: [] }],
         params: treatmentIdParamSchema,
-        querystring: treatmentProgressQuerySchema,
+        querystring: treatmentMilestonesQuerySchema,
         response: {
-          200: paginatedSchema(treatmentProgressDtoSchema),
+          200: paginatedSchema(treatmentMilestoneDtoSchema),
           ...errorResponses(400, 401, 403, 404),
         },
       },
     },
-    listTreatmentProgressHandler,
+    listTreatmentMilestonesHandler,
   );
-
   app.post(
-    '/:treatmentId/progress',
+    '/:treatmentId/milestones',
     {
-      preHandler: [app.requirePermission(PERMISSIONS.TREATMENT_PROGRESS_CREATE)],
+      preHandler: [app.requirePermission(PERMISSIONS.TREATMENT_UPDATE)],
       schema: {
         tags: ['treatments'],
-        summary: 'Record a progress entry',
-        description:
-          'Chairside note for a course of care. Lifecycle events (started, paused, ' +
-          'completed) are written by the server and cannot be posted here.',
+        summary: 'Record a treatment milestone',
         security: [{ bearerAuth: [] }],
         params: treatmentIdParamSchema,
-        body: createTreatmentProgressBodySchema,
+        body: createTreatmentMilestoneBodySchema,
         response: {
-          201: successSchema(treatmentProgressDtoSchema),
+          201: successSchema(treatmentMilestoneDtoSchema),
           ...errorResponses(400, 401, 403, 404, 422),
         },
       },
     },
-    createTreatmentProgressHandler,
+    createTreatmentMilestoneHandler,
+  );
+  app.patch(
+    '/:treatmentId/milestones/:milestoneId',
+    {
+      preHandler: [app.requirePermission(PERMISSIONS.TREATMENT_UPDATE)],
+      schema: {
+        tags: ['treatments'],
+        summary: 'Correct a persisted milestone',
+        security: [{ bearerAuth: [] }],
+        params: treatmentMilestoneIdParamSchema,
+        body: updateTreatmentMilestoneBodySchema,
+        response: {
+          200: successSchema(treatmentMilestoneDtoSchema),
+          ...errorResponses(400, 401, 403, 404, 422),
+        },
+      },
+    },
+    updateTreatmentMilestoneHandler,
   );
 };

@@ -91,7 +91,7 @@ describe('treatment tenancy', () => {
       method: 'POST',
       url: TREATMENTS_URL,
       headers: authHeader(),
-      payload: { treatmentType: 'Clear aligners', clinicId: CLINIC_B, doctorId: PATIENT_ID },
+      payload: { type: 'CLEAR_ALIGNERS', clinicId: CLINIC_B, doctorId: PATIENT_ID },
     });
 
     expect(response.statusCode).toBe(201);
@@ -162,7 +162,7 @@ describe('treatment authorization', () => {
       method: 'POST',
       url: TREATMENTS_URL,
       headers: authHeader(),
-      payload: { treatmentType: 'Fixed braces' },
+      payload: { type: 'METAL_BRACES' },
     });
 
     expect(response.statusCode).toBe(403);
@@ -184,24 +184,18 @@ describe('treatment authorization', () => {
     expect(treatmentRepositoryMock.changeStatus).not.toHaveBeenCalled();
   });
 
-  it('lets an assistant record a progress entry', async () => {
+  it('keeps milestone creation clinical by rejecting an assistant', async () => {
     testState.membershipRole = CLINIC_ROLES.ASSISTANT;
-    treatmentRepositoryMock.findByIdInClinic.mockResolvedValueOnce({
-      ...treatmentRecord(CLINIC_A),
-      status: 'ACTIVE' as never,
-    });
 
     const response = await app.inject({
       method: 'POST',
-      url: `/api/v1/treatments/${TREATMENT_ID}/progress`,
+      url: `/api/v1/treatments/${TREATMENT_ID}/milestones`,
       headers: authHeader(),
-      payload: { type: 'ADJUSTMENT', note: 'Wire upsized' },
+      payload: { type: 'WIRE_ADJUSTMENT', title: 'Wire adjustment' },
     });
 
-    expect(response.statusCode).toBe(201);
-    expect(treatmentRepositoryMock.createProgress).toHaveBeenCalledWith(
-      expect.objectContaining({ clinicId: CLINIC_A, type: 'ADJUSTMENT' }),
-    );
+    expect(response.statusCode).toBe(403);
+    expect(treatmentRepositoryMock.createMilestone).not.toHaveBeenCalled();
   });
 
   it('lets a practitioner start a planned treatment', async () => {
@@ -216,6 +210,41 @@ describe('treatment authorization', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json().data.status).toBe('ACTIVE');
+  });
+
+  it('lets a practitioner record a persisted milestone', async () => {
+    testState.membershipRole = CLINIC_ROLES.ORTHODONTIST;
+    treatmentRepositoryMock.findByIdInClinic.mockResolvedValueOnce({
+      ...treatmentRecord(CLINIC_A),
+      status: 'ACTIVE' as never,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/treatments/${TREATMENT_ID}/milestones`,
+      headers: authHeader(),
+      payload: { type: 'APPLIANCE_FITTED', title: 'Appliance fitted' },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(treatmentRepositoryMock.createMilestone).toHaveBeenCalledWith(
+      expect.objectContaining({ clinicId: CLINIC_A, type: 'APPLIANCE_FITTED' }),
+    );
+  });
+
+  it('retrieves milestones through a clinic-scoped treatment', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/treatments/${TREATMENT_ID}/milestones`,
+      headers: authHeader(),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(treatmentRepositoryMock.listMilestonesByTreatment).toHaveBeenCalledWith(
+      TREATMENT_ID,
+      CLINIC_A,
+      expect.anything(),
+    );
   });
 });
 
@@ -248,17 +277,16 @@ describe('treatment validation', () => {
     expect(treatmentRepositoryMock.create).not.toHaveBeenCalled();
   });
 
-  it('refuses a lifecycle event type posted as a manual progress entry', async () => {
-    // STARTED, PAUSED and the rest are written by the state machine only.
+  it('refuses an automatic lifecycle milestone posted manually', async () => {
     const response = await app.inject({
       method: 'POST',
-      url: `/api/v1/treatments/${TREATMENT_ID}/progress`,
+      url: `/api/v1/treatments/${TREATMENT_ID}/milestones`,
       headers: authHeader(),
-      payload: { type: 'STARTED' },
+      payload: { type: 'TREATMENT_PAUSED', title: 'Treatment paused' },
     });
 
     expect(response.statusCode).toBe(400);
-    expect(treatmentRepositoryMock.createProgress).not.toHaveBeenCalled();
+    expect(treatmentRepositoryMock.createMilestone).not.toHaveBeenCalled();
   });
 
   it('rejects a malformed treatment id in the URL', async () => {
@@ -286,7 +314,7 @@ describe('treatment validation', () => {
   });
 
   it('refuses to start a course while another is already running', async () => {
-    treatmentRepositoryMock.findOccupyingForPatient.mockResolvedValueOnce(
+    treatmentRepositoryMock.findActiveForPatient.mockResolvedValueOnce(
       treatmentRecord(CLINIC_A, '652f1c9b8a1e4f0012ab7777') as never,
     );
 

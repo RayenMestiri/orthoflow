@@ -41,7 +41,7 @@ export class PatientDetailPage {
         ? 'Patient information saved.'
         : null,
   );
-  readonly activeView = signal<'overview' | 'activity'>('overview');
+  readonly activeView = signal<'overview' | 'activity' | 'treatments'>('overview');
   readonly guardianPanelOpen = signal(false);
   readonly editingGuardian = signal<Guardian | null>(null);
   readonly guardianSaving = signal(false);
@@ -50,6 +50,9 @@ export class PatientDetailPage {
   readonly archiving = signal(false);
   readonly canUpdate = this.permissions.can(PERMISSIONS.PATIENTS_UPDATE);
   readonly canArchive = this.permissions.can(PERMISSIONS.PATIENTS_ARCHIVE);
+  /** The front desk sees the patient file but not the clinical treatment area. */
+  readonly canViewTreatments = this.permissions.can(PERMISSIONS.TREATMENTS_VIEW);
+  readonly canManageTreatments = this.permissions.can(PERMISSIONS.TREATMENTS_MANAGE);
   readonly primaryGuardian = computed(
     () => this.guardians().find((guardian) => guardian.isPrimary) ?? null,
   );

@@ -1,71 +1,48 @@
 import type { Types } from 'mongoose';
 
-/**
- * The life of a course of orthodontic care.
- *
- * Unlike an appointment — which is one afternoon — a treatment runs for months
- * or years, so the states describe a long-running plan rather than a visit.
- */
+export const TREATMENT_TYPES = {
+  METAL_BRACES: 'METAL_BRACES',
+  CERAMIC_BRACES: 'CERAMIC_BRACES',
+  CLEAR_ALIGNERS: 'CLEAR_ALIGNERS',
+  RETAINER: 'RETAINER',
+  FUNCTIONAL_APPLIANCE: 'FUNCTIONAL_APPLIANCE',
+  EXPANDER: 'EXPANDER',
+  OTHER: 'OTHER',
+} as const;
+
+export type TreatmentType = (typeof TREATMENT_TYPES)[keyof typeof TREATMENT_TYPES];
+export const TREATMENT_TYPE_VALUES = Object.values(TREATMENT_TYPES) as [
+  TreatmentType,
+  ...TreatmentType[],
+];
+
 export const TREATMENT_STATUSES = {
-  /** Agreed but not begun. No appliance fitted yet. */
   PLANNED: 'PLANNED',
-  /** Under way. At most one per patient. */
   ACTIVE: 'ACTIVE',
-  /** Temporarily halted — patient travelling, finances, medical reason. */
   PAUSED: 'PAUSED',
-  /** Finished. Terminal, and the anchor for retention follow-up. */
   COMPLETED: 'COMPLETED',
-  /** Abandoned before completion. Terminal, never deleted. */
   CANCELLED: 'CANCELLED',
 } as const;
 
 export type TreatmentStatus = (typeof TREATMENT_STATUSES)[keyof typeof TREATMENT_STATUSES];
-
 export const TREATMENT_STATUS_VALUES = Object.values(TREATMENT_STATUSES) as [
   TreatmentStatus,
   ...TreatmentStatus[],
 ];
 
-/**
- * Allowed status moves.
- *
- * A plan may be cancelled before it ever starts; an active course may pause and
- * resume any number of times. What is not allowed is reviving a terminal state —
- * a completed course of treatment is history, and a new plan is a new record.
- */
 export const TREATMENT_STATUS_TRANSITIONS: Readonly<
   Record<TreatmentStatus, readonly TreatmentStatus[]>
 > = {
-  [TREATMENT_STATUSES.PLANNED]: [TREATMENT_STATUSES.ACTIVE, TREATMENT_STATUSES.CANCELLED],
-  [TREATMENT_STATUSES.ACTIVE]: [
-    TREATMENT_STATUSES.PAUSED,
-    TREATMENT_STATUSES.COMPLETED,
-    TREATMENT_STATUSES.CANCELLED,
-  ],
-  [TREATMENT_STATUSES.PAUSED]: [
-    TREATMENT_STATUSES.ACTIVE,
-    TREATMENT_STATUSES.COMPLETED,
-    TREATMENT_STATUSES.CANCELLED,
-  ],
-  [TREATMENT_STATUSES.COMPLETED]: [],
-  [TREATMENT_STATUSES.CANCELLED]: [],
+  PLANNED: [TREATMENT_STATUSES.ACTIVE, TREATMENT_STATUSES.CANCELLED],
+  ACTIVE: [TREATMENT_STATUSES.PAUSED, TREATMENT_STATUSES.COMPLETED, TREATMENT_STATUSES.CANCELLED],
+  PAUSED: [TREATMENT_STATUSES.ACTIVE, TREATMENT_STATUSES.CANCELLED],
+  COMPLETED: [],
+  CANCELLED: [],
 };
 
-/** Terminal states. The course is over; its plan may no longer be edited. */
 export const CLOSED_TREATMENT_STATUSES: readonly TreatmentStatus[] = [
   TREATMENT_STATUSES.COMPLETED,
   TREATMENT_STATUSES.CANCELLED,
-];
-
-/**
- * States that occupy the patient's single "current care" slot.
- *
- * PAUSED counts: the patient is still mid-treatment with an appliance fitted,
- * so a second course must not be opened alongside it.
- */
-export const OCCUPYING_TREATMENT_STATUSES: readonly TreatmentStatus[] = [
-  TREATMENT_STATUSES.ACTIVE,
-  TREATMENT_STATUSES.PAUSED,
 ];
 
 export function isClosedTreatmentStatus(status: TreatmentStatus): boolean {
@@ -76,56 +53,56 @@ export function canTransitionTreatment(from: TreatmentStatus, to: TreatmentStatu
   return TREATMENT_STATUS_TRANSITIONS[from].includes(to);
 }
 
-/**
- * Kinds of orthodontic care.
- *
- * A plain string on the treatment, not a foreign key: unlike appointment types
- * these carry no duration or pricing behaviour, and a clinic that invents its
- * own wording should not need a migration. The list below is the development
- * default offered by the UI, never a constraint the database enforces.
- */
-export const DEFAULT_TREATMENT_TYPES: readonly string[] = [
-  'Fixed braces',
-  'Clear aligners',
-  'Retainer',
-  'Functional appliance',
-  'Expansion treatment',
-  'Mixed orthodontic treatment',
-  'Other',
+export const TREATMENT_MILESTONE_TYPES = {
+  CONSULTATION: 'CONSULTATION',
+  TREATMENT_PLAN_CREATED: 'TREATMENT_PLAN_CREATED',
+  APPLIANCE_FITTED: 'APPLIANCE_FITTED',
+  WIRE_ADJUSTMENT: 'WIRE_ADJUSTMENT',
+  BRACKET_REPAIR: 'BRACKET_REPAIR',
+  IMPRESSION: 'IMPRESSION',
+  SCAN: 'SCAN',
+  CONTROL: 'CONTROL',
+  APPLIANCE_REMOVAL: 'APPLIANCE_REMOVAL',
+  RETAINER_DELIVERED: 'RETAINER_DELIVERED',
+  TREATMENT_PAUSED: 'TREATMENT_PAUSED',
+  TREATMENT_RESUMED: 'TREATMENT_RESUMED',
+  TREATMENT_COMPLETED: 'TREATMENT_COMPLETED',
+  CUSTOM: 'CUSTOM',
+} as const;
+
+export type TreatmentMilestoneType =
+  (typeof TREATMENT_MILESTONE_TYPES)[keyof typeof TREATMENT_MILESTONE_TYPES];
+export const TREATMENT_MILESTONE_TYPE_VALUES = Object.values(TREATMENT_MILESTONE_TYPES) as [
+  TreatmentMilestoneType,
+  ...TreatmentMilestoneType[],
 ];
 
-/**
- * A course of orthodontic care for one patient.
- *
- * MVP RULE — ONE CLINIC = ONE OWNER-DOCTOR: `doctorId` is resolved from the
- * clinic's ownership membership on the server, never taken from a payload. The
- * field exists so multi-practitioner clinics can arrive without a migration.
- *
- * FUTURE — APPOINTMENT LINK: appointments will eventually carry an optional
- * `treatmentId` so a monthly control can be attributed to the course it belongs
- * to. That relationship is deliberately NOT implemented here; see the handoff
- * notes. Nothing in this module imports anything from the Schedule domain.
- */
+export const MANUAL_TREATMENT_MILESTONE_TYPES: readonly TreatmentMilestoneType[] = [
+  TREATMENT_MILESTONE_TYPES.CONSULTATION,
+  TREATMENT_MILESTONE_TYPES.APPLIANCE_FITTED,
+  TREATMENT_MILESTONE_TYPES.WIRE_ADJUSTMENT,
+  TREATMENT_MILESTONE_TYPES.BRACKET_REPAIR,
+  TREATMENT_MILESTONE_TYPES.IMPRESSION,
+  TREATMENT_MILESTONE_TYPES.SCAN,
+  TREATMENT_MILESTONE_TYPES.CONTROL,
+  TREATMENT_MILESTONE_TYPES.APPLIANCE_REMOVAL,
+  TREATMENT_MILESTONE_TYPES.RETAINER_DELIVERED,
+  TREATMENT_MILESTONE_TYPES.CUSTOM,
+];
+
 export interface TreatmentAttributes {
-  /** Tenant key. Present in every single query against this collection. */
   clinicId: Types.ObjectId;
   patientId: Types.ObjectId;
   doctorId: Types.ObjectId;
-
-  treatmentType: string;
+  type: TreatmentType;
+  customTypeLabel: string | null;
   status: TreatmentStatus;
-
-  /** Planned or actual first day of care. */
   startDate: Date | null;
   expectedEndDate: Date | null;
-  actualEndDate: Date | null;
-
+  completedAt: Date | null;
+  agreedPrice: number | null;
   notes: string | null;
-  /** Agreed total in the clinic's currency. Not a balance — see cash records. */
-  totalPlannedCost: number | null;
-
   cancellationReason: string | null;
-
   createdBy: Types.ObjectId;
   updatedBy: Types.ObjectId | null;
   createdAt: Date;
@@ -134,105 +111,83 @@ export interface TreatmentAttributes {
 
 export type TreatmentRecord = TreatmentAttributes & { _id: Types.ObjectId };
 
-/**
- * Something that happened during a course of care.
- *
- * Deliberately lightweight: a dated note with a type. This is a longitudinal
- * diary, not clinical charting — no tooth-by-tooth data, no imaging.
- */
-export const TREATMENT_EVENT_TYPES = {
-  STARTED: 'STARTED',
-  CHECKPOINT: 'CHECKPOINT',
-  ADJUSTMENT: 'ADJUSTMENT',
-  NOTE: 'NOTE',
-  PAUSED: 'PAUSED',
-  RESUMED: 'RESUMED',
-  COMPLETED: 'COMPLETED',
-  CANCELLED: 'CANCELLED',
-} as const;
-
-export type TreatmentEventType = (typeof TREATMENT_EVENT_TYPES)[keyof typeof TREATMENT_EVENT_TYPES];
-
-export const TREATMENT_EVENT_TYPE_VALUES = Object.values(TREATMENT_EVENT_TYPES) as [
-  TreatmentEventType,
-  ...TreatmentEventType[],
-];
-
-/** Event kinds a clinician may record by hand; the rest are system-generated. */
-export const MANUAL_TREATMENT_EVENT_TYPES: readonly TreatmentEventType[] = [
-  TREATMENT_EVENT_TYPES.CHECKPOINT,
-  TREATMENT_EVENT_TYPES.ADJUSTMENT,
-  TREATMENT_EVENT_TYPES.NOTE,
-];
-
-export interface TreatmentProgressAttributes {
+export interface TreatmentMilestoneAttributes {
   clinicId: Types.ObjectId;
   patientId: Types.ObjectId;
   treatmentId: Types.ObjectId;
-  /** When it happened clinically, which may not be when it was typed in. */
+  type: TreatmentMilestoneType;
+  title: string;
+  description: string | null;
   occurredAt: Date;
-  type: TreatmentEventType;
-  note: string | null;
   createdBy: Types.ObjectId;
+  updatedBy: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export type TreatmentProgressRecord = TreatmentProgressAttributes & { _id: Types.ObjectId };
-
-// --- inputs -----------------------------------------------------------------
+export type TreatmentMilestoneRecord = TreatmentMilestoneAttributes & { _id: Types.ObjectId };
 
 export interface CreateTreatmentInput {
   clinicId: string;
   patientId: string;
   doctorId: string;
-  treatmentType: string;
+  type: TreatmentType;
+  customTypeLabel?: string | null;
   status?: TreatmentStatus;
   startDate?: Date | null;
   expectedEndDate?: Date | null;
+  agreedPrice?: number | null;
   notes?: string | null;
-  totalPlannedCost?: number | null;
   createdBy: string;
 }
 
 export interface UpdateTreatmentFields {
-  treatmentType?: string;
-  startDate?: Date | null;
+  type?: TreatmentType;
+  customTypeLabel?: string | null;
   expectedEndDate?: Date | null;
+  agreedPrice?: number | null;
   notes?: string | null;
-  totalPlannedCost?: number | null;
   updatedBy: string;
 }
 
 export interface TreatmentStatusChangeFields {
   status: TreatmentStatus;
-  startDate?: Date | null;
-  actualEndDate?: Date | null;
+  startDate?: Date;
+  completedAt?: Date;
   cancellationReason?: string | null;
   updatedBy: string;
 }
 
-export interface CreateTreatmentProgressInput {
+export interface CreateTreatmentMilestoneInput {
   clinicId: string;
   patientId: string;
   treatmentId: string;
+  type: TreatmentMilestoneType;
+  title: string;
+  description?: string | null;
   occurredAt: Date;
-  type: TreatmentEventType;
-  note?: string | null;
   createdBy: string;
 }
 
-// --- API shapes -------------------------------------------------------------
+export interface UpdateTreatmentMilestoneFields {
+  title?: string;
+  description?: string | null;
+  occurredAt?: Date;
+  updatedBy: string;
+}
 
-export interface TreatmentProgressDto {
+export interface TreatmentMilestoneDto {
   id: string;
   treatmentId: string;
   patientId: string;
+  type: TreatmentMilestoneType;
+  title: string;
+  description: string | null;
   occurredAt: string;
-  type: TreatmentEventType;
-  note: string | null;
   createdBy: string;
+  updatedBy: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface TreatmentDto {
@@ -240,30 +195,23 @@ export interface TreatmentDto {
   clinicId: string;
   patientId: string;
   doctorId: string;
-
-  treatmentType: string;
+  type: TreatmentType;
+  customTypeLabel: string | null;
   status: TreatmentStatus;
-
   startDate: string | null;
   expectedEndDate: string | null;
-  actualEndDate: string | null;
-
+  completedAt: string | null;
+  agreedPrice: number | null;
   notes: string | null;
-  totalPlannedCost: number | null;
   cancellationReason: string | null;
-
-  /** Days elapsed since the start, or the full span once finished. */
   durationDays: number | null;
-  /** True while this course occupies the patient's single care slot. */
   isCurrent: boolean;
-
   createdBy: string;
   updatedBy: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-/** What the patient profile renders: the plan plus its diary. */
-export interface TreatmentWithProgressDto extends TreatmentDto {
-  progress: TreatmentProgressDto[];
+export interface TreatmentWithMilestonesDto extends TreatmentDto {
+  milestones: TreatmentMilestoneDto[];
 }

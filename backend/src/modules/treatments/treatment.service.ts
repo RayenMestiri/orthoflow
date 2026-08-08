@@ -17,42 +17,47 @@ import { patientRepository, type PatientRepository } from '../patients/patient.r
 import { PATIENT_STATUSES } from '../patients/patient.types.js';
 import {
   toTreatmentDto,
-  toTreatmentProgressDto,
-  toTreatmentWithProgressDto,
+  toTreatmentMilestoneDto,
+  toTreatmentWithMilestonesDto,
 } from './treatment.mapper.js';
 import { treatmentRepository, type TreatmentRepository } from './treatment.repository.js';
 import {
   canTransitionTreatment,
   isClosedTreatmentStatus,
-  TREATMENT_EVENT_TYPES,
+  TREATMENT_MILESTONE_TYPES,
   TREATMENT_STATUSES,
+  TREATMENT_TYPES,
   type TreatmentDto,
-  type TreatmentEventType,
-  type TreatmentProgressDto,
+  type TreatmentMilestoneDto,
+  type TreatmentMilestoneType,
   type TreatmentRecord,
   type TreatmentStatus,
-  type TreatmentWithProgressDto,
+  type TreatmentType,
+  type TreatmentWithMilestonesDto,
 } from './treatment.types.js';
 
-/** Audit action for each status the treatment moves into. */
 const STATUS_AUDIT_ACTIONS: Record<TreatmentStatus, AuditAction> = {
-  [TREATMENT_STATUSES.PLANNED]: AUDIT_ACTIONS.TREATMENT_CREATED,
-  [TREATMENT_STATUSES.ACTIVE]: AUDIT_ACTIONS.TREATMENT_STARTED,
-  [TREATMENT_STATUSES.PAUSED]: AUDIT_ACTIONS.TREATMENT_PAUSED,
-  [TREATMENT_STATUSES.COMPLETED]: AUDIT_ACTIONS.TREATMENT_COMPLETED,
-  [TREATMENT_STATUSES.CANCELLED]: AUDIT_ACTIONS.TREATMENT_CANCELLED,
+  PLANNED: AUDIT_ACTIONS.TREATMENT_CREATED,
+  ACTIVE: AUDIT_ACTIONS.TREATMENT_STARTED,
+  PAUSED: AUDIT_ACTIONS.TREATMENT_PAUSED,
+  COMPLETED: AUDIT_ACTIONS.TREATMENT_COMPLETED,
+  CANCELLED: AUDIT_ACTIONS.TREATMENT_CANCELLED,
 };
 
-/** Timeline entry the state machine writes for each move, so the diary is complete. */
-const STATUS_EVENT_TYPES: Record<TreatmentStatus, TreatmentEventType | null> = {
-  [TREATMENT_STATUSES.PLANNED]: null,
-  [TREATMENT_STATUSES.ACTIVE]: TREATMENT_EVENT_TYPES.STARTED,
-  [TREATMENT_STATUSES.PAUSED]: TREATMENT_EVENT_TYPES.PAUSED,
-  [TREATMENT_STATUSES.COMPLETED]: TREATMENT_EVENT_TYPES.COMPLETED,
-  [TREATMENT_STATUSES.CANCELLED]: TREATMENT_EVENT_TYPES.CANCELLED,
+const AUTOMATIC_MILESTONES: Partial<
+  Record<TreatmentStatus, { type: TreatmentMilestoneType; title: string }>
+> = {
+  PAUSED: { type: TREATMENT_MILESTONE_TYPES.TREATMENT_PAUSED, title: 'Treatment paused' },
+  COMPLETED: {
+    type: TREATMENT_MILESTONE_TYPES.TREATMENT_COMPLETED,
+    title: 'Treatment completed',
+  },
 };
 
-/** Midnight UTC for a `YYYY-MM-DD` string, matching how patient birth dates are stored. */
+function isDuplicateKeyError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 11000;
+}
+
 function toCalendarDate(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
@@ -62,18 +67,6 @@ function today(): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-/**
- * Treatment use cases.
- *
- * Shape matches the rest of the codebase: `clinicId` first, from the request's
- * verified tenant context, and `MutationContext` last. Nothing here accepts a
- * clinic id from a payload.
- *
- * FUTURE — SCHEDULE INTEGRATION: this service intentionally knows nothing about
- * appointments. When the two domains are joined, the seam is an optional
- * `treatmentId` on the appointment plus a read here that counts visits; no
- * treatment rule below needs to change for that.
- */
 export class TreatmentService {
   constructor(
     private readonly treatments: TreatmentRepository = treatmentRepository,
@@ -82,48 +75,33 @@ export class TreatmentService {
     private readonly audit: AuditLogService = auditLogService,
   ) {}
 
-  // --- reads ----------------------------------------------------------------
-
   async listForPatient(
     clinicId: string,
     patientId: string,
-    options: { status?: TreatmentStatus; includeProgress?: boolean } = {},
-  ): Promise<TreatmentWithProgressDto[]> {
+    options: { status?: TreatmentStatus; includeMilestones?: boolean } = {},
+  ): Promise<TreatmentWithMilestonesDto[]> {
     await this.requirePatient(clinicId, patientId);
-
     const records = await this.treatments.listByPatient(
       patientId,
       clinicId,
       options.status === undefined ? {} : { status: options.status },
     );
-
-    if (records.length === 0) {
-      return [];
+    if (records.length === 0) return [];
+    if (options.includeMilestones === false) {
+      return records.map((record) => ({ ...toTreatmentDto(record), milestones: [] }));
     }
-
-    if (options.includeProgress === false) {
-      return records.map((record) => ({ ...toTreatmentDto(record), progress: [] }));
-    }
-
-    // One query for every timeline rather than one per treatment.
-    const progress = await this.treatments.listProgressByTreatmentIds(
+    const milestones = await this.treatments.listMilestonesByTreatmentIds(
       records.map((record) => record._id.toString()),
       clinicId,
     );
-    const byTreatment = new Map<string, typeof progress>();
-    for (const entry of progress) {
-      const key = entry.treatmentId.toString();
-      const bucket = byTreatment.get(key);
-      if (bucket) {
-        bucket.push(entry);
-      } else {
-        byTreatment.set(key, [entry]);
-      }
+    const byTreatment = new Map<string, typeof milestones>();
+    for (const milestone of milestones) {
+      const id = milestone.treatmentId.toString();
+      byTreatment.set(id, [...(byTreatment.get(id) ?? []), milestone]);
     }
-
     const now = new Date();
     return records.map((record) =>
-      toTreatmentWithProgressDto(record, byTreatment.get(record._id.toString()) ?? [], now),
+      toTreatmentWithMilestonesDto(record, byTreatment.get(record._id.toString()) ?? [], now),
     );
   }
 
@@ -131,105 +109,92 @@ export class TreatmentService {
     return toTreatmentDto(await this.requireTreatment(clinicId, treatmentId));
   }
 
-  async listProgress(
+  async listMilestones(
     clinicId: string,
     treatmentId: string,
     page: { page?: number; limit?: number },
-  ): Promise<{ result: PaginatedResult<TreatmentProgressDto>; pagination: PaginationParams }> {
+  ): Promise<{ result: PaginatedResult<TreatmentMilestoneDto>; pagination: PaginationParams }> {
     await this.requireTreatment(clinicId, treatmentId);
     const pagination = toPaginationParams(page);
-    const { items, total } = await this.treatments.listProgressByTreatment(
+    const { items, total } = await this.treatments.listMilestonesByTreatment(
       treatmentId,
       clinicId,
       pagination,
     );
-    return { result: { items: items.map(toTreatmentProgressDto), total }, pagination };
+    return { result: { items: items.map(toTreatmentMilestoneDto), total }, pagination };
   }
-
-  // --- writes ---------------------------------------------------------------
 
   async create(
     clinicId: string,
     patientId: string,
     input: {
-      treatmentType: string;
+      type: TreatmentType;
+      customTypeLabel?: string | null;
       status?: 'PLANNED' | 'ACTIVE';
       startDate?: string | null;
       expectedEndDate?: string | null;
+      agreedPrice?: number | null;
       notes?: string | null;
-      totalPlannedCost?: number | null;
     },
     context: MutationContext,
   ): Promise<TreatmentDto> {
     const patient = await this.requirePatient(clinicId, patientId);
-
-    // Archived patients are read-only history; new care means restoring first.
     if (patient.status === PATIENT_STATUSES.ARCHIVED) {
       throw new BusinessRuleError('Cannot plan treatment for an archived patient', {
         code: ERROR_CODES.TREATMENT_PATIENT_ARCHIVED,
       });
     }
-
+    this.assertCustomType(input.type, input.customTypeLabel ?? null);
     const status = input.status ?? TREATMENT_STATUSES.PLANNED;
-
-    // MVP: at most one live course per patient. PLANNED does not occupy the slot,
-    // so a follow-up plan can be agreed while the current one finishes.
-    if (status === TREATMENT_STATUSES.ACTIVE) {
-      await this.requireNoOccupyingTreatment(clinicId, patientId);
-    }
-
+    if (status === TREATMENT_STATUSES.ACTIVE)
+      await this.requireNoActiveTreatment(clinicId, patientId);
     const startDate =
       status === TREATMENT_STATUSES.ACTIVE
         ? input.startDate
           ? toCalendarDate(input.startDate)
           : today()
-        : input.startDate
-          ? toCalendarDate(input.startDate)
-          : null;
+        : null;
     const expectedEndDate = input.expectedEndDate ? toCalendarDate(input.expectedEndDate) : null;
-
     this.assertDateRange(startDate, expectedEndDate);
-
-    // ONE CLINIC = ONE OWNER-DOCTOR: resolved server-side, never from the payload.
     const doctorId = await this.resolveOwnerDoctorId(clinicId);
 
-    const created = await this.treatments.create({
-      clinicId,
-      patientId,
-      doctorId,
-      createdBy: context.actorUserId,
-      treatmentType: input.treatmentType,
-      status,
-      startDate,
-      expectedEndDate,
-      notes: input.notes ?? null,
-      totalPlannedCost: input.totalPlannedCost ?? null,
-    });
-
-    await this.recordAudit(
-      clinicId,
-      created._id.toString(),
-      AUDIT_ACTIONS.TREATMENT_CREATED,
-      {
-        patientId,
-        treatmentType: created.treatmentType,
-        status: created.status,
-      },
-      context,
-    );
-
-    if (status === TREATMENT_STATUSES.ACTIVE) {
-      await this.treatments.createProgress({
+    let created: TreatmentRecord;
+    try {
+      created = await this.treatments.create({
         clinicId,
         patientId,
-        treatmentId: created._id.toString(),
-        occurredAt: startDate ?? new Date(),
-        type: TREATMENT_EVENT_TYPES.STARTED,
-        note: null,
+        doctorId,
+        type: input.type,
+        customTypeLabel: input.type === TREATMENT_TYPES.OTHER ? input.customTypeLabel : null,
+        status,
+        startDate,
+        expectedEndDate,
+        agreedPrice: input.agreedPrice ?? null,
+        notes: input.notes ?? null,
         createdBy: context.actorUserId,
       });
+    } catch (error) {
+      if (isDuplicateKeyError(error)) throw this.activeConflict();
+      throw error;
     }
 
+    await this.recordTreatmentAudit(
+      clinicId,
+      patientId,
+      created._id.toString(),
+      AUDIT_ACTIONS.TREATMENT_CREATED,
+      { type: created.type, status: created.status },
+      context,
+    );
+    await this.createAutomaticMilestone(
+      clinicId,
+      patientId,
+      created._id.toString(),
+      TREATMENT_MILESTONE_TYPES.TREATMENT_PLAN_CREATED,
+      'Treatment plan created',
+      created.createdAt,
+      context,
+    );
     return toTreatmentDto(created);
   }
 
@@ -237,77 +202,68 @@ export class TreatmentService {
     clinicId: string,
     treatmentId: string,
     changes: {
-      treatmentType?: string;
-      startDate?: string | null;
+      type?: TreatmentType;
+      customTypeLabel?: string | null;
       expectedEndDate?: string | null;
+      agreedPrice?: number | null;
       notes?: string | null;
-      totalPlannedCost?: number | null;
     },
     context: MutationContext,
   ): Promise<TreatmentDto> {
     const existing = await this.requireTreatment(clinicId, treatmentId);
-
-    // A finished or abandoned course is history; correcting it would rewrite the
-    // clinical record rather than change a plan.
     if (isClosedTreatmentStatus(existing.status)) {
       throw new BusinessRuleError('This treatment is closed and can no longer be edited', {
         code: ERROR_CODES.TREATMENT_ALREADY_CLOSED,
       });
     }
-
-    const startDate =
-      changes.startDate === undefined
-        ? existing.startDate
-        : changes.startDate
-          ? toCalendarDate(changes.startDate)
-          : null;
+    const type = changes.type ?? existing.type;
+    if (type !== TREATMENT_TYPES.OTHER && changes.customTypeLabel) {
+      this.assertCustomType(type, changes.customTypeLabel);
+    }
+    const customTypeLabel =
+      type === TREATMENT_TYPES.OTHER
+        ? (changes.customTypeLabel ??
+          (existing.type === TREATMENT_TYPES.OTHER ? existing.customTypeLabel : null))
+        : null;
+    this.assertCustomType(type, customTypeLabel);
     const expectedEndDate =
       changes.expectedEndDate === undefined
         ? existing.expectedEndDate
         : changes.expectedEndDate
           ? toCalendarDate(changes.expectedEndDate)
           : null;
-
-    this.assertDateRange(startDate, expectedEndDate);
-
+    this.assertDateRange(existing.startDate, expectedEndDate);
     const updated = await this.treatments.update(treatmentId, clinicId, {
       updatedBy: context.actorUserId,
-      ...(changes.treatmentType === undefined ? {} : { treatmentType: changes.treatmentType }),
-      ...(changes.startDate === undefined ? {} : { startDate }),
-      ...(changes.expectedEndDate === undefined ? {} : { expectedEndDate }),
-      ...(changes.notes === undefined ? {} : { notes: changes.notes }),
-      ...(changes.totalPlannedCost === undefined
+      ...(changes.type === undefined ? {} : { type }),
+      ...(changes.type === undefined && changes.customTypeLabel === undefined
         ? {}
-        : { totalPlannedCost: changes.totalPlannedCost }),
+        : { customTypeLabel }),
+      ...(changes.expectedEndDate === undefined ? {} : { expectedEndDate }),
+      ...(changes.agreedPrice === undefined ? {} : { agreedPrice: changes.agreedPrice }),
+      ...(changes.notes === undefined ? {} : { notes: changes.notes }),
     });
-
-    if (!updated) {
+    if (!updated)
       throw new NotFoundError('Treatment not found', { code: ERROR_CODES.TREATMENT_NOT_FOUND });
-    }
-
-    await this.recordAudit(
+    await this.recordTreatmentAudit(
       clinicId,
+      existing.patientId.toString(),
       treatmentId,
       AUDIT_ACTIONS.TREATMENT_UPDATED,
-      // Field names only — the audit trail is not a shadow copy of clinical data.
       { fields: Object.keys(changes) },
       context,
     );
-
     return toTreatmentDto(updated);
   }
 
   async start(
     clinicId: string,
     treatmentId: string,
-    input: { startDate?: string; note?: string },
+    input: { startDate?: string },
     context: MutationContext,
   ): Promise<TreatmentDto> {
     const existing = await this.requireTreatment(clinicId, treatmentId);
-    const patientId = existing.patientId.toString();
-
-    await this.requireNoOccupyingTreatment(clinicId, patientId, treatmentId);
-
+    await this.requireNoActiveTreatment(clinicId, existing.patientId.toString(), treatmentId);
     return this.transition(
       clinicId,
       existing,
@@ -317,7 +273,6 @@ export class TreatmentService {
           ? toCalendarDate(input.startDate)
           : (existing.startDate ?? today()),
       },
-      input.note ?? null,
       context,
     );
   }
@@ -328,59 +283,45 @@ export class TreatmentService {
     input: { reason?: string },
     context: MutationContext,
   ): Promise<TreatmentDto> {
-    const existing = await this.requireTreatment(clinicId, treatmentId);
     return this.transition(
       clinicId,
-      existing,
+      await this.requireTreatment(clinicId, treatmentId),
       TREATMENT_STATUSES.PAUSED,
       {},
-      input.reason ?? null,
       context,
+      input.reason ?? null,
     );
   }
 
   async resume(
     clinicId: string,
     treatmentId: string,
-    input: { note?: string },
+    _input: Record<string, never>,
     context: MutationContext,
   ): Promise<TreatmentDto> {
     const existing = await this.requireTreatment(clinicId, treatmentId);
-
-    // Resuming re-enters ACTIVE, so it uses the same transition table entry as a
-    // start; only the audit action and timeline event differ.
-    return this.transition(
-      clinicId,
-      existing,
-      TREATMENT_STATUSES.ACTIVE,
-      {},
-      input.note ?? null,
-      context,
-      { auditAction: AUDIT_ACTIONS.TREATMENT_RESUMED, eventType: TREATMENT_EVENT_TYPES.RESUMED },
-    );
+    await this.requireNoActiveTreatment(clinicId, existing.patientId.toString(), treatmentId);
+    return this.transition(clinicId, existing, TREATMENT_STATUSES.ACTIVE, {}, context, null, {
+      auditAction: AUDIT_ACTIONS.TREATMENT_RESUMED,
+      milestone: {
+        type: TREATMENT_MILESTONE_TYPES.TREATMENT_RESUMED,
+        title: 'Treatment resumed',
+      },
+    });
   }
 
   async complete(
     clinicId: string,
     treatmentId: string,
-    input: { actualEndDate?: string; note?: string },
+    _input: Record<string, never>,
     context: MutationContext,
   ): Promise<TreatmentDto> {
     const existing = await this.requireTreatment(clinicId, treatmentId);
-    const actualEndDate = input.actualEndDate ? toCalendarDate(input.actualEndDate) : today();
-
-    if (existing.startDate && actualEndDate.getTime() < existing.startDate.getTime()) {
-      throw new BusinessRuleError('Treatment cannot end before it started', {
-        code: ERROR_CODES.TREATMENT_INVALID_DATE_RANGE,
-      });
-    }
-
     return this.transition(
       clinicId,
       existing,
       TREATMENT_STATUSES.COMPLETED,
-      { actualEndDate },
-      input.note ?? null,
+      { completedAt: new Date() },
       context,
     );
   }
@@ -391,74 +332,110 @@ export class TreatmentService {
     input: { reason: string },
     context: MutationContext,
   ): Promise<TreatmentDto> {
-    const existing = await this.requireTreatment(clinicId, treatmentId);
     return this.transition(
       clinicId,
-      existing,
+      await this.requireTreatment(clinicId, treatmentId),
       TREATMENT_STATUSES.CANCELLED,
-      { actualEndDate: today(), cancellationReason: input.reason },
-      input.reason,
+      { cancellationReason: input.reason },
       context,
     );
   }
 
-  async addProgress(
+  async addMilestone(
     clinicId: string,
     treatmentId: string,
-    input: { type: TreatmentEventType; occurredAt?: string; note?: string | null },
+    input: {
+      type: TreatmentMilestoneType;
+      title: string;
+      description?: string | null;
+      occurredAt?: string;
+    },
     context: MutationContext,
-  ): Promise<TreatmentProgressDto> {
+  ): Promise<TreatmentMilestoneDto> {
     const treatment = await this.requireTreatment(clinicId, treatmentId);
-
     if (isClosedTreatmentStatus(treatment.status)) {
       throw new BusinessRuleError('This treatment is closed and can no longer be edited', {
         code: ERROR_CODES.TREATMENT_ALREADY_CLOSED,
       });
     }
-
     const occurredAt = input.occurredAt ? new Date(input.occurredAt) : new Date();
-    // A visit that has not happened yet belongs in the schedule, not the diary.
-    if (occurredAt.getTime() > Date.now()) {
-      throw new BusinessRuleError('Progress cannot be recorded in the future', {
-        code: ERROR_CODES.TREATMENT_INVALID_DATE_RANGE,
-      });
-    }
-
-    const created = await this.treatments.createProgress({
+    this.assertNotFuture(occurredAt);
+    const created = await this.treatments.createMilestone({
       clinicId,
       patientId: treatment.patientId.toString(),
       treatmentId,
-      occurredAt,
       type: input.type,
-      note: input.note ?? null,
+      title: input.title,
+      description: input.description ?? null,
+      occurredAt,
       createdBy: context.actorUserId,
     });
-
-    await this.recordAudit(
+    await this.recordMilestoneAudit(
       clinicId,
+      treatment.patientId.toString(),
       treatmentId,
-      AUDIT_ACTIONS.TREATMENT_PROGRESS_ADDED,
+      created._id.toString(),
+      AUDIT_ACTIONS.TREATMENT_MILESTONE_CREATED,
       { type: input.type },
       context,
     );
-
-    return toTreatmentProgressDto(created);
+    return toTreatmentMilestoneDto(created);
   }
 
-  // --- internals ------------------------------------------------------------
+  async updateMilestone(
+    clinicId: string,
+    treatmentId: string,
+    milestoneId: string,
+    changes: { title?: string; description?: string | null; occurredAt?: string },
+    context: MutationContext,
+  ): Promise<TreatmentMilestoneDto> {
+    const treatment = await this.requireTreatment(clinicId, treatmentId);
+    const existing = await this.treatments.findMilestoneInTreatment(
+      milestoneId,
+      treatmentId,
+      clinicId,
+    );
+    if (!existing) {
+      throw new NotFoundError('Treatment milestone not found', {
+        code: ERROR_CODES.TREATMENT_MILESTONE_NOT_FOUND,
+      });
+    }
+    const occurredAt = changes.occurredAt ? new Date(changes.occurredAt) : undefined;
+    if (occurredAt) this.assertNotFuture(occurredAt);
+    const updated = await this.treatments.updateMilestone(milestoneId, treatmentId, clinicId, {
+      updatedBy: context.actorUserId,
+      ...(changes.title === undefined ? {} : { title: changes.title }),
+      ...(changes.description === undefined ? {} : { description: changes.description }),
+      ...(occurredAt === undefined ? {} : { occurredAt }),
+    });
+    if (!updated) {
+      throw new NotFoundError('Treatment milestone not found', {
+        code: ERROR_CODES.TREATMENT_MILESTONE_NOT_FOUND,
+      });
+    }
+    await this.recordMilestoneAudit(
+      clinicId,
+      treatment.patientId.toString(),
+      treatmentId,
+      milestoneId,
+      AUDIT_ACTIONS.TREATMENT_MILESTONE_UPDATED,
+      { fields: Object.keys(changes) },
+      context,
+    );
+    return toTreatmentMilestoneDto(updated);
+  }
 
-  /**
-   * Applies a status move: validates it against the transition table, writes it
-   * with the previous status in the filter, then records audit and timeline.
-   */
   private async transition(
     clinicId: string,
     existing: TreatmentRecord,
     target: TreatmentStatus,
-    dates: { startDate?: Date; actualEndDate?: Date; cancellationReason?: string },
-    note: string | null,
+    fields: { startDate?: Date; completedAt?: Date; cancellationReason?: string },
     context: MutationContext,
-    overrides: { auditAction?: AuditAction; eventType?: TreatmentEventType } = {},
+    description: string | null = null,
+    overrides: {
+      auditAction?: AuditAction;
+      milestone?: { type: TreatmentMilestoneType; title: string };
+    } = {},
   ): Promise<TreatmentDto> {
     if (!canTransitionTreatment(existing.status, target)) {
       throw new BusinessRuleError(
@@ -469,51 +446,84 @@ export class TreatmentService {
         },
       );
     }
-
-    const treatmentId = existing._id.toString();
-    const updated = await this.treatments.changeStatus(treatmentId, clinicId, existing.status, {
-      status: target,
-      updatedBy: context.actorUserId,
-      ...dates,
-    });
-
+    let updated: TreatmentRecord | null;
+    try {
+      updated = await this.treatments.changeStatus(
+        existing._id.toString(),
+        clinicId,
+        existing.status,
+        { status: target, updatedBy: context.actorUserId, ...fields },
+      );
+    } catch (error) {
+      if (isDuplicateKeyError(error)) throw this.activeConflict();
+      throw error;
+    }
     if (!updated) {
-      // The status changed under us between the read and the write.
       throw new BusinessRuleError('This treatment was changed by someone else — reload and retry', {
         code: ERROR_CODES.TREATMENT_INVALID_STATUS_TRANSITION,
       });
     }
-
-    await this.recordAudit(
+    const treatmentId = existing._id.toString();
+    const patientId = existing.patientId.toString();
+    await this.recordTreatmentAudit(
       clinicId,
+      patientId,
       treatmentId,
       overrides.auditAction ?? STATUS_AUDIT_ACTIONS[target],
       { from: existing.status, to: target },
       context,
     );
-
-    const eventType = overrides.eventType ?? STATUS_EVENT_TYPES[target];
-    if (eventType) {
-      await this.treatments.createProgress({
+    const milestone = overrides.milestone ?? AUTOMATIC_MILESTONES[target];
+    if (milestone) {
+      await this.createAutomaticMilestone(
         clinicId,
-        patientId: existing.patientId.toString(),
+        patientId,
         treatmentId,
-        occurredAt: new Date(),
-        type: eventType,
-        note,
-        createdBy: context.actorUserId,
-      });
+        milestone.type,
+        milestone.title,
+        fields.completedAt ?? new Date(),
+        context,
+        description,
+      );
     }
-
     return toTreatmentDto(updated);
+  }
+
+  private async createAutomaticMilestone(
+    clinicId: string,
+    patientId: string,
+    treatmentId: string,
+    type: TreatmentMilestoneType,
+    title: string,
+    occurredAt: Date,
+    context: MutationContext,
+    description: string | null = null,
+  ): Promise<void> {
+    const created = await this.treatments.createMilestone({
+      clinicId,
+      patientId,
+      treatmentId,
+      type,
+      title,
+      description,
+      occurredAt,
+      createdBy: context.actorUserId,
+    });
+    await this.recordMilestoneAudit(
+      clinicId,
+      patientId,
+      treatmentId,
+      created._id.toString(),
+      AUDIT_ACTIONS.TREATMENT_MILESTONE_CREATED,
+      { type, automatic: true },
+      context,
+    );
   }
 
   private async requirePatient(clinicId: string, patientId: string) {
     const patient = await this.patients.findByIdInClinic(patientId, clinicId);
-    if (!patient) {
-      // Same 404 whether the patient does not exist or belongs to another clinic.
+    if (!patient)
       throw new NotFoundError('Patient not found', { code: ERROR_CODES.PATIENT_NOT_FOUND });
-    }
     return patient;
   }
 
@@ -525,28 +535,23 @@ export class TreatmentService {
     return treatment;
   }
 
-  private async requireNoOccupyingTreatment(
+  private async requireNoActiveTreatment(
     clinicId: string,
     patientId: string,
     exceptTreatmentId?: string,
   ): Promise<void> {
-    const occupying = await this.treatments.findOccupyingForPatient(patientId, clinicId);
-    if (!occupying || occupying._id.toString() === exceptTreatmentId) {
-      return;
-    }
-    throw new ConflictError('This patient already has a treatment in progress', {
+    const active = await this.treatments.findActiveForPatient(patientId, clinicId);
+    if (!active || active._id.toString() === exceptTreatmentId) return;
+    throw this.activeConflict(active._id.toString());
+  }
+
+  private activeConflict(treatmentId?: string): ConflictError {
+    return new ConflictError('This patient already has an active treatment', {
       code: ERROR_CODES.TREATMENT_ALREADY_ACTIVE,
-      details: { treatmentId: occupying._id.toString(), status: occupying.status },
+      ...(treatmentId ? { details: { treatmentId } } : {}),
     });
   }
 
-  /**
-   * ONE CLINIC = ONE OWNER-DOCTOR.
-   *
-   * The treating doctor is the clinic's active owner. Reading it here rather
-   * than trusting a payload is what keeps the invariant true even if a future
-   * client starts sending a `doctorId`.
-   */
   private async resolveOwnerDoctorId(clinicId: string): Promise<string> {
     const owner = await this.memberships.findActiveOwner(clinicId);
     if (!owner) {
@@ -557,6 +562,16 @@ export class TreatmentService {
     return owner.userId.toString();
   }
 
+  private assertCustomType(type: TreatmentType, customTypeLabel: string | null): void {
+    const valid =
+      type === TREATMENT_TYPES.OTHER ? Boolean(customTypeLabel?.trim()) : !customTypeLabel;
+    if (!valid) {
+      throw new BusinessRuleError('Custom treatment type must only be used with OTHER', {
+        code: ERROR_CODES.TREATMENT_INVALID_TYPE,
+      });
+    }
+  }
+
   private assertDateRange(startDate: Date | null, expectedEndDate: Date | null): void {
     if (startDate && expectedEndDate && expectedEndDate.getTime() < startDate.getTime()) {
       throw new BusinessRuleError('Expected end date must be on or after the start date', {
@@ -565,8 +580,17 @@ export class TreatmentService {
     }
   }
 
-  private async recordAudit(
+  private assertNotFuture(occurredAt: Date): void {
+    if (occurredAt.getTime() > Date.now()) {
+      throw new BusinessRuleError('Milestones cannot be recorded in the future', {
+        code: ERROR_CODES.TREATMENT_INVALID_DATE_RANGE,
+      });
+    }
+  }
+
+  private async recordTreatmentAudit(
     clinicId: string,
+    patientId: string,
     treatmentId: string,
     action: AuditAction,
     metadata: Record<string, unknown>,
@@ -578,7 +602,28 @@ export class TreatmentService {
       action,
       resourceType: AUDIT_RESOURCE_TYPES.TREATMENT,
       resourceId: treatmentId,
-      metadata,
+      metadata: { patientId, treatmentId, ...metadata },
+      ip: context.ip,
+      userAgent: context.userAgent,
+    });
+  }
+
+  private async recordMilestoneAudit(
+    clinicId: string,
+    patientId: string,
+    treatmentId: string,
+    milestoneId: string,
+    action: AuditAction,
+    metadata: Record<string, unknown>,
+    context: MutationContext,
+  ): Promise<void> {
+    await this.audit.record({
+      clinicId,
+      actorUserId: context.actorUserId,
+      action,
+      resourceType: AUDIT_RESOURCE_TYPES.TREATMENT_MILESTONE,
+      resourceId: milestoneId,
+      metadata: { patientId, treatmentId, milestoneId, ...metadata },
       ip: context.ip,
       userAgent: context.userAgent,
     });
