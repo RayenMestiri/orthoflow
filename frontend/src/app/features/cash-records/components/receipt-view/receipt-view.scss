@@ -1,0 +1,232 @@
+:host {
+  display: block;
+}
+
+.receipt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: start center;
+  padding: 1.5rem 1rem 3rem;
+  background: rgba(13, 41, 37, 0.45);
+  overflow-y: auto;
+}
+
+.receipt-shell {
+  width: min(100%, 34rem);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: 0 24px 60px rgba(13, 41, 37, 0.28);
+  overflow: hidden;
+}
+
+.receipt-shell__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-mist);
+
+  h2 {
+    margin: 0;
+    color: var(--color-pine-900);
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+}
+
+.receipt-shell__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.receipt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  /* 44px — the WCAG 2.2 AA target size this project holds itself to. */
+  min-height: 2.75rem;
+  padding: 0.45rem 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-pine-700);
+  background: var(--color-white);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-pine-700);
+    background: var(--color-sage);
+  }
+
+  .material-icons {
+    font-size: 1rem;
+  }
+}
+
+/* The document */
+.receipt {
+  padding: 2rem 2.25rem 2.5rem;
+  color: var(--color-pine-900);
+}
+
+.receipt__void {
+  margin: 0 0 1.25rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  color: var(--color-danger);
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.receipt__head {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-line);
+  text-align: center;
+}
+
+.receipt__clinic {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.receipt__clinic-line {
+  margin: 0.2rem 0 0;
+  color: var(--color-slate);
+  font-size: 0.78rem;
+}
+
+.receipt__title {
+  padding: 1.25rem 0;
+  text-align: center;
+
+  h3 {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 750;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+}
+
+.receipt__number {
+  margin: 0.35rem 0 0;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.receipt__date {
+  margin: 0.2rem 0 0;
+  color: var(--color-slate);
+  font-size: 0.8rem;
+}
+
+.receipt__rows {
+  margin: 0;
+  padding: 1rem 0;
+  border-block: 1px solid var(--color-line);
+
+  > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 0.45rem 0;
+  }
+
+  dt {
+    flex: 0 0 auto;
+    color: var(--color-slate);
+    font-size: 0.72rem;
+    font-weight: 750;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 650;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  &--amount {
+    dd {
+      font-size: 1.15rem;
+      font-variant-numeric: tabular-nums;
+      font-weight: 750;
+    }
+  }
+}
+
+.receipt__foot {
+  padding-top: 1.25rem;
+
+  p {
+    margin: 0;
+    color: var(--color-slate);
+    font-size: 0.75rem;
+    line-height: 1.55;
+    text-align: center;
+  }
+}
+
+/**
+ * Print: the receipt and nothing else.
+ *
+ * The overlay is unpinned and stripped of chrome so the document flows onto the
+ * page. The app shell around it is hidden by the global print rules that this
+ * component relies on being in `styles.scss`; here we only guarantee our own
+ * subtree prints cleanly.
+ */
+@media print {
+  .receipt-overlay {
+    position: static;
+    display: block;
+    padding: 0;
+    background: none;
+    overflow: visible;
+  }
+
+  .receipt-shell {
+    width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .receipt-shell__bar {
+    display: none;
+  }
+
+  .receipt {
+    padding: 0;
+    color: #000;
+  }
+
+  .receipt__void {
+    border-color: #000;
+    color: #000;
+  }
+
+  .receipt__clinic-line,
+  .receipt__date,
+  .receipt__rows dt,
+  .receipt__foot p {
+    color: #333;
+  }
+}

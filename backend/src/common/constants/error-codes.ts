@@ -76,6 +76,30 @@ export const ERROR_CODES = {
   TREATMENT_MILESTONE_NOT_FOUND: 'TREATMENT_MILESTONE_NOT_FOUND',
   TREATMENT_PATIENT_ARCHIVED: 'TREATMENT_PATIENT_ARCHIVED',
 
+  // --- Cash records ------------------------------------------------------
+  CASH_RECORD_NOT_FOUND: 'CASH_RECORD_NOT_FOUND',
+  CASH_RECORD_ALREADY_CANCELLED: 'CASH_RECORD_ALREADY_CANCELLED',
+  /** A recorded payment is never edited in place; cancel it and record a correction. */
+  CASH_RECORD_CANNOT_BE_MODIFIED: 'CASH_RECORD_CANNOT_BE_MODIFIED',
+  INVALID_AMOUNT: 'INVALID_AMOUNT',
+  UNSUPPORTED_CURRENCY: 'UNSUPPORTED_CURRENCY',
+  GUARDIAN_REQUIRED_FOR_PAYER_TYPE: 'GUARDIAN_REQUIRED_FOR_PAYER_TYPE',
+  GUARDIAN_NOT_LINKED_TO_PATIENT: 'GUARDIAN_NOT_LINKED_TO_PATIENT',
+  TREATMENT_PATIENT_MISMATCH: 'TREATMENT_PATIENT_MISMATCH',
+  INVALID_RECEIVED_AT: 'INVALID_RECEIVED_AT',
+  /**
+   * Soft warning, not a failure: the clinic may still have physically received
+   * the money. An authorized caller repeats the request with `allowOverpayment`.
+   */
+  PAYMENT_EXCEEDS_REMAINING_AMOUNT: 'PAYMENT_EXCEEDS_REMAINING_AMOUNT',
+  OVERPAYMENT_APPROVAL_NOT_ALLOWED: 'OVERPAYMENT_APPROVAL_NOT_ALLOWED',
+  /** Same idempotency key replayed with a different payload — a real client bug. */
+  IDEMPOTENCY_CONFLICT: 'IDEMPOTENCY_CONFLICT',
+
+  // --- Receipts ----------------------------------------------------------
+  RECEIPT_NOT_FOUND: 'RECEIPT_NOT_FOUND',
+  RECEIPT_SEQUENCE_UNAVAILABLE: 'RECEIPT_SEQUENCE_UNAVAILABLE',
+
   // --- Infrastructure ----------------------------------------------------
   MEDIA_STORAGE_UNAVAILABLE: 'MEDIA_STORAGE_UNAVAILABLE',
 } as const;

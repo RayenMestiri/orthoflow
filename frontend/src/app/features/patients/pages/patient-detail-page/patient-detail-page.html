@@ -152,10 +152,19 @@
           <span>Treatment</span>
         </button>
       }
+      @if (canViewPayments) {
+        <button
+          type="button"
+          [class.active]="activeView() === 'payments'"
+          (click)="activeView.set('payments')"
+        >
+          <span class="material-icons" aria-hidden="true">receipt_long</span>
+          <span>Payments</span>
+        </button>
+      }
 
       <div class="future-tabs" aria-label="Future modules">
         <span title="Coming soon">Appointments</span>
-        <span title="Coming soon">Payments</span>
         <span title="Coming soon">Documents</span>
       </div>
     </nav>
@@ -363,6 +372,13 @@
     } @else if (activeView() === 'treatments') {
       <!-- Orthodontic treatment — owned by the treatments feature module -->
       <app-patient-treatments [patientId]="current.id" />
+    } @else if (activeView() === 'payments') {
+      <!-- Cash records — owned by the cash-records feature module -->
+      <app-patient-cash-records
+        [patientId]="current.id"
+        [patientName]="current.fullName"
+        [guardians]="cashRecordGuardians()"
+      />
     } @else {
       <!-- Activity Log Panel -->
       <section class="profile-panel activity-panel">

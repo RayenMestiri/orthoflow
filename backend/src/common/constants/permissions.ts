@@ -39,6 +39,17 @@ export const PERMISSIONS = {
   /** Starting, pausing, resuming and completing care is a clinical decision. */
   TREATMENT_MANAGE_LIFECYCLE: 'treatment:manage-lifecycle',
 
+  /**
+   * Cash records acknowledge money the clinic physically received. They are
+   * never deleted, so the permissions separate "record it" from "undo it".
+   */
+  CASH_RECORD_READ: 'cash-record:read',
+  CASH_RECORD_CREATE: 'cash-record:create',
+  CASH_RECORD_CANCEL: 'cash-record:cancel',
+  /** Accepting more money than the treatment still owes is an owner decision. */
+  CASH_RECORD_APPROVE_OVERPAYMENT: 'cash-record:approve-overpayment',
+  RECEIPT_READ: 'receipt:read',
+
   AUDIT_LOG_READ: 'audit-log:read',
 } as const;
 
@@ -67,6 +78,11 @@ const PRACTITIONER_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.TREATMENT_CREATE,
   PERMISSIONS.TREATMENT_UPDATE,
   PERMISSIONS.TREATMENT_MANAGE_LIFECYCLE,
+  // Practitioners take money at the chair, but undoing a record and waiving a
+  // balance stay with the owner — see SECRETARY_PERMISSIONS for the same split.
+  PERMISSIONS.CASH_RECORD_READ,
+  PERMISSIONS.CASH_RECORD_CREATE,
+  PERMISSIONS.RECEIPT_READ,
 ];
 
 const SECRETARY_PERMISSIONS: readonly Permission[] = [
@@ -86,6 +102,11 @@ const SECRETARY_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.APPOINTMENT_TYPE_READ,
   // The front desk sees the treatment plan but never decides clinical care.
   PERMISSIONS.TREATMENT_READ,
+  // The front desk is who physically takes the money, so it records payments
+  // and prints receipts — but cancelling a record is an owner decision.
+  PERMISSIONS.CASH_RECORD_READ,
+  PERMISSIONS.CASH_RECORD_CREATE,
+  PERMISSIONS.RECEIPT_READ,
 ];
 
 const ASSISTANT_PERMISSIONS: readonly Permission[] = [

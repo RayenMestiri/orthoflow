@@ -1,0 +1,274 @@
+<section class="finance" aria-labelledby="finance-title">
+  <header class="finance__header">
+    <div>
+      <span class="finance__eyebrow">Clinic records</span>
+      <h2 id="finance-title">Payments</h2>
+      <p>Money this clinic recorded as received. OrthoFlow does not process payments.</p>
+    </div>
+    @if (canRecord && store.isLoaded()) {
+      <button type="button" class="fin-btn fin-btn--primary" (click)="store.openRecordDrawer()">
+        <span class="material-icons" aria-hidden="true">add</span>
+        Record payment
+      </button>
+    }
+  </header>
+
+  @if (store.error(); as message) {
+    <div class="finance__alert" role="alert">
+      <span class="material-icons" aria-hidden="true">error_outline</span>
+      <span>{{ message }}</span>
+      <button type="button" (click)="store.dismissError()" aria-label="Dismiss error">
+        <span class="material-icons" aria-hidden="true">close</span>
+      </button>
+    </div>
+  }
+
+  @if (store.isLoading() && !store.isLoaded()) {
+    <div class="finance__loading" role="status">
+      <span class="finance__spinner" aria-hidden="true"></span>
+      Loading payment history…
+    </div>
+  } @else {
+    <!-- Financial overview: calm, precise, three numbers. -->
+    <section class="fin-summary" aria-labelledby="fin-summary-title">
+      <h3 id="fin-summary-title" class="fin-summary__title">Financial overview</h3>
+      <dl class="fin-summary__grid">
+        <div>
+          <dt>Agreed treatment price</dt>
+          <dd>{{ money(summary()?.agreedAmountMinor) }}</dd>
+        </div>
+        <div>
+          <dt>Recorded</dt>
+          <dd>{{ money(summary()?.recordedAmountMinor) }}</dd>
+        </div>
+        <div class="fin-summary__remaining">
+          <dt>Remaining</dt>
+          <dd>{{ money(summary()?.remainingAmountMinor) }}</dd>
+        </div>
+      </dl>
+      @if (!hasAgreedPrice()) {
+        <p class="fin-summary__note">
+          @if (treatmentId()) {
+            No agreed price is recorded on this treatment, so a remaining amount cannot be shown.
+          } @else {
+            Open a treatment to see its agreed price and remaining amount.
+          }
+        </p>
+      }
+    </section>
+
+    @if (!store.hasRecords()) {
+      <div class="fin-empty">
+        <p><strong>No payments recorded yet.</strong></p>
+        <p>
+          When the clinic receives money for this patient’s treatment, record it here to maintain a
+          clear history.
+        </p>
+        @if (canRecord) {
+          <button type="button" class="fin-btn fin-btn--primary" (click)="store.openRecordDrawer()">
+            Record payment
+          </button>
+        }
+      </div>
+    } @else {
+      <!-- History -->
+      <section class="fin-history" aria-labelledby="fin-history-title">
+        <header class="fin-history__head">
+          <h3 id="fin-history-title">Payment history</h3>
+          <div class="fin-filters" role="group" aria-label="Filter payments">
+            @for (option of filters; track option) {
+              <button
+                type="button"
+                class="fin-filter"
+                [class.fin-filter--active]="store.filter() === option"
+                [attr.aria-pressed]="store.filter() === option"
+                (click)="store.setFilter(option)"
+              >
+                {{ filterLabels[option] }}
+              </button>
+            }
+          </div>
+        </header>
+
+        @if (store.visibleRecords().length === 0) {
+          <p class="fin-history__empty">No payments match this filter.</p>
+        } @else {
+          <ol class="fin-ledger">
+            @for (record of store.visibleRecords(); track record.id) {
+              <li class="fin-entry" [attr.data-status]="record.status">
+                <div class="fin-entry__main">
+                  <time class="fin-entry__when" [attr.datetime]="record.receivedAt">
+                    {{ record.receivedAt | date: 'dd MMM y' }}
+                    <span>{{ record.receivedAt | date: 'HH:mm' }}</span>
+                  </time>
+
+                  <p class="fin-entry__amount">
+                    <!-- The sign carries meaning, so status is also stated in words. -->
+                    {{ record.status === 'CANCELLED' ? '' : '+' }}{{ record.amountFormatted }}
+                    {{ record.currency }}
+                  </p>
+
+                  <div class="fin-entry__facts">
+                    <span class="fin-tag" [attr.data-status]="record.status">
+                      {{ statusLabels[record.status] }}
+                    </span>
+                    <span>{{ methodLabels[record.paymentMethod] }}</span>
+                    @if (record.receiptNumber) {
+                      <span class="fin-entry__receipt">{{ record.receiptNumber }}</span>
+                    }
+                  </div>
+
+                  <div class="fin-entry__actions">
+                    <button
+                      type="button"
+                      class="fin-btn fin-btn--ghost"
+                      [attr.aria-expanded]="expandedId() === record.id"
+                      (click)="toggleDetails(record)"
+                    >
+                      {{ expandedId() === record.id ? 'Hide details' : 'Details' }}
+                    </button>
+                    @if (record.receiptId) {
+                      <button type="button" class="fin-btn" (click)="openReceipt(record)">
+                        Receipt
+                      </button>
+                    }
+                    @if (canCancel && record.status === 'RECORDED') {
+                      <button
+                        type="button"
+                        class="fin-btn fin-btn--danger"
+                        (click)="openCancel(record)"
+                      >
+                        Cancel
+                      </button>
+                    }
+                  </div>
+                </div>
+
+                @if (expandedId() === record.id) {
+                  <dl class="fin-entry__details">
+                    <div>
+                      <dt>Received by</dt>
+                      <dd>{{ record.receivedByName }}</dd>
+                    </div>
+                    <div>
+                      <dt>Paid by</dt>
+                      <dd>{{ record.payerName ?? payerLabels[record.payerType] }}</dd>
+                    </div>
+                    @if (record.note) {
+                      <div class="fin-entry__details--wide">
+                        <dt>Note</dt>
+                        <dd>{{ record.note }}</dd>
+                      </div>
+                    }
+                    @if (record.overpaymentOverride) {
+                      <div class="fin-entry__details--wide">
+                        <dt>Overpayment</dt>
+                        <dd>Accepted above the remaining treatment amount, with approval.</dd>
+                      </div>
+                    }
+                    @if (record.status === 'CANCELLED') {
+                      <div class="fin-entry__details--wide">
+                        <dt>Cancelled</dt>
+                        <dd>
+                          {{ record.cancellationReason }}
+                          @if (record.cancelledByName) {
+                            — by {{ record.cancelledByName }}
+                          }
+                          @if (record.cancelledAt) {
+                            on {{ record.cancelledAt | date: 'dd MMM y' }}
+                          }
+                        </dd>
+                      </div>
+                    }
+                    @if (record.correctionOfRecordId) {
+                      <div class="fin-entry__details--wide">
+                        <dt>Correction</dt>
+                        <dd>This payment replaces an earlier cancelled record.</dd>
+                      </div>
+                    }
+                    @if (record.correctedByRecordId) {
+                      <div class="fin-entry__details--wide">
+                        <dt>Replaced by</dt>
+                        <dd>A later payment was recorded to correct this one.</dd>
+                      </div>
+                    }
+                  </dl>
+                }
+              </li>
+            }
+          </ol>
+        }
+      </section>
+    }
+  }
+
+  <!-- Record payment -->
+  @if (store.drawerMode() === 'record') {
+    <app-record-payment-drawer
+      [patientName]="patientName()"
+      [treatmentLabel]="treatmentLabel()"
+      [treatmentId]="treatmentId()"
+      [guardians]="guardians()"
+      [summary]="summary()"
+      (closed)="store.closeDrawer()"
+    />
+  }
+
+  <!-- Cancel a record -->
+  @if (store.drawerMode() === 'cancel' && store.selectedRecord(); as record) {
+    <div class="fin-modal" role="dialog" aria-modal="true" aria-labelledby="fin-cancel-title">
+      <form class="fin-modal__panel" (ngSubmit)="confirmCancel()" novalidate>
+        <h3 id="fin-cancel-title">Cancel payment record</h3>
+
+        <dl class="fin-modal__facts">
+          <div>
+            <dt>Amount</dt>
+            <dd>{{ record.amountFormatted }} {{ record.currency }}</dd>
+          </div>
+          @if (record.receiptNumber) {
+            <div>
+              <dt>Receipt</dt>
+              <dd>{{ record.receiptNumber }}</dd>
+            </div>
+          }
+        </dl>
+
+        <div class="fin-field">
+          <label for="fin-cancel-reason">Reason</label>
+          <input
+            id="fin-cancel-reason"
+            [formControl]="cancelReason"
+            placeholder="Incorrect amount"
+            [attr.aria-describedby]="'fin-cancel-help'"
+          />
+          @if (cancelReason.touched && cancelReason.invalid) {
+            <p class="fin-field__error" aria-live="polite">
+              Give a short reason — it stays in the financial record.
+            </p>
+          }
+        </div>
+
+        <p id="fin-cancel-help" class="fin-modal__explain">
+          This payment will remain visible in financial history and will no longer count toward
+          recorded totals. Its receipt is marked cancelled and is not deleted.
+        </p>
+
+        <footer class="fin-modal__actions">
+          <button type="button" class="fin-btn" (click)="store.closeDrawer()">Keep payment</button>
+          <button
+            type="submit"
+            class="fin-btn fin-btn--danger-solid"
+            [disabled]="store.isSubmitting()"
+          >
+            {{ store.isSubmitting() ? 'Cancelling…' : 'Cancel payment' }}
+          </button>
+        </footer>
+      </form>
+    </div>
+  }
+
+  <!-- Printable receipt -->
+  @if (store.receipt(); as document) {
+    <app-receipt-view [receipt]="document" (closed)="store.closeReceipt()" />
+  }
+</section>

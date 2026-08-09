@@ -49,3 +49,28 @@ input:focus-visible {
   color: var(--color-white);
   background: var(--color-pine-700);
 }
+
+/**
+ * Printing a receipt.
+ *
+ * Cash Records renders its printable receipt in an overlay. Rather than give
+ * the receipt its own route, everything except that subtree is hidden while the
+ * overlay is on screen, so `window.print()` puts the document — and only the
+ * document — on the paper. Nothing outside a printed page is affected.
+ */
+@media print {
+  body:has(.receipt-overlay) {
+    visibility: hidden;
+  }
+
+  body:has(.receipt-overlay) .receipt-overlay,
+  body:has(.receipt-overlay) .receipt-overlay * {
+    visibility: visible;
+  }
+
+  body:has(.receipt-overlay) .receipt-overlay {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+  }
+}

@@ -1,0 +1,212 @@
+<div class="drawer" role="dialog" aria-modal="false" aria-labelledby="record-payment-title">
+  <header class="drawer__header">
+    <div>
+      <span class="drawer__eyebrow">Clinic record</span>
+      <h2 id="record-payment-title">Record payment</h2>
+    </div>
+    <button class="drawer__close" type="button" aria-label="Close panel" (click)="close()">
+      <span class="material-icons" aria-hidden="true">close</span>
+    </button>
+  </header>
+
+  <div class="drawer__body">
+    @if (store.lastRecorded(); as recorded) {
+      <!-- Success state: restrained, factual, no celebration. -->
+      <section class="pay-success" aria-labelledby="pay-success-title">
+        <span class="material-icons" aria-hidden="true">check_circle</span>
+        <h3 id="pay-success-title">Payment recorded</h3>
+        <p class="pay-success__amount">{{ recorded.amountFormatted }} {{ recorded.currency }}</p>
+        @if (recorded.receiptNumber) {
+          <dl class="pay-success__receipt">
+            <dt>Receipt</dt>
+            <dd>{{ recorded.receiptNumber }}</dd>
+          </dl>
+        }
+        <div class="pay-success__actions">
+          <button type="button" class="pay-btn" (click)="viewReceipt()">View receipt</button>
+          <button type="button" class="pay-btn pay-btn--primary" (click)="done()">Done</button>
+        </div>
+      </section>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <!-- Context: who and what this money is for -->
+        <dl class="pay-context">
+          <div>
+            <dt>Patient</dt>
+            <dd>{{ patientName() || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Treatment</dt>
+            <dd>{{ treatmentLabel() ?? 'No treatment selected' }}</dd>
+          </div>
+        </dl>
+
+        @if (summary(); as position) {
+          <section class="pay-position" aria-label="Financial summary">
+            <div>
+              <dt>Agreed</dt>
+              <dd>{{ money(position.agreedAmountMinor) }}</dd>
+            </div>
+            <div>
+              <dt>Recorded</dt>
+              <dd>{{ money(position.recordedAmountMinor) }}</dd>
+            </div>
+            <div>
+              <dt>Remaining</dt>
+              <dd>{{ money(position.remainingAmountMinor) }}</dd>
+            </div>
+          </section>
+        }
+
+        @if (store.overpaymentWarning(); as warning) {
+          <section class="pay-warning" role="alert" aria-labelledby="pay-warning-title">
+            <span class="material-icons" aria-hidden="true">info</span>
+            <div>
+              <h3 id="pay-warning-title">This exceeds the remaining amount</h3>
+              <p>
+                The treatment has
+                <strong>{{ money(warning.remainingAmountMinor) }}</strong> remaining. This payment
+                exceeds it by <strong>{{ money(warning.excessAmountMinor) }}</strong
+                >.
+              </p>
+              @if (warning.overrideAllowed) {
+                <div class="pay-warning__actions">
+                  <button type="button" class="pay-btn" (click)="store.dismissOverpaymentWarning()">
+                    Change amount
+                  </button>
+                  <button
+                    type="button"
+                    class="pay-btn pay-btn--primary"
+                    [disabled]="store.isSubmitting()"
+                    (click)="confirmOverpayment()"
+                  >
+                    Record anyway
+                  </button>
+                </div>
+              } @else {
+                <p class="pay-warning__note">
+                  Ask the clinic owner to confirm this payment, or change the amount.
+                </p>
+              }
+            </div>
+          </section>
+        }
+
+        @if (store.error(); as message) {
+          <p class="pay-error" role="alert">{{ message }}</p>
+        }
+
+        <div class="pay-field">
+          <label for="pay-amount">Amount received</label>
+          <div class="pay-amount">
+            <input
+              id="pay-amount"
+              formControlName="amount"
+              inputmode="decimal"
+              autocomplete="off"
+              placeholder="200.000"
+              [attr.aria-invalid]="amountError() ? 'true' : null"
+              [attr.aria-describedby]="amountError() ? 'pay-amount-error' : 'pay-amount-hint'"
+            />
+            <span class="pay-amount__currency" aria-hidden="true">{{ currency() }}</span>
+          </div>
+          <p id="pay-amount-hint" class="pay-field__hint">
+            Use a decimal point for millimes — 150.750 is one hundred fifty dinars, seven hundred
+            fifty millimes.
+          </p>
+          @if (amountError(); as message) {
+            <p id="pay-amount-error" class="pay-field__error" aria-live="polite">{{ message }}</p>
+          }
+        </div>
+
+        <div class="pay-field">
+          <label for="pay-method">Payment method</label>
+          <select id="pay-method" formControlName="paymentMethod">
+            @for (method of methods; track method) {
+              <option [value]="method">{{ methodLabels[method] }}</option>
+            }
+          </select>
+        </div>
+
+        <fieldset class="pay-field pay-field--group">
+          <legend>Paid by</legend>
+          <div class="pay-radios">
+            <label>
+              <input type="radio" formControlName="payerType" value="SELF" />
+              <span>{{ payerLabels['SELF'] }}</span>
+            </label>
+            <label>
+              <input
+                type="radio"
+                formControlName="payerType"
+                value="GUARDIAN"
+                [disabled]="guardians().length === 0"
+              />
+              <span>{{ payerLabels['GUARDIAN'] }}</span>
+            </label>
+            <label>
+              <input type="radio" formControlName="payerType" value="OTHER" />
+              <span>{{ payerLabels['OTHER'] }}</span>
+            </label>
+          </div>
+        </fieldset>
+
+        @if (guardianRequired()) {
+          <div class="pay-field">
+            <label for="pay-guardian">Which guardian</label>
+            <select id="pay-guardian" formControlName="guardianId">
+              <option [ngValue]="null">Select a guardian…</option>
+              @for (guardian of guardians(); track guardian.id) {
+                <option [ngValue]="guardian.id">{{ guardian.fullName }}</option>
+              }
+            </select>
+            @if (form.controls.payerType.touched && !form.controls.guardianId.value) {
+              <p class="pay-field__error" aria-live="polite">
+                Select which guardian handed the money over.
+              </p>
+            }
+          </div>
+        }
+
+        @if (form.controls.payerType.value === 'OTHER') {
+          <div class="pay-field">
+            <label for="pay-payer-label">Who paid</label>
+            <input
+              id="pay-payer-label"
+              formControlName="payerLabel"
+              placeholder="Relative, sponsor…"
+            />
+          </div>
+        }
+
+        <div class="pay-field">
+          <span class="pay-field__label">Received at</span>
+          <p class="pay-received-now">
+            <span class="material-icons" aria-hidden="true">schedule</span>
+            Now — recorded against your account
+          </p>
+        </div>
+
+        <div class="pay-field">
+          <label for="pay-note">Note</label>
+          <textarea id="pay-note" rows="2" formControlName="note" placeholder="Optional"></textarea>
+        </div>
+
+        <p class="pay-disclaimer">
+          This records money the clinic has already received. OrthoFlow does not process payments.
+        </p>
+
+        <footer class="drawer__actions">
+          <button type="button" class="pay-btn" (click)="close()">Cancel</button>
+          <button
+            type="submit"
+            class="pay-btn pay-btn--primary"
+            [disabled]="store.isSubmitting() || store.overpaymentWarning() !== null"
+          >
+            {{ store.isSubmitting() ? 'Recording…' : 'Record payment' }}
+          </button>
+        </footer>
+      </form>
+    }
+  </div>
+</div>

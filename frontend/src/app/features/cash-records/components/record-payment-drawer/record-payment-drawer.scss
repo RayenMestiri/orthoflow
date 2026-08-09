@@ -1,0 +1,457 @@
+:host {
+  display: block;
+}
+
+/* Right-side drawer, matching the established pattern. */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 27rem);
+  border-left: 1px solid var(--color-line);
+  background: var(--color-white);
+  box-shadow: -18px 0 48px rgba(13, 41, 37, 0.16);
+}
+
+.drawer__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.35rem 1rem;
+  border-bottom: 1px solid var(--color-line);
+
+  h2 {
+    margin: 0.15rem 0 0;
+    color: var(--color-pine-900);
+    font-size: 1.2rem;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+  }
+}
+
+.drawer__eyebrow {
+  color: var(--color-copper-600);
+  font-size: 0.65rem;
+  font-weight: 750;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.drawer__close {
+  display: grid;
+  /* 44px — the WCAG 2.2 AA target size this project holds itself to. */
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-slate);
+  background: transparent;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-line);
+    background: var(--color-mist);
+  }
+}
+
+.drawer__body {
+  flex: 1;
+  padding: 1.25rem 1.35rem 1.5rem;
+  overflow-y: auto;
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+}
+
+.drawer__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-line);
+}
+
+/* Context and derived position */
+.pay-context,
+.pay-position {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+
+  dt {
+    color: var(--color-slate);
+    font-size: 0.65rem;
+    font-weight: 750;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 0.15rem 0 0;
+    color: var(--color-pine-900);
+    font-size: 0.9rem;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+  }
+}
+
+.pay-position {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0.85rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-mist);
+
+  dd {
+    /* Tabular figures so the three totals line up as a column of money. */
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* The overpayment warning — informative, not alarming. */
+.pay-warning {
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--color-warning) 35%, var(--color-line));
+  border-left: 3px solid var(--color-warning);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-warning) 7%, white);
+
+  .material-icons {
+    flex: 0 0 auto;
+    color: var(--color-warning);
+    font-size: 1.15rem;
+  }
+
+  h3 {
+    margin: 0 0 0.25rem;
+    color: var(--color-pine-900);
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    color: var(--color-slate);
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+}
+
+.pay-warning__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.pay-warning__note {
+  margin-top: 0.5rem !important;
+  font-style: italic;
+}
+
+.pay-error {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-left: 3px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 6%, white);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+/* Fields */
+.pay-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+
+  label,
+  legend,
+  &__label {
+    padding: 0;
+    color: var(--color-pine-900);
+    font-size: 0.8rem;
+    font-weight: 650;
+  }
+
+  input,
+  select,
+  textarea {
+    min-height: 2.75rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm);
+    color: var(--color-pine-900);
+    background: var(--color-white);
+    font: inherit;
+    font-size: 0.88rem;
+    transition:
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast);
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--color-pine-700);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-pine-700) 16%, transparent);
+    }
+  }
+
+  textarea {
+    min-height: 3.75rem;
+    resize: vertical;
+  }
+
+  &--group {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+}
+
+.pay-field__hint {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.73rem;
+  line-height: 1.45;
+}
+
+.pay-field__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+/* Amount, with the unit permanently visible so 200 is never read as millimes. */
+.pay-amount {
+  display: flex;
+  align-items: stretch;
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+}
+
+.pay-amount__currency {
+  display: grid;
+  padding-inline: 0.85rem;
+  place-items: center;
+  border: 1px solid var(--color-line);
+  border-left: 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--color-slate);
+  background: var(--color-mist);
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.pay-radios {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+
+  label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.75rem;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+
+    &:has(input:checked) {
+      border-color: var(--color-pine-700);
+      background: var(--color-sage);
+    }
+
+    &:has(input:disabled) {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &:has(input:focus-visible) {
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-pine-700) 16%, transparent);
+    }
+  }
+
+  input {
+    width: 1rem;
+    min-height: 0;
+    height: 1rem;
+    padding: 0;
+    accent-color: var(--color-pine-700);
+  }
+
+  span {
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+}
+
+.pay-received-now {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-slate);
+  font-size: 0.82rem;
+
+  .material-icons {
+    font-size: 1rem;
+  }
+}
+
+.pay-disclaimer {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.73rem;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* Buttons */
+.pay-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.75rem;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-pine-700);
+  background: var(--color-white);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-pine-700);
+    background: var(--color-sage);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &--primary {
+    border-color: transparent;
+    color: var(--color-white);
+    background-color: var(--color-pine-700);
+    background-image: linear-gradient(135deg, var(--color-pine-700) 0%, var(--color-pine-900) 100%);
+
+    &:hover:not(:disabled) {
+      background-image: linear-gradient(135deg, var(--color-pine-800) 0%, #081d19 100%);
+    }
+  }
+}
+
+/* Success state */
+.pay-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 2rem 1rem;
+  text-align: center;
+
+  .material-icons {
+    color: var(--color-success);
+    font-size: 2.2rem;
+  }
+
+  h3 {
+    margin: 0.3rem 0 0;
+    color: var(--color-pine-900);
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+}
+
+.pay-success__amount {
+  margin: 0;
+  color: var(--color-pine-900);
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.pay-success__receipt {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0.4rem 0 0;
+
+  dt {
+    color: var(--color-slate);
+    font-size: 0.7rem;
+    font-weight: 750;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+}
+
+.pay-success__actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 30rem) {
+  .drawer {
+    width: 100%;
+  }
+
+  .pay-position {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pay-btn,
+  .pay-field input,
+  .pay-field select,
+  .pay-field textarea {
+    transition: none;
+  }
+}

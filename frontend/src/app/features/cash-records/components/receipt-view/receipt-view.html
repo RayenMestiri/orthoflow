@@ -1,0 +1,80 @@
+@let doc = receipt();
+
+<div class="receipt-overlay" role="dialog" aria-modal="true" aria-labelledby="receipt-title">
+  <div class="receipt-shell">
+    <header class="receipt-shell__bar">
+      <h2 id="receipt-title">Receipt {{ doc.receiptNumber }}</h2>
+      <div class="receipt-shell__actions">
+        <button type="button" class="receipt-btn" (click)="print()">
+          <span class="material-icons" aria-hidden="true">print</span>
+          Print
+        </button>
+        <button type="button" class="receipt-btn" (click)="close()">Close</button>
+      </div>
+    </header>
+
+    <!-- The printed document itself. Everything outside it is hidden on print. -->
+    <article class="receipt" id="receipt-print-area">
+      @if (doc.status === 'CANCELLED') {
+        <p class="receipt__void" role="status">Cancelled — this payment was voided</p>
+      }
+
+      <header class="receipt__head">
+        <p class="receipt__clinic">{{ doc.clinicName }}</p>
+        @if (doc.clinicAddress) {
+          <p class="receipt__clinic-line">{{ doc.clinicAddress }}</p>
+        }
+        @if (doc.clinicPhone) {
+          <p class="receipt__clinic-line">{{ doc.clinicPhone }}</p>
+        }
+      </header>
+
+      <div class="receipt__title">
+        <h3>Receipt</h3>
+        <p class="receipt__number">{{ doc.receiptNumber }}</p>
+        <p class="receipt__date">{{ doc.issuedAt | date: 'dd MMMM y · HH:mm' }}</p>
+      </div>
+
+      <dl class="receipt__rows">
+        <div>
+          <dt>Patient</dt>
+          <dd>{{ doc.patientName }}</dd>
+        </div>
+        @if (doc.treatmentLabel) {
+          <div>
+            <dt>Treatment</dt>
+            <dd>{{ doc.treatmentLabel }}</dd>
+          </div>
+        }
+        <div class="receipt__rows--amount">
+          <dt>Amount received</dt>
+          <dd>{{ doc.amountFormatted }} {{ doc.currency }}</dd>
+        </div>
+        <div>
+          <dt>Method</dt>
+          <dd>{{ methodLabels[doc.paymentMethod] }}</dd>
+        </div>
+        @if (doc.payerName) {
+          <div>
+            <dt>Payer</dt>
+            <dd>{{ doc.payerName }}</dd>
+          </div>
+        }
+        <div>
+          <dt>Received by</dt>
+          <dd>{{ doc.issuedByName }}</dd>
+        </div>
+        @if (doc.cancellationReason) {
+          <div>
+            <dt>Cancellation reason</dt>
+            <dd>{{ doc.cancellationReason }}</dd>
+          </div>
+        }
+      </dl>
+
+      <footer class="receipt__foot">
+        <p>This receipt confirms that the clinic recorded the above amount as received.</p>
+      </footer>
+    </article>
+  </div>
+</div>

@@ -13,6 +13,10 @@ export const PERMISSIONS = {
   /** Plan, edit and drive the lifecycle of a course of care — a clinical decision. */
   TREATMENTS_MANAGE: 'treatments.manage',
   CASH_RECORDS_VIEW: 'cash-records.view',
+  /** Record money the clinic physically received. Not an online payment. */
+  CASH_RECORDS_RECORD: 'cash-records.record',
+  /** Void an incorrect record. Conservative: owner only. */
+  CASH_RECORDS_CANCEL: 'cash-records.cancel',
   STAFF_MANAGE: 'staff.manage',
   CLINIC_SETTINGS_MANAGE: 'clinic-settings.manage',
   PLATFORM_ADMIN: 'platform.admin',
@@ -30,6 +34,8 @@ const clinicalPermissions: Permission[] = [
   PERMISSIONS.TREATMENTS_VIEW,
   PERMISSIONS.TREATMENTS_MANAGE,
   PERMISSIONS.CASH_RECORDS_VIEW,
+  // Practitioners take money at the chair; cancelling stays with the owner.
+  PERMISSIONS.CASH_RECORDS_RECORD,
 ];
 
 export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
@@ -37,6 +43,7 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
     ...clinicalPermissions,
     PERMISSIONS.STAFF_MANAGE,
     PERMISSIONS.CLINIC_SETTINGS_MANAGE,
+    PERMISSIONS.CASH_RECORDS_CANCEL,
   ],
   [CLINIC_ROLES.ORTHODONTIST]: clinicalPermissions,
   [CLINIC_ROLES.DENTIST]: clinicalPermissions,
@@ -47,7 +54,9 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
     PERMISSIONS.PATIENTS_UPDATE,
     PERMISSIONS.APPOINTMENTS_VIEW,
     PERMISSIONS.TREATMENTS_VIEW,
+    // The front desk is who physically takes the money.
     PERMISSIONS.CASH_RECORDS_VIEW,
+    PERMISSIONS.CASH_RECORDS_RECORD,
   ],
   [CLINIC_ROLES.ASSISTANT]: [
     PERMISSIONS.DASHBOARD_VIEW,

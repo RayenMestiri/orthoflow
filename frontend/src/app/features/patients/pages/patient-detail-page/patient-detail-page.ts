@@ -6,6 +6,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { getApiProblem } from '../../../../core/http/api-error';
+import { PatientCashRecords } from '../../../cash-records/components/patient-cash-records/patient-cash-records';
 import { PatientTreatments } from '../../../treatments/components/patient-treatments/patient-treatments';
 import { PatientsApiService } from '../../data-access/patients-api.service';
 import type {
@@ -19,7 +20,14 @@ import type {
 
 @Component({
   selector: 'app-patient-detail-page',
-  imports: [A11yModule, DatePipe, PatientTreatments, ReactiveFormsModule, RouterLink],
+  imports: [
+    A11yModule,
+    DatePipe,
+    PatientCashRecords,
+    PatientTreatments,
+    ReactiveFormsModule,
+    RouterLink,
+  ],
   templateUrl: './patient-detail-page.html',
   styleUrl: './patient-detail-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,7 +49,7 @@ export class PatientDetailPage {
         ? 'Patient information saved.'
         : null,
   );
-  readonly activeView = signal<'overview' | 'activity' | 'treatments'>('overview');
+  readonly activeView = signal<'overview' | 'activity' | 'treatments' | 'payments'>('overview');
   readonly guardianPanelOpen = signal(false);
   readonly editingGuardian = signal<Guardian | null>(null);
   readonly guardianSaving = signal(false);
@@ -53,6 +61,12 @@ export class PatientDetailPage {
   /** The front desk sees the patient file but not the clinical treatment area. */
   readonly canViewTreatments = this.permissions.can(PERMISSIONS.TREATMENTS_VIEW);
   readonly canManageTreatments = this.permissions.can(PERMISSIONS.TREATMENTS_MANAGE);
+  /** Assistants follow the chair, not the till. */
+  readonly canViewPayments = this.permissions.can(PERMISSIONS.CASH_RECORDS_VIEW);
+  /** Guardians the payment drawer may offer as the payer. */
+  readonly cashRecordGuardians = computed(() =>
+    this.guardians().map((guardian) => ({ id: guardian.id, fullName: guardian.fullName })),
+  );
   readonly primaryGuardian = computed(
     () => this.guardians().find((guardian) => guardian.isPrimary) ?? null,
   );
