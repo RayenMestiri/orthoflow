@@ -12,6 +12,14 @@ export const PERMISSIONS = {
   PATIENT_MEDIA_MANAGE_ADMIN: 'patient-media.manage-administrative',
   PATIENT_MEDIA_MANAGE_CLINICAL: 'patient-media.manage-clinical',
   APPOINTMENTS_VIEW: 'appointments.view',
+  /**
+   * Putting a patient in the chair and declaring the visit over are clinical
+   * acts. The front desk still checks people in and moves the queue; it just
+   * does not open or close the treatment itself. Mirrors the server rule —
+   * hiding these buttons is courtesy, the API is what enforces it.
+   */
+  APPOINTMENTS_START_VISIT: 'appointments.start-visit',
+  APPOINTMENTS_COMPLETE_VISIT: 'appointments.complete-visit',
   TREATMENTS_VIEW: 'treatments.view',
   /** Plan, edit and drive the lifecycle of a course of care — a clinical decision. */
   TREATMENTS_MANAGE: 'treatments.manage',
@@ -37,6 +45,8 @@ const clinicalPermissions: Permission[] = [
   PERMISSIONS.PATIENT_MEDIA_MANAGE_ADMIN,
   PERMISSIONS.PATIENT_MEDIA_MANAGE_CLINICAL,
   PERMISSIONS.APPOINTMENTS_VIEW,
+  PERMISSIONS.APPOINTMENTS_START_VISIT,
+  PERMISSIONS.APPOINTMENTS_COMPLETE_VISIT,
   PERMISSIONS.TREATMENTS_VIEW,
   PERMISSIONS.TREATMENTS_MANAGE,
   PERMISSIONS.CASH_RECORDS_VIEW,

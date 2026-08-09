@@ -32,6 +32,13 @@ export const PERMISSIONS = {
   APPOINTMENT_CREATE: 'appointment:create',
   APPOINTMENT_UPDATE: 'appointment:update',
   APPOINTMENT_CANCEL: 'appointment:cancel',
+  /**
+   * Putting a patient in the chair and declaring the visit over are clinical
+   * acts, not desk work. Separate from `appointment:update` because the front
+   * desk must still be able to check people in and move the queue.
+   */
+  APPOINTMENT_START_VISIT: 'appointment:start-visit',
+  APPOINTMENT_COMPLETE_VISIT: 'appointment:complete-visit',
 
   APPOINTMENT_TYPE_READ: 'appointment-type:read',
   APPOINTMENT_TYPE_MANAGE: 'appointment-type:manage',
@@ -76,6 +83,9 @@ const PRACTITIONER_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.APPOINTMENT_CREATE,
   PERMISSIONS.APPOINTMENT_UPDATE,
   PERMISSIONS.APPOINTMENT_CANCEL,
+  // Practitioners run the chair, so they own the clinical half of the flow.
+  PERMISSIONS.APPOINTMENT_START_VISIT,
+  PERMISSIONS.APPOINTMENT_COMPLETE_VISIT,
   PERMISSIONS.APPOINTMENT_TYPE_READ,
   PERMISSIONS.APPOINTMENT_TYPE_MANAGE,
   // Treatment is clinical work: practitioners own the whole lifecycle.

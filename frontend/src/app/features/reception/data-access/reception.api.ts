@@ -3,7 +3,11 @@ import { inject, Injectable } from '@angular/core';
 import { map, type Observable } from 'rxjs';
 import type { ApiEnvelope } from '../../../core/auth/auth.models';
 import { API_BASE_URL } from '../../../core/config/api.config';
-import type { AppointmentStatus, ReceptionBoard } from '../models/reception.models';
+import type {
+  AppointmentActivity,
+  AppointmentStatus,
+  ReceptionBoard,
+} from '../models/reception.models';
 
 /**
  * Reception API.
@@ -41,9 +45,11 @@ export class ReceptionApiService {
   }
 
   /** Reuses the appointment activity timeline for the detail drawer. */
-  activity(appointmentId: string): Observable<unknown[]> {
+  activity(appointmentId: string): Observable<AppointmentActivity[]> {
     return this.http
-      .get<ApiEnvelope<unknown[]>>(`${this.baseUrl}/appointments/${appointmentId}/activity`)
+      .get<ApiEnvelope<AppointmentActivity[]>>(
+        `${this.baseUrl}/appointments/${appointmentId}/activity`,
+      )
       .pipe(map((response) => response.data));
   }
 }

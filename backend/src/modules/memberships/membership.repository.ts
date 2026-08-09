@@ -39,6 +39,27 @@ export class MembershipRepository {
       .exec();
   }
 
+  /**
+   * Roles for several people in one clinic, in one query.
+   *
+   * Used when a timeline needs to say "Sarah · Secretary" for each actor it
+   * lists — one lookup per row would be a query per audit entry.
+   */
+  async findManyByUsersInClinic(
+    userIds: string[],
+    clinicId: string,
+  ): Promise<MembershipRecord[]> {
+    if (userIds.length === 0) {
+      return [];
+    }
+    return ClinicMembershipModel.find({
+      clinicId: toObjectId(clinicId, 'clinicId'),
+      userId: { $in: userIds.map((userId) => toObjectId(userId, 'userId')) },
+    })
+      .lean<MembershipRecord[]>()
+      .exec();
+  }
+
   async findByIdInClinic(membershipId: string, clinicId: string): Promise<MembershipRecord | null> {
     return ClinicMembershipModel.findOne({
       _id: toObjectId(membershipId, 'membershipId'),

@@ -226,6 +226,73 @@ describe('ReceptionStore', () => {
     });
   });
 
+  describe('activity timeline', () => {
+    const entry = {
+      id: 'audit-1',
+      action: 'appointment.status_changed',
+      actorName: 'Sarah Trabelsi',
+      actorRole: 'SECRETARY' as const,
+      metadata: { from: 'SCHEDULED', to: 'ARRIVED' },
+      createdAt: '2026-08-09T09:03:00.000Z',
+    };
+
+    it('loads the timeline for one appointment', async () => {
+      api.activity.mockReturnValueOnce(of([entry]));
+
+      await store.loadActivity('appt-1');
+
+      expect(api.activity).toHaveBeenCalledWith('appt-1');
+      expect(store.activity()).toEqual([entry]);
+      expect(store.activityFor()).toBe('appt-1');
+      expect(store.isActivityLoading()).toBe(false);
+    });
+
+    it('reports a timeline failure without touching the board', async () => {
+      await store.load();
+      api.activity.mockReturnValueOnce(
+        throwError(() => apiError('UNEXPECTED_ERROR', 'Boom', 500)),
+      );
+
+      await store.loadActivity('appt-1');
+
+      expect(store.activityError()).toBe("Activity history couldn't be loaded.");
+      expect(store.activity()).toEqual([]);
+      // The queue the desk is working from must stay untouched.
+      expect(store.error()).toBeNull();
+      expect(store.rows()).toHaveLength(1);
+    });
+
+    it('never leaves one appointment’s history under another’s name', async () => {
+      let settleFirst: ((value: unknown) => void) | undefined;
+      api.activity.mockReturnValueOnce(
+        new Promise((resolve) => {
+          settleFirst = resolve;
+        }) as never,
+      );
+      const first = store.loadActivity('appt-1');
+
+      api.activity.mockReturnValueOnce(of([entry]));
+      await store.loadActivity('appt-2');
+
+      settleFirst?.(of([{ ...entry, id: 'stale' }]));
+      await first;
+
+      expect(store.activityFor()).toBe('appt-2');
+      expect(store.activity().map((item) => item.id)).toEqual(['audit-1']);
+    });
+
+    it('drops the timeline when the drawer closes', async () => {
+      api.activity.mockReturnValueOnce(of([entry]));
+      await store.loadActivity('appt-1');
+
+      store.clearActivity();
+
+      expect(store.activity()).toEqual([]);
+      expect(store.activityFor()).toBeNull();
+      expect(store.activityError()).toBeNull();
+    });
+  });
+
   describe('timers', () => {
     it('polls the board without being asked again', async () => {
       await store.load();

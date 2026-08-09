@@ -96,6 +96,18 @@ function truncateToMinute(date: Date): Date {
  *  2. MVP — ONE CLINIC = ONE OWNER-DOCTOR: `doctorId` is resolved from the
  *     clinic's ownership membership on the server. No client value is trusted.
  */
+/**
+ * Who is acting, and which clinical moves they are allowed to make.
+ *
+ * Resolved by the controller from the verified tenant context, never from a
+ * payload — the same pattern the cash-record service uses for overpayment
+ * approval.
+ */
+export interface AppointmentActorContext extends MutationContext {
+  canStartVisit: boolean;
+  canCompleteVisit: boolean;
+}
+
 export class AppointmentService {
   constructor(
     private readonly appointments: AppointmentRepository = appointmentRepository,
@@ -164,9 +176,16 @@ export class AppointmentService {
     const actorIds = [
       ...new Set(result.items.flatMap((item) => (item.actorUserId ? [item.actorUserId] : []))),
     ];
-    const actors = await this.users.findManyByIds(actorIds);
+    // Names and clinic roles in two batched reads, not one pair per entry.
+    const [actors, memberships] = await Promise.all([
+      this.users.findManyByIds(actorIds),
+      this.memberships.findManyByUsersInClinic(actorIds, clinicId),
+    ]);
     const actorNames = new Map(
       actors.map((actor) => [actor._id.toString(), `${actor.firstName} ${actor.lastName}`.trim()]),
+    );
+    const actorRoles = new Map(
+      memberships.map((membership) => [membership.userId.toString(), membership.role]),
     );
     const items: AppointmentActivityDto[] = result.items.map((item) => ({
       id: item.id,
@@ -175,6 +194,8 @@ export class AppointmentService {
       actorName: item.actorUserId
         ? (actorNames.get(item.actorUserId) ?? 'Clinic team member')
         : 'System',
+      /** Null for system events and for actors who have since left the clinic. */
+      actorRole: item.actorUserId ? (actorRoles.get(item.actorUserId) ?? null) : null,
       metadata: item.metadata,
       createdAt: item.createdAt,
     }));
@@ -400,10 +421,11 @@ export class AppointmentService {
     clinicId: string,
     appointmentId: string,
     toStatus: Exclude<AppointmentStatus, 'CANCELLED'>,
-    context: MutationContext,
+    context: AppointmentActorContext,
   ): Promise<AppointmentDto> {
     const existing = await this.requireAppointment(clinicId, appointmentId);
     this.assertTransition(existing.status, toStatus);
+    this.assertMayPerform(toStatus, context);
 
     const updated = await this.appointments.transitionStatus(
       appointmentId,
@@ -665,6 +687,32 @@ export class AppointmentService {
       throw new BusinessRuleError(`Cannot move an appointment from ${from} to ${to}`, {
         code: ERROR_CODES.APPOINTMENT_INVALID_STATUS_TRANSITION,
         details: { from, to },
+      });
+    }
+  }
+
+  /**
+   * Guards the two clinical moves.
+   *
+   * The route carries one permission (`appointment:update`) because it accepts
+   * every transition through one body field, so the finer policy has to be
+   * decided where the target status is actually known. The capabilities arrive
+   * as data resolved from the verified tenant — a client cannot send them —
+   * which keeps this service free of Fastify and free of `if (role === ...)`,
+   * as AGENTS.md §7 requires.
+   */
+  private assertMayPerform(
+    toStatus: AppointmentStatus,
+    context: AppointmentActorContext,
+  ): void {
+    if (toStatus === APPOINTMENT_STATUSES.IN_TREATMENT && !context.canStartVisit) {
+      throw new ForbiddenError('Only clinical staff may start a visit', {
+        code: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+      });
+    }
+    if (toStatus === APPOINTMENT_STATUSES.COMPLETED && !context.canCompleteVisit) {
+      throw new ForbiddenError('Only clinical staff may complete a visit', {
+        code: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
       });
     }
   }

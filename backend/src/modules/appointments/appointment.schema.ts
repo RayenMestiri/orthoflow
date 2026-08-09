@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isoDateTimeSchema, objectIdSchema } from '../../common/validation/common.schemas.js';
+import { CLINIC_ROLE_VALUES } from '../../common/constants/roles.js';
 import { durationMinutesSchema } from '../appointment-types/appointment-type.schema.js';
 import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_VALUES } from './appointment.types.js';
 
@@ -125,6 +126,7 @@ export const appointmentActivityDtoSchema = z.object({
   action: z.string(),
   actorUserId: objectIdSchema.nullable(),
   actorName: z.string(),
+  actorRole: z.enum(CLINIC_ROLE_VALUES).nullable(),
   metadata: z.record(z.string(), z.unknown()),
   createdAt: z.string(),
 });

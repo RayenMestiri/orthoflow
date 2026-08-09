@@ -222,42 +222,44 @@
           </div>
         }
 
-        <!-- Visit timeline, from persisted timestamps only -->
+        <!--
+          Visit timeline, read from the recorded activity log.
+
+          Every line names whoever performed the action. Nothing here is derived
+          from the current user or synthesised from the row's timestamps: if the
+          log cannot be read, the section says so rather than showing a plausible
+          history with no author.
+        -->
         <section class="flow-timeline" aria-labelledby="flow-timeline-title">
           <h3 id="flow-timeline-title">Visit timeline</h3>
-          <ol>
-            <li>
-              <strong>{{ row.startAt | date: 'HH:mm' }}</strong>
-              <span>Scheduled</span>
-            </li>
-            @if (row.arrivedAt) {
-              <li>
-                <strong>{{ row.arrivedAt | date: 'HH:mm' }}</strong>
-                <span>Patient arrived</span>
-              </li>
-            }
-            @if (row.treatmentStartedAt) {
-              <li>
-                <strong>{{ row.treatmentStartedAt | date: 'HH:mm' }}</strong>
-                <span>Visit started</span>
-              </li>
-            }
-            @if (row.completedAt) {
-              <li>
-                <strong>{{ row.completedAt | date: 'HH:mm' }}</strong>
-                <span>Visit completed</span>
-              </li>
-            }
-            @if (row.noShowAt) {
-              <li>
-                <strong>{{ row.noShowAt | date: 'HH:mm' }}</strong>
-                <span>Marked no-show</span>
-              </li>
-            }
-          </ol>
-          <p class="flow-timeline__note">
-            Who performed each action is recorded in the appointment activity log.
-          </p>
+
+          @if (store.isActivityLoading()) {
+            <ul class="flow-timeline__skeleton" aria-hidden="true">
+              @for (skeleton of [1, 2, 3]; track skeleton) {
+                <li><span></span><span></span></li>
+              }
+            </ul>
+            <p class="flow-timeline__status" aria-live="polite">Loading activity…</p>
+          } @else if (store.activityError(); as activityError) {
+            <p class="flow-timeline__error" role="alert">
+              {{ activityError }}
+              <button type="button" (click)="retryActivity()">Retry</button>
+            </p>
+          } @else if (store.activity().length === 0) {
+            <p class="flow-timeline__status">No activity recorded yet.</p>
+          } @else {
+            <ol>
+              @for (entry of store.activity(); track entry.id) {
+                <li>
+                  <strong>{{ entry.createdAt | date: 'HH:mm' }}</strong>
+                  <span>
+                    {{ entryLabel(entry) }}
+                    <small class="flow-timeline__actor">{{ actor(entry) }}</small>
+                  </span>
+                </li>
+              }
+            </ol>
+          }
         </section>
 
         @if (row.cancellationReason) {

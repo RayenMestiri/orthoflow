@@ -7,11 +7,15 @@ import { ReceptionStore } from '../../data-access/reception.store';
 import {
   FLOW_SECTIONS,
   STATUS_LABELS,
+  actorLine,
+  activityLabel,
   canMarkNoShow,
   formatDuration,
   minutesSince,
   primaryAction,
+  type AppointmentActivity,
   type ReceptionRow,
+  type RowAction,
 } from '../../models/reception.models';
 
 /**
@@ -39,8 +43,16 @@ export class TodayPage {
   protected readonly sections = FLOW_SECTIONS;
   protected readonly statusLabels = STATUS_LABELS;
 
-  /** Clinical transitions stay with clinicians; the desk checks people in. */
-  protected readonly canRunVisits = this.permissions.can(PERMISSIONS.TREATMENTS_MANAGE);
+  /**
+   * Clinical transitions stay with clinicians; the desk checks people in.
+   *
+   * These only decide what is worth offering. The server refuses the transition
+   * regardless of what this page chooses to render.
+   */
+  protected readonly canStartVisit = this.permissions.can(PERMISSIONS.APPOINTMENTS_START_VISIT);
+  protected readonly canCompleteVisit = this.permissions.can(
+    PERMISSIONS.APPOINTMENTS_COMPLETE_VISIT,
+  );
   protected readonly canCancel = this.permissions.can(PERMISSIONS.APPOINTMENTS_VIEW);
 
   protected readonly selected = signal<ReceptionRow | null>(null);
@@ -85,8 +97,17 @@ export class TodayPage {
     return formatDuration(minutesSince(row.startAt, this.store.now()));
   }
 
-  protected action(row: ReceptionRow) {
-    return primaryAction(row);
+  /**
+   * The action this row is asking for, or nothing when this user may not
+   * perform it. A secretary sees no button rather than a disabled one: a greyed
+   * "Start visit" reads as broken software, not as a boundary.
+   */
+  protected action(row: ReceptionRow): RowAction | null {
+    const next = primaryAction(row);
+    if (!next) return null;
+    if (next.next === 'IN_TREATMENT' && !this.canStartVisit) return null;
+    if (next.next === 'COMPLETED' && !this.canCompleteVisit) return null;
+    return next;
   }
 
   protected showNoShow(row: ReceptionRow): boolean {
@@ -119,10 +140,26 @@ export class TodayPage {
 
   protected openDetail(row: ReceptionRow): void {
     this.selected.set(row);
+    void this.store.loadActivity(row.appointmentId);
   }
 
   protected closeDetail(): void {
     this.selected.set(null);
+    this.store.clearActivity();
+  }
+
+  protected retryActivity(): void {
+    const row = this.selected();
+    if (row) void this.store.loadActivity(row.appointmentId);
+  }
+
+  /** `Sarah Trabelsi · Secretary`. Never a user id, never a permission string. */
+  protected actor(entry: AppointmentActivity): string {
+    return actorLine(entry);
+  }
+
+  protected entryLabel(entry: AppointmentActivity): string {
+    return activityLabel(entry);
   }
 
   protected openCancel(row: ReceptionRow): void {

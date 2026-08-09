@@ -6,6 +6,8 @@
  * every minute.
  */
 
+import type { ClinicRole } from '../../../core/auth/auth.models';
+
 export type AppointmentStatus =
   | 'SCHEDULED'
   | 'CONFIRMED'
@@ -61,6 +63,74 @@ export interface ReceptionBoard {
   generatedAt: string;
   summary: ReceptionSummary;
   rows: ReceptionRow[];
+}
+
+/**
+ * One recorded operational action on an appointment.
+ *
+ * The server names the actor; the client never guesses. If a role is missing —
+ * a system event, or someone who has since left the clinic — it stays absent
+ * rather than being filled in with the person currently looking at the screen.
+ */
+export interface AppointmentActivity {
+  id: string;
+  action: string;
+  actorName: string;
+  actorRole: ClinicRole | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+/** Role wording for the timeline. Never the raw enum. */
+export const ROLE_LABELS: Record<ClinicRole, string> = {
+  CLINIC_OWNER: 'Owner',
+  ORTHODONTIST: 'Orthodontist',
+  DENTIST: 'Dentist',
+  SECRETARY: 'Secretary',
+  ASSISTANT: 'Assistant',
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  'appointment.created': 'Appointment booked',
+  'appointment.updated': 'Appointment updated',
+  'appointment.rescheduled': 'Appointment rescheduled',
+  'appointment.duration_changed': 'Duration changed',
+  'appointment.overbooked': 'Booked over capacity',
+  'appointment.cancelled': 'Appointment cancelled',
+  'appointment.no_show': 'Marked no-show',
+};
+
+/**
+ * What actually happened, in the clinic's words.
+ *
+ * A status change carries its destination in metadata, so the timeline can say
+ * "Visit started" instead of the useless "Status changed".
+ */
+export function activityLabel(entry: AppointmentActivity): string {
+  if (entry.action === 'appointment.status_changed') {
+    const to = entry.metadata['to'];
+    if (typeof to === 'string' && to in STATUS_TRANSITION_LABELS) {
+      return STATUS_TRANSITION_LABELS[to as AppointmentStatus];
+    }
+    return 'Status changed';
+  }
+  return ACTION_LABELS[entry.action] ?? 'Appointment activity';
+}
+
+const STATUS_TRANSITION_LABELS: Record<AppointmentStatus, string> = {
+  SCHEDULED: 'Moved back to scheduled',
+  CONFIRMED: 'Appointment confirmed',
+  ARRIVED: 'Patient arrived',
+  WAITING: 'Moved to waiting',
+  IN_TREATMENT: 'Visit started',
+  COMPLETED: 'Visit completed',
+  NO_SHOW: 'Marked no-show',
+  CANCELLED: 'Appointment cancelled',
+};
+
+/** `Sarah Trabelsi · Secretary`, or just the name when the role is unknown. */
+export function actorLine(entry: AppointmentActivity): string {
+  return entry.actorRole ? `${entry.actorName} · ${ROLE_LABELS[entry.actorRole]}` : entry.actorName;
 }
 
 /** Status wording. Never an enum shown raw to a clinician. */

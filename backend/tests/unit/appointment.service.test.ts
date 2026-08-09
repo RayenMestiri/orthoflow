@@ -4,7 +4,10 @@ import { ERROR_CODES } from '../../src/common/constants/error-codes.js';
 import { AppError } from '../../src/common/errors/app-error.js';
 import { toWallClock } from '../../src/common/utils/clinic-time.js';
 import type { MutationContext } from '../../src/common/utils/request-context.js';
-import { AppointmentService } from '../../src/modules/appointments/appointment.service.js';
+import {
+  AppointmentService,
+  type AppointmentActorContext,
+} from '../../src/modules/appointments/appointment.service.js';
 import {
   DEFAULT_CLINIC_SETTINGS,
   type ClinicSchedulingSettings,
@@ -23,6 +26,12 @@ const DOCTOR_ID = '652f1c9b8a1e4f0012ab0001';
 const PATIENT_ID = '652f1c9b8a1e4f0012abaaaa';
 const TYPE_ID = '652f1c9b8a1e4f0012abcccc';
 const ACTOR: MutationContext = { actorUserId: DOCTOR_ID, ip: null, userAgent: null };
+
+/** A practitioner: may put a patient in the chair and declare the visit over. */
+const CLINICAL: AppointmentActorContext = { ...ACTOR, canStartVisit: true, canCompleteVisit: true };
+
+/** The front desk: moves the queue, but never performs the clinical half. */
+const DESK: AppointmentActorContext = { ...ACTOR, canStartVisit: false, canCompleteVisit: false };
 
 /** Monday 2026-08-10. Tunisia is UTC+1 year-round, so 08:00Z = 09:00 local. */
 const MONDAY_9_LOCAL = new Date('2026-08-10T08:00:00.000Z');
@@ -195,8 +204,12 @@ interface Fakes {
     findByIdInClinic: ReturnType<typeof vi.fn>;
     findManyByIdsInClinic: ReturnType<typeof vi.fn>;
   };
-  memberships: { findActiveOwner: ReturnType<typeof vi.fn> };
-  audit: { record: ReturnType<typeof vi.fn> };
+  memberships: {
+    findActiveOwner: ReturnType<typeof vi.fn>;
+    findManyByUsersInClinic: ReturnType<typeof vi.fn>;
+  };
+  audit: { record: ReturnType<typeof vi.fn>; listForClinic: ReturnType<typeof vi.fn> };
+  users: { findManyByIds: ReturnType<typeof vi.fn> };
 }
 
 function buildService(scheduling: Partial<ClinicSchedulingSettings> = {}): Fakes {
@@ -242,8 +255,29 @@ function buildService(scheduling: Partial<ClinicSchedulingSettings> = {}): Fakes
       userId: new Types.ObjectId(DOCTOR_ID),
       clinicId: new Types.ObjectId(CLINIC_A),
     })),
+    // Roles are read per clinic: the same user can be an owner here and nothing there.
+    findManyByUsersInClinic: vi.fn(async (userIds: string[], clinicId: string) =>
+      clinicId === CLINIC_A
+        ? userIds.map((userId) => ({ userId: new Types.ObjectId(userId), role: 'OWNER' }))
+        : [],
+    ),
   };
-  const audit = { record: vi.fn(async () => undefined) };
+  const audit = {
+    record: vi.fn(async () => undefined),
+    listForClinic: vi.fn(async () => ({
+      result: { items: [], total: 0 },
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+    })),
+  };
+  const users = {
+    findManyByIds: vi.fn(async (userIds: string[]) =>
+      userIds.map((userId) => ({
+        _id: new Types.ObjectId(userId),
+        firstName: 'Sarah',
+        lastName: 'Trabelsi',
+      })),
+    ),
+  };
 
   const service = new AppointmentService(
     store as never,
@@ -253,9 +287,10 @@ function buildService(scheduling: Partial<ClinicSchedulingSettings> = {}): Fakes
     clinics as never,
     memberships as never,
     audit as never,
+    users as never,
   );
 
-  return { service, store, patients, memberships, audit };
+  return { service, store, patients, memberships, audit, users };
 }
 
 describe('clinic wall-clock conversion', () => {
@@ -564,15 +599,15 @@ describe('AppointmentService workflow', () => {
       'IN_TREATMENT',
       'COMPLETED',
     ] as const) {
-      const dto = await fakes.service.changeStatus(CLINIC_A, appointmentId, status, ACTOR);
+      const dto = await fakes.service.changeStatus(CLINIC_A, appointmentId, status, CLINICAL);
       expect(dto.status).toBe(status);
     }
   });
 
   it('rejects an invalid transition with a business error', async () => {
-    await fakes.service.changeStatus(CLINIC_A, appointmentId, 'ARRIVED', ACTOR);
+    await fakes.service.changeStatus(CLINIC_A, appointmentId, 'ARRIVED', CLINICAL);
     try {
-      await fakes.service.changeStatus(CLINIC_A, appointmentId, 'NO_SHOW', ACTOR);
+      await fakes.service.changeStatus(CLINIC_A, appointmentId, 'NO_SHOW', CLINICAL);
       expect.unreachable('should have thrown');
     } catch (error) {
       expectCode(error, ERROR_CODES.APPOINTMENT_INVALID_STATUS_TRANSITION);
@@ -592,7 +627,7 @@ describe('AppointmentService workflow', () => {
   });
 
   it('keeps a no-show in history and audits it under its own action', async () => {
-    const dto = await fakes.service.changeStatus(CLINIC_A, appointmentId, 'NO_SHOW', ACTOR);
+    const dto = await fakes.service.changeStatus(CLINIC_A, appointmentId, 'NO_SHOW', CLINICAL);
 
     expect(dto.status).toBe('NO_SHOW');
     expect(fakes.store.records[0]?.status).toBe('NO_SHOW');
@@ -616,13 +651,150 @@ describe('AppointmentService workflow', () => {
   });
 
   it('refuses to edit a closed appointment', async () => {
-    await fakes.service.changeStatus(CLINIC_A, appointmentId, 'COMPLETED', ACTOR);
+    await fakes.service.changeStatus(CLINIC_A, appointmentId, 'COMPLETED', CLINICAL);
     try {
       await fakes.service.update(CLINIC_A, appointmentId, { note: 'late note' }, ACTOR);
       expect.unreachable('should have thrown');
     } catch (error) {
       expectCode(error, ERROR_CODES.APPOINTMENT_ALREADY_CLOSED);
     }
+  });
+
+  /**
+   * The desk owns the queue; the chair belongs to clinical staff. Hiding the
+   * buttons is presentation — this is the rule that actually holds.
+   */
+  describe('who may run the chair', () => {
+    it('lets clinical staff start and complete a visit', async () => {
+      await fakes.service.changeStatus(CLINIC_A, appointmentId, 'ARRIVED', CLINICAL);
+      await fakes.service.changeStatus(CLINIC_A, appointmentId, 'WAITING', CLINICAL);
+
+      const started = await fakes.service.changeStatus(
+        CLINIC_A,
+        appointmentId,
+        'IN_TREATMENT',
+        CLINICAL,
+      );
+      expect(started.status).toBe('IN_TREATMENT');
+
+      const done = await fakes.service.changeStatus(CLINIC_A, appointmentId, 'COMPLETED', CLINICAL);
+      expect(done.status).toBe('COMPLETED');
+    });
+
+    it('refuses to let the front desk start a visit', async () => {
+      await fakes.service.changeStatus(CLINIC_A, appointmentId, 'ARRIVED', DESK);
+      await fakes.service.changeStatus(CLINIC_A, appointmentId, 'WAITING', DESK);
+
+      try {
+        await fakes.service.changeStatus(CLINIC_A, appointmentId, 'IN_TREATMENT', DESK);
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect((error as AppError).statusCode).toBe(403);
+        expectCode(error, ERROR_CODES.INSUFFICIENT_PERMISSIONS);
+      }
+      // Refused, not half-applied: the record must not have moved.
+      expect(fakes.store.records[0]?.status).toBe('WAITING');
+      expect(fakes.store.records[0]?.treatmentStartedAt).toBeNull();
+    });
+
+    it('refuses to let the front desk complete a visit', async () => {
+      await fakes.service.changeStatus(CLINIC_A, appointmentId, 'ARRIVED', CLINICAL);
+      await fakes.service.changeStatus(CLINIC_A, appointmentId, 'WAITING', CLINICAL);
+      await fakes.service.changeStatus(CLINIC_A, appointmentId, 'IN_TREATMENT', CLINICAL);
+
+      try {
+        await fakes.service.changeStatus(CLINIC_A, appointmentId, 'COMPLETED', DESK);
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect((error as AppError).statusCode).toBe(403);
+        expectCode(error, ERROR_CODES.INSUFFICIENT_PERMISSIONS);
+      }
+      expect(fakes.store.records[0]?.status).toBe('IN_TREATMENT');
+      expect(fakes.store.records[0]?.completedAt).toBeNull();
+    });
+
+    it('still lets the front desk check people in and queue them', async () => {
+      const arrived = await fakes.service.changeStatus(CLINIC_A, appointmentId, 'ARRIVED', DESK);
+      expect(arrived.status).toBe('ARRIVED');
+
+      const waiting = await fakes.service.changeStatus(CLINIC_A, appointmentId, 'WAITING', DESK);
+      expect(waiting.status).toBe('WAITING');
+    });
+
+    it('still lets the front desk mark a no-show', async () => {
+      const dto = await fakes.service.changeStatus(CLINIC_A, appointmentId, 'NO_SHOW', DESK);
+      expect(dto.status).toBe('NO_SHOW');
+    });
+
+    it('still lets the front desk cancel', async () => {
+      const dto = await fakes.service.cancel(CLINIC_A, appointmentId, 'Patient called', ACTOR);
+      expect(dto.status).toBe('CANCELLED');
+    });
+  });
+
+  describe('activity timeline', () => {
+    beforeEach(() => {
+      fakes.audit.listForClinic.mockResolvedValue({
+        result: {
+          items: [
+            {
+              id: 'audit-1',
+              action: 'appointment.status_changed',
+              actorUserId: DOCTOR_ID,
+              metadata: { from: 'WAITING', to: 'IN_TREATMENT' },
+              createdAt: '2026-08-10T09:12:00.000Z',
+            },
+            {
+              id: 'audit-2',
+              action: 'appointment.created',
+              actorUserId: null,
+              metadata: {},
+              createdAt: '2026-08-10T08:00:00.000Z',
+            },
+          ],
+          total: 2,
+        },
+        pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
+      });
+    });
+
+    it('names the actor and their clinic role for each entry', async () => {
+      const { result } = await fakes.service.getActivity(CLINIC_A, appointmentId, {});
+
+      expect(result.items[0]).toMatchObject({
+        action: 'appointment.status_changed',
+        actorName: 'Sarah Trabelsi',
+        actorRole: 'OWNER',
+      });
+      // Batched, not one lookup per row.
+      expect(fakes.users.findManyByIds).toHaveBeenCalledTimes(1);
+      expect(fakes.memberships.findManyByUsersInClinic).toHaveBeenCalledWith(
+        [DOCTOR_ID],
+        CLINIC_A,
+      );
+    });
+
+    it('labels an actorless entry as System with no role', async () => {
+      const { result } = await fakes.service.getActivity(CLINIC_A, appointmentId, {});
+
+      expect(result.items[1]).toMatchObject({ actorName: 'System', actorRole: null });
+    });
+
+    it('leaves the role blank for someone who has left the clinic', async () => {
+      fakes.memberships.findManyByUsersInClinic.mockResolvedValueOnce([]);
+
+      const { result } = await fakes.service.getActivity(CLINIC_A, appointmentId, {});
+
+      expect(result.items[0]?.actorRole).toBeNull();
+      expect(result.items[0]?.actorName).toBe('Sarah Trabelsi');
+    });
+
+    it('refuses to read the timeline of another clinic', async () => {
+      await expect(fakes.service.getActivity(CLINIC_B, appointmentId, {})).rejects.toMatchObject({
+        code: ERROR_CODES.APPOINTMENT_NOT_FOUND,
+      });
+      expect(fakes.audit.listForClinic).not.toHaveBeenCalled();
+    });
   });
 
   it('hides appointments from another clinic behind a 404', async () => {

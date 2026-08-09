@@ -572,15 +572,68 @@
   }
 
   span {
-    color: var(--color-slate);
+    display: grid;
+    gap: 0.1rem;
+    color: var(--color-pine-900);
   }
 }
 
-.flow-timeline__note {
-  margin: 0.75rem 0 0;
+/* Who did it sits under what happened — secondary, but always present. */
+.flow-timeline__actor {
   color: var(--color-slate);
   font-size: 0.74rem;
-  font-style: italic;
+}
+
+.flow-timeline__status {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.78rem;
+}
+
+.flow-timeline__error {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.78rem;
+
+  button {
+    min-height: 2.75rem;
+    padding: 0 0.75rem;
+    border: 1px solid currentcolor;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+
+    &:hover {
+      background: rgba(200, 100, 69, 0.08);
+    }
+  }
+}
+
+.flow-timeline__skeleton {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: 3.25rem minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  span {
+    height: 0.7rem;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-mist) 70%, transparent);
+  }
 }
 
 /* Modal */

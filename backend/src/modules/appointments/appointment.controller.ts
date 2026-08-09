@@ -7,6 +7,8 @@ import {
   validatedQuery,
 } from '../../common/utils/request-context.js';
 import { ok, paginated } from '../../common/utils/response.js';
+import { hasPermission } from '../../common/authorization/policy.js';
+import { PERMISSIONS } from '../../common/constants/permissions.js';
 import { appointmentService } from './appointment.service.js';
 import type {
   AppointmentIdParam,
@@ -95,11 +97,20 @@ export async function updateAppointmentHandler(request: FastifyRequest, reply: F
 }
 
 export async function changeAppointmentStatusHandler(request: FastifyRequest, reply: FastifyReply) {
+  const tenant = requireTenant(request);
+
   const appointment = await appointmentService.changeStatus(
-    requireTenant(request).clinicId,
+    tenant.clinicId,
     validatedParams<AppointmentIdParam>(request).appointmentId,
     validatedBody<ChangeStatusBody>(request).status,
-    mutationContext(request),
+    {
+      ...mutationContext(request),
+      // Decided here, from the verified membership: the endpoint takes every
+      // transition through one body field, so the route guard cannot tell a
+      // check-in from a clinical start.
+      canStartVisit: hasPermission(tenant, PERMISSIONS.APPOINTMENT_START_VISIT),
+      canCompleteVisit: hasPermission(tenant, PERMISSIONS.APPOINTMENT_COMPLETE_VISIT),
+    },
   );
   return reply.send(ok(appointment));
 }

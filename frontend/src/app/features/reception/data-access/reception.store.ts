@@ -2,6 +2,7 @@ import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core'
 import { firstValueFrom } from 'rxjs';
 import { getApiProblem } from '../../../core/http/api-error';
 import type {
+  AppointmentActivity,
   AppointmentStatus,
   FlowGroup,
   ReceptionBoard,
@@ -39,7 +40,19 @@ export class ReceptionStore {
   /** Ticks so duration computeds re-evaluate. */
   private readonly nowState = signal(Date.now());
 
+  /** The detail drawer's timeline, loaded on demand and kept out of the board. */
+  private readonly activityState = signal<AppointmentActivity[]>([]);
+  private readonly activityForState = signal<string | null>(null);
+  private readonly activityLoadingState = signal(false);
+  private readonly activityErrorState = signal<string | null>(null);
+
   private requestId = 0;
+  private activityRequestId = 0;
+
+  readonly activity = this.activityState.asReadonly();
+  readonly activityFor = this.activityForState.asReadonly();
+  readonly isActivityLoading = this.activityLoadingState.asReadonly();
+  readonly activityError = this.activityErrorState.asReadonly();
 
   readonly board = this.boardState.asReadonly();
   readonly isLoading = this.loadingState.asReadonly();
@@ -169,6 +182,43 @@ export class ReceptionStore {
     } finally {
       this.setPending(appointmentId, false);
     }
+  }
+
+  /**
+   * Reads who did what on one appointment.
+   *
+   * Kept apart from the board's own loading and error state: a timeline that
+   * fails to load must not make the day's queue look broken, and it must not
+   * fall back to inventing entries from the timestamps the board already has.
+   * The request id guards against a fast open-close-open on two different rows
+   * resolving out of order.
+   */
+  async loadActivity(appointmentId: string): Promise<void> {
+    const requestId = ++this.activityRequestId;
+    this.activityForState.set(appointmentId);
+    this.activityState.set([]);
+    this.activityErrorState.set(null);
+    this.activityLoadingState.set(true);
+    try {
+      const entries = await firstValueFrom(this.api.activity(appointmentId));
+      if (requestId !== this.activityRequestId) return;
+      this.activityState.set(entries);
+    } catch {
+      if (requestId !== this.activityRequestId) return;
+      // Deliberately not the server's message: the desk can only retry anyway.
+      this.activityErrorState.set("Activity history couldn't be loaded.");
+    } finally {
+      if (requestId === this.activityRequestId) this.activityLoadingState.set(false);
+    }
+  }
+
+  clearActivity(): void {
+    // Bumping the id abandons any in-flight response for the closed drawer.
+    this.activityRequestId++;
+    this.activityForState.set(null);
+    this.activityState.set([]);
+    this.activityErrorState.set(null);
+    this.activityLoadingState.set(false);
   }
 
   dismissError(): void {

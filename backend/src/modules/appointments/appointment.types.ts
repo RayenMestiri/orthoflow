@@ -1,4 +1,5 @@
 import type { Types } from 'mongoose';
+import type { ClinicRole } from '../../common/constants/roles.js';
 
 /**
  * The operational life of a visit, from booking to outcome.
@@ -223,6 +224,8 @@ export interface AppointmentActivityDto {
   action: string;
   actorUserId: string | null;
   actorName: string;
+  /** Clinic role at read time, so a timeline can say "Sarah · Secretary". */
+  actorRole: ClinicRole | null;
   metadata: Record<string, unknown>;
   createdAt: string;
 }
