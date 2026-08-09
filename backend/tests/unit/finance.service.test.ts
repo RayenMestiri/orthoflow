@@ -9,6 +9,7 @@ import {
   BALANCE_FILTERS,
   PAYMENT_STATUSES,
   derivePaymentStatus,
+  isTreatmentPayable,
 } from '../../src/modules/finance/finance.types.js';
 
 const CLINIC_A = '652f1c9b8a1e4f0012ab34cd';
@@ -66,6 +67,51 @@ describe('derivePaymentStatus', () => {
   });
 });
 
+function baseTotals(overrides: Record<string, unknown> = {}) {
+  return {
+    outstandingMinor: 28_700_000,
+    outstandingPatientIds: ['a', 'b', 'c'],
+    totalAgreedMinor: 42_000_000,
+    totalRecordedMinor: 28_100_000,
+    noPaymentCount: 5,
+    paidCount: 18,
+    partiallyPaidCount: 21,
+    noAgreedPriceCount: 1,
+    overpaidCount: 2,
+    overpaidExcessMinor: 320_000,
+    activeTreatmentPatientIds: ['a', 'b', 'c', 'd'],
+    ...overrides,
+  };
+}
+
+describe('isTreatmentPayable', () => {
+  it('accepts care that is running, paused or agreed but not started', () => {
+    for (const status of ['ACTIVE', 'PAUSED', 'PLANNED']) {
+      expect(isTreatmentPayable(status, 2_200_000)).toBe(true);
+      expect(isTreatmentPayable(status, 0)).toBe(true);
+    }
+  });
+
+  it('never accepts a cancelled course', () => {
+    // Abandoned care cannot receive money, whatever the balance says.
+    expect(isTreatmentPayable('CANCELLED', 500_000)).toBe(false);
+    expect(isTreatmentPayable('CANCELLED', 0)).toBe(false);
+    expect(isTreatmentPayable('CANCELLED', null)).toBe(false);
+  });
+
+  it('accepts finished care only while it still owes something', () => {
+    expect(isTreatmentPayable('COMPLETED', 300_000)).toBe(true);
+    // Already square: offering it would invite a duplicate payment.
+    expect(isTreatmentPayable('COMPLETED', 0)).toBe(false);
+    expect(isTreatmentPayable('COMPLETED', -100_000)).toBe(false);
+  });
+
+  it('keeps an unpriced treatment payable, since deposits are supported', () => {
+    expect(isTreatmentPayable('ACTIVE', null)).toBe(true);
+    expect(isTreatmentPayable('COMPLETED', null)).toBe(true);
+  });
+});
+
 describe('FinanceService', () => {
   let finance: Record<string, ReturnType<typeof vi.fn>>;
   let clinics: { findById: ReturnType<typeof vi.fn> };
@@ -77,19 +123,7 @@ describe('FinanceService', () => {
     finance = {
       listPatientBalances: vi.fn(async () => ({ items: [balanceRow()], total: 1 })),
       sumReceivedBetween: vi.fn(async () => ({ totalMinor: 850_000, count: 7 })),
-      aggregateBalanceTotals: vi.fn(async () => ({
-        outstandingMinor: 28_700_000,
-        outstandingPatientIds: ['a', 'b', 'c'],
-        totalAgreedMinor: 42_000_000,
-        totalRecordedMinor: 28_100_000,
-        noPaymentCount: 5,
-        paidCount: 18,
-        partiallyPaidCount: 21,
-        noAgreedPriceCount: 1,
-        overpaidCount: 2,
-        overpaidExcessMinor: 320_000,
-        activeTreatmentPatientIds: ['a', 'b', 'c', 'd'],
-      })),
+      aggregateBalanceTotals: vi.fn(async () => baseTotals()),
       countCancelledWithoutCorrection: vi.fn(async () => 3),
       listRecentActivity: vi.fn(async () => []),
     };
@@ -140,22 +174,18 @@ describe('FinanceService', () => {
 
     it('clamps collection to 100% when a clinic is overpaid overall', async () => {
       // A rail rendered past full reads as a bug, not as money.
-      finance['aggregateBalanceTotals']?.mockResolvedValueOnce({
-        ...(await finance['aggregateBalanceTotals']?.()),
-        totalAgreedMinor: 1_000_000,
-        totalRecordedMinor: 1_300_000,
-      });
+      finance['aggregateBalanceTotals']?.mockResolvedValueOnce(
+        baseTotals({ totalAgreedMinor: 1_000_000, totalRecordedMinor: 1_300_000 }),
+      );
 
       const overview = await service.getOverview(CLINIC_A);
       expect(overview.summary.collectedPercent).toBe(100);
     });
 
     it('reports 0% rather than NaN when nothing has an agreed price', async () => {
-      finance['aggregateBalanceTotals']?.mockResolvedValueOnce({
-        ...(await finance['aggregateBalanceTotals']?.()),
-        totalAgreedMinor: 0,
-        totalRecordedMinor: 0,
-      });
+      finance['aggregateBalanceTotals']?.mockResolvedValueOnce(
+        baseTotals({ totalAgreedMinor: 0, totalRecordedMinor: 0 }),
+      );
 
       const overview = await service.getOverview(CLINIC_A);
       expect(overview.summary.collectedPercent).toBe(0);

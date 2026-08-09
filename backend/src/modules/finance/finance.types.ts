@@ -60,6 +60,36 @@ export function derivePaymentStatus(
     : PAYMENT_STATUSES.PARTIALLY_PAID;
 }
 
+/**
+ * Whether a course of care can receive money right now.
+ *
+ * THE RULE, in the clinic's words: you may pay toward care that is running,
+ * paused, or agreed but not yet started. You may still settle a debt on care
+ * that has finished. You may not pay a cancelled course, and you may not pay
+ * one that is already square.
+ *
+ * A treatment with no agreed price stays payable: the product deliberately
+ * supports deposits taken before a price is set (a payment with no treatment at
+ * all is allowed too), so refusing here would block a real workflow. The UI
+ * labels those rows rather than hiding them.
+ *
+ * Shared by the drawer and the write path so the option a user is offered and
+ * the option the server accepts can never disagree.
+ */
+export function isTreatmentPayable(
+  treatmentStatus: string,
+  remainingMinor: number | null,
+): boolean {
+  if (treatmentStatus === 'CANCELLED') {
+    return false;
+  }
+  if (treatmentStatus === 'COMPLETED') {
+    // Finished care is only payable while it still owes something.
+    return remainingMinor === null || remainingMinor > 0;
+  }
+  return true;
+}
+
 /** How the balances table may be ordered. */
 export const BALANCE_SORTS = {
   REMAINING_DESC: 'REMAINING_DESC',
@@ -92,6 +122,8 @@ export interface PatientBalanceQuery {
   filter?: BalanceFilter;
   search?: string;
   sort?: BalanceSort;
+  /** Narrows to one patient — what the Record payment drawer asks for. */
+  patientId?: string;
 }
 
 /** One row of the balances table. Deliberately small — no full documents. */

@@ -96,6 +96,8 @@ export const ERROR_CODES = {
   GUARDIAN_REQUIRED_FOR_PAYER_TYPE: 'GUARDIAN_REQUIRED_FOR_PAYER_TYPE',
   GUARDIAN_NOT_LINKED_TO_PATIENT: 'GUARDIAN_NOT_LINKED_TO_PATIENT',
   TREATMENT_PATIENT_MISMATCH: 'TREATMENT_PATIENT_MISMATCH',
+  /** Cancelled, or finished and already settled — it cannot receive money. */
+  TREATMENT_NOT_PAYABLE: 'TREATMENT_NOT_PAYABLE',
   INVALID_RECEIVED_AT: 'INVALID_RECEIVED_AT',
   /**
    * Soft warning, not a failure: the clinic may still have physically received

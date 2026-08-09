@@ -1,19 +1,96 @@
 <section class="patient-profile" aria-labelledby="patient-profile-title">
   @if (loading()) {
-    <div class="profile-state profile-state--loading" role="status">
-      <span class="profile-state__spinner" aria-hidden="true"></span>
-      <strong>Loading patient profile...</strong>
-      <small>Retrieving clinical records and medical history.</small>
+    <div class="patient-profile-skeleton" role="status" aria-label="Loading patient profile">
+      <!-- Floating Status Pill Badge -->
+      <div class="skeleton-pill-badge">
+        <span class="skeleton-pulse-dot"></span>
+        <span>Retrieving patient medical record…</span>
+      </div>
+
+      <!-- Header Skeleton -->
+      <div class="skeleton-header">
+        <div class="skeleton-header__identity">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-header__titles">
+            <div class="skeleton-bar skeleton-bar--xs" style="width: 90px;"></div>
+            <div class="skeleton-bar skeleton-bar--xl" style="width: 260px;"></div>
+            <div class="skeleton-tags">
+              <div class="skeleton-bar skeleton-bar--badge" style="width: 85px;"></div>
+              <div class="skeleton-bar skeleton-bar--badge" style="width: 70px;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="skeleton-header__actions">
+          <div class="skeleton-button"></div>
+          <div class="skeleton-button"></div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs Skeleton -->
+      <div class="skeleton-tabs">
+        <div class="skeleton-tab skeleton-tab--active" style="width: 110px;"></div>
+        <div class="skeleton-tab" style="width: 140px;"></div>
+        <div class="skeleton-tab" style="width: 120px;"></div>
+        <div class="skeleton-tab" style="width: 150px;"></div>
+        <div class="skeleton-tab" style="width: 100px;"></div>
+      </div>
+
+      <!-- Overview Cards Grid Skeleton -->
+      <div class="skeleton-grid">
+        <div class="skeleton-card">
+          <div class="skeleton-card__header">
+            <div class="skeleton-bar skeleton-bar--title" style="width: 160px;"></div>
+          </div>
+          <div class="skeleton-card__body">
+            <div class="skeleton-row">
+              <div class="skeleton-bar skeleton-bar--sm" style="width: 25%;"></div>
+              <div class="skeleton-bar skeleton-bar--md" style="width: 60%;"></div>
+            </div>
+            <div class="skeleton-row">
+              <div class="skeleton-bar skeleton-bar--sm" style="width: 30%;"></div>
+              <div class="skeleton-bar skeleton-bar--md" style="width: 75%;"></div>
+            </div>
+            <div class="skeleton-row">
+              <div class="skeleton-bar skeleton-bar--sm" style="width: 20%;"></div>
+              <div class="skeleton-bar skeleton-bar--md" style="width: 50%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="skeleton-card">
+          <div class="skeleton-card__header">
+            <div class="skeleton-bar skeleton-bar--title" style="width: 140px;"></div>
+          </div>
+          <div class="skeleton-card__body">
+            <div class="skeleton-row">
+              <div class="skeleton-bar skeleton-bar--sm" style="width: 35%;"></div>
+              <div class="skeleton-bar skeleton-bar--md" style="width: 80%;"></div>
+            </div>
+            <div class="skeleton-row">
+              <div class="skeleton-bar skeleton-bar--sm" style="width: 25%;"></div>
+              <div class="skeleton-bar skeleton-bar--md" style="width: 65%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   } @else if (error() || !patient()) {
-    <div class="profile-state" role="alert">
-      <span class="material-icons error-icon" aria-hidden="true">error_outline</span>
-      <strong>Patient profile unavailable</strong>
-      <small>{{ error() }}</small>
-      <button type="button" class="btn-retry" (click)="load()">
-        <span class="material-icons" aria-hidden="true">refresh</span>
-        <span>Try again</span>
-      </button>
+    <div class="profile-error-card" role="alert">
+      <div class="profile-error-card__icon">
+        <span class="material-icons" aria-hidden="true">person_off</span>
+      </div>
+      <h3>Patient record unavailable</h3>
+      <p>{{ error() || 'The requested patient profile could not be found or loaded.' }}</p>
+      <div class="profile-error-card__actions">
+        <a class="patient-profile__back" routerLink="/app/patients">
+          <span class="material-icons" aria-hidden="true">arrow_back</span>
+          <span>Directory</span>
+        </a>
+        <button type="button" class="btn-retry" (click)="load()">
+          <span class="material-icons" aria-hidden="true">refresh</span>
+          <span>Try again</span>
+        </button>
+      </div>
     </div>
   } @else {
     @let current = patient()!;

@@ -80,6 +80,8 @@ export const patientBalanceQuerySchema = paginationQuerySchema.extend({
   filter: z.enum(BALANCE_FILTER_VALUES).default(BALANCE_FILTERS.ALL),
   sort: z.enum(BALANCE_SORT_VALUES).default(BALANCE_SORTS.REMAINING_DESC),
   search: z.string().trim().min(1).max(120).optional(),
+  /** Narrows to one patient. Tenant scoping still comes from the session. */
+  patientId: objectIdSchema.optional(),
 });
 
 export const financeActivityQuerySchema = z.object({

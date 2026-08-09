@@ -288,7 +288,7 @@ class FakeReceiptRepository {
 class FakeTreatmentRepository {
   treatments = new Map<
     string,
-    { clinicId: string; patientId: string; agreedPrice: number | null }
+    { clinicId: string; patientId: string; agreedPrice: number | null; status?: string }
   >();
 
   async findByIdInClinic(treatmentId: string, clinicId: string) {
@@ -299,6 +299,7 @@ class FakeTreatmentRepository {
       clinicId: new Types.ObjectId(clinicId),
       patientId: new Types.ObjectId(treatment.patientId),
       agreedPrice: treatment.agreedPrice,
+      status: treatment.status ?? 'ACTIVE',
       type: 'METAL_BRACES' as const,
       customTypeLabel: null,
     };
@@ -553,6 +554,51 @@ describe('CashRecordService', () => {
         service.record(CLINIC_A, payment({ treatmentId: OTHER_TREATMENT_ID }), SECRETARY),
         ERROR_CODES.TREATMENT_PATIENT_MISMATCH,
       );
+    });
+
+    it('refuses a cancelled treatment', async () => {
+      // Abandoned care must not absorb money, even though it exists and
+      // belongs to this patient — a forged id gets no further than this.
+      treatments.treatments.set(TREATMENT_ID, {
+        clinicId: CLINIC_A,
+        patientId: PATIENT_ID,
+        agreedPrice: AGREED_PRICE,
+        status: 'CANCELLED',
+      });
+
+      await expectRejection(
+        service.record(CLINIC_A, payment(), SECRETARY),
+        ERROR_CODES.TREATMENT_NOT_PAYABLE,
+      );
+      expect(cashRecords.records).toHaveLength(0);
+    });
+
+    it('refuses a completed treatment that is already fully paid', async () => {
+      treatments.treatments.set(TREATMENT_ID, {
+        clinicId: CLINIC_A,
+        patientId: PATIENT_ID,
+        agreedPrice: AGREED_PRICE,
+        status: 'COMPLETED',
+      });
+      // Settle it, then try to pay again.
+      await service.record(CLINIC_A, payment({ amount: '3600.000' }), OWNER);
+
+      await expectRejection(
+        service.record(CLINIC_A, payment({ amount: '100.000' }), SECRETARY),
+        ERROR_CODES.TREATMENT_NOT_PAYABLE,
+      );
+    });
+
+    it('still accepts a completed treatment that owes a balance', async () => {
+      treatments.treatments.set(TREATMENT_ID, {
+        clinicId: CLINIC_A,
+        patientId: PATIENT_ID,
+        agreedPrice: AGREED_PRICE,
+        status: 'COMPLETED',
+      });
+
+      const record = await service.record(CLINIC_A, payment({ amount: '500.000' }), SECRETARY);
+      expect(record.treatmentId).toBe(TREATMENT_ID);
     });
 
     it('refuses a treatment from another clinic', async () => {

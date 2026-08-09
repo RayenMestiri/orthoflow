@@ -31,6 +31,7 @@ import {
   financialSummaryService,
   type FinancialSummaryService,
 } from './financial-summary.service.js';
+import { isTreatmentPayable } from '../finance/finance.types.js';
 import {
   CASH_RECORD_STATUSES,
   MAX_BACKDATE_DAYS,
@@ -484,7 +485,13 @@ export class CashRecordService {
   }
 
   /**
-   * Verifies the treatment belongs to this clinic AND this patient.
+   * Verifies the treatment belongs to this clinic, belongs to this patient, and
+   * is financially able to receive money.
+   *
+   * The client picks a treatment from a list the server produced, but the
+   * client is not trusted to have picked from it: a stale drawer, a replayed
+   * request or a hand-crafted payload must all be refused here. Eligibility is
+   * decided by `isTreatmentPayable`, the same rule the selector renders from.
    *
    * READ-ONLY ACROSS THE BOUNDARY: this is a lookup through the Treatment
    * module's public repository. Nothing in the Treatment domain is written.
@@ -507,6 +514,19 @@ export class CashRecordService {
       throw new BusinessRuleError('That treatment belongs to a different patient', {
         code: ERROR_CODES.TREATMENT_PATIENT_MISMATCH,
       });
+    }
+
+    const summary = await this.summaries.forTreatment(clinicId, treatmentId);
+    if (!isTreatmentPayable(treatment.status, summary.remainingAmountMinor)) {
+      throw new BusinessRuleError(
+        treatment.status === 'CANCELLED'
+          ? 'That treatment was cancelled and cannot receive a payment'
+          : 'That treatment is already fully paid',
+        {
+          code: ERROR_CODES.TREATMENT_NOT_PAYABLE,
+          details: { treatmentStatus: treatment.status },
+        },
+      );
     }
 
     return treatmentId;

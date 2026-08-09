@@ -15,11 +15,12 @@ export async function getFinanceOverviewHandler(request: FastifyRequest, reply: 
 }
 
 export async function listPatientBalancesHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { page, limit, filter, sort, search } = validatedQuery<PatientBalanceQueryInput>(request);
+  const { page, limit, filter, sort, search, patientId } =
+    validatedQuery<PatientBalanceQueryInput>(request);
 
   const { result, pagination } = await financeService.listPatientBalances(
     requireTenant(request).clinicId,
-    { filter, sort, ...(search ? { search } : {}) },
+    { filter, sort, ...(search ? { search } : {}), ...(patientId ? { patientId } : {}) },
     { page, limit },
   );
 

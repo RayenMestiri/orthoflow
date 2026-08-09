@@ -7,6 +7,18 @@
   width: min(100%, 86rem);
   margin-inline: auto;
   padding-inline: 0.5rem;
+  animation: profile-fade-in 0.25s ease-out;
+}
+
+@keyframes profile-fade-in {
+  from {
+    opacity: 0.2;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Back Navigation */
@@ -1050,3 +1062,241 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   ULTRA-PREMIUM PATIENT PROFILE SKELETON UI & SHIMMER ANIMATION
+   ========================================================================== */
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+@keyframes pulse-dot-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(13, 148, 136, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(13, 148, 136, 0);
+  }
+}
+
+.patient-profile-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 0.5rem 3rem;
+  max-width: min(100%, 86rem);
+  margin-inline: auto;
+}
+
+/* Floating Status Badge */
+.skeleton-pill-badge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: var(--radius-pill, 9999px);
+  background: color-mix(in srgb, var(--color-pine-700) 8%, white);
+  border: 1px solid color-mix(in srgb, var(--color-pine-700) 18%, transparent);
+  color: var(--color-pine-900);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.skeleton-pulse-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-pine-700);
+  animation: pulse-dot-glow 1.8s infinite ease-in-out;
+}
+
+/* Shimmer Bar Utility */
+.skeleton-bar,
+.skeleton-avatar,
+.skeleton-button,
+.skeleton-tab {
+  background: linear-gradient(
+    90deg,
+    #edf3f1 0%,
+    #e2ece9 35%,
+    #f4f8f7 65%,
+    #edf3f1 100%
+  );
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.8s infinite linear;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-bar--xs { height: 12px; border-radius: 4px; }
+.skeleton-bar--sm { height: 14px; border-radius: 4px; }
+.skeleton-bar--md { height: 18px; border-radius: 6px; }
+.skeleton-bar--title { height: 22px; border-radius: 6px; }
+.skeleton-bar--xl { height: 32px; border-radius: 8px; }
+.skeleton-bar--badge { height: 24px; border-radius: 9999px; }
+
+/* Header Skeleton */
+.skeleton-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.75rem 2rem;
+  background: var(--color-white);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 20px rgba(13, 41, 37, 0.04);
+}
+
+.skeleton-header__identity {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.skeleton-avatar {
+  width: 4.75rem;
+  height: 4.75rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-header__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.skeleton-tags {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.skeleton-header__actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.skeleton-button {
+  width: 110px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+}
+
+/* Tabs Skeleton */
+.skeleton-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.skeleton-tab {
+  height: 40px;
+  border-radius: var(--radius-sm);
+
+  &--active {
+    background: linear-gradient(
+      90deg,
+      #dcebe7 0%,
+      #cbe2dc 35%,
+      #e5f1ee 65%,
+      #dcebe7 100%
+    );
+  }
+}
+
+/* Grid & Cards Skeleton */
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.skeleton-card {
+  padding: 1.5rem;
+  background: var(--color-white);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.skeleton-card__header {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.skeleton-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.skeleton-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Premium Error Card */
+.profile-error-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3.5rem 2rem;
+  max-width: 32rem;
+  margin: 4rem auto;
+  background: var(--color-white);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+
+  h3 {
+    margin: 1.25rem 0 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 750;
+    color: var(--color-pine-900);
+  }
+
+  p {
+    margin: 0 0 1.75rem;
+    font-size: 0.875rem;
+    color: var(--color-slate);
+    line-height: 1.5;
+  }
+}
+
+.profile-error-card__icon {
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #fef2f2;
+  color: #b91c1c;
+
+  .material-icons {
+    font-size: 2rem;
+  }
+}
+
+.profile-error-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+

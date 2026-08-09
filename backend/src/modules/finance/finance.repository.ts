@@ -81,9 +81,17 @@ export class FinanceRepository {
    * ones contribute zero without any post-filtering — the ledger rule is
    * enforced inside the database rather than remembered in TypeScript.
    */
-  private balanceStages(clinicId: string): PipelineStage[] {
+  private balanceStages(clinicId: string, patientId?: string): PipelineStage[] {
     return [
-      { $match: { clinicId: toObjectId(clinicId, 'clinicId') } },
+      {
+        $match: {
+          clinicId: toObjectId(clinicId, 'clinicId'),
+          // Narrowed here rather than after the joins, so a single-patient
+          // lookup rides the (clinicId, patientId) index instead of walking
+          // every treatment in the clinic.
+          ...(patientId ? { patientId: toObjectId(patientId, 'patientId') } : {}),
+        },
+      },
       {
         $lookup: {
           from: 'cashRecords',
@@ -217,7 +225,7 @@ export class FinanceRepository {
       items: PatientBalanceAggregate[];
       total: { count: number }[];
     }>([
-      ...this.balanceStages(clinicId),
+      ...this.balanceStages(clinicId, query.patientId),
       ...this.searchStage(query.search),
       ...this.filterStage(query.filter ?? BALANCE_FILTERS.ALL),
       {
