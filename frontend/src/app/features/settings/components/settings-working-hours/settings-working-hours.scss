@@ -1,23 +1,22 @@
-/**
- * Compact weekly editor: one row per day, not seven cards. Density matters —
- * the whole week should be readable without scrolling on a laptop.
- */
+:host {
+  display: block;
+}
 
 .hours-list {
   margin: 0;
   padding: 0;
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   list-style: none;
   overflow: hidden;
 }
 
 .hours-day {
   display: grid;
-  grid-template-columns: 9rem minmax(0, 1fr) auto;
+  grid-template-columns: 10rem minmax(0, 1fr) auto;
   align-items: start;
-  gap: 0.75rem 1rem;
-  padding: 0.7rem 0.9rem;
+  gap: 0.75rem 1.25rem;
+  padding: 0.85rem 1.1rem;
   background: var(--color-white);
 
   & + & {
@@ -25,31 +24,33 @@
   }
 
   &--closed {
-    background: var(--color-porcelain);
+    background: #faf9f5;
   }
 }
 
 .hours-day__label {
   display: flex;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 .hours-day__name {
   color: var(--color-pine-900);
-  font-size: 0.85rem;
-  font-weight: 650;
+  font-size: 0.9rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
 }
 
 .hours-day__closed-tag {
-  padding: 0.1rem 0.45rem;
+  padding: 0.2rem 0.55rem;
   border-radius: var(--radius-pill);
   color: var(--color-muted);
   background: var(--color-mist);
-  font-size: 0.62rem;
-  font-weight: 650;
+  font-size: 0.68rem;
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .hours-day__periods {
@@ -57,39 +58,42 @@
   min-width: 0;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.45rem 0.75rem;
+  gap: 0.55rem 0.85rem;
 }
 
 .hours-day__empty {
   margin: 0;
-  padding-block: 0.65rem;
-  color: var(--color-muted);
-  font-size: 0.78rem;
+  padding-block: 0.75rem;
+  color: var(--color-slate);
+  font-size: 0.825rem;
+  font-weight: 500;
 }
 
 .hours-period {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.2rem 0.3rem 0.2rem 0.45rem;
+  gap: 0.45rem;
+  padding: 0.25rem 0.4rem 0.25rem 0.6rem;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-sm);
   background: var(--color-white);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 
   &:focus-within {
-    border-color: var(--color-pine-600);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-pine-600) 12%, transparent);
+    border-color: var(--color-pine-700);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-pine-700) 15%, transparent);
   }
 
   input {
-    width: 6.1rem;
-    height: 2.1rem;
+    width: 6.5rem;
+    height: 2.25rem;
     border: 0;
     outline: 0;
-    color: var(--color-ink);
+    color: var(--color-pine-900);
     background: transparent;
     font: inherit;
-    font-size: 0.82rem;
+    font-size: 0.875rem;
+    font-weight: 650;
     font-variant-numeric: tabular-nums;
 
     &[aria-invalid='true'] {
@@ -104,107 +108,93 @@
 
 .hours-period__dash {
   color: var(--color-muted);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .hours-period__remove {
   display: grid;
-  width: 1.7rem;
-  height: 1.7rem;
+  width: 1.85rem;
+  height: 1.85rem;
   place-items: center;
   border: 0;
-  border-radius: 0.35rem;
-  color: var(--color-muted);
+  border-radius: 50%;
+  color: var(--color-slate);
   background: transparent;
   cursor: pointer;
 
   &:hover {
     color: var(--color-danger);
-    background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+    background: color-mix(in srgb, var(--color-danger) 10%, transparent);
   }
+
+  .material-icons {
+    font-size: 1rem;
+  }
+}
+
+.hours-day__error {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.78rem;
+  font-weight: 600;
 
   .material-icons {
     font-size: 0.95rem;
   }
 }
 
-/* Errors carry an icon and text — never colour alone. */
-.hours-day__error {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 0.35rem;
-  margin: 0;
-  color: var(--color-danger);
-  font-size: 0.72rem;
-  font-weight: 600;
-
-  .material-icons {
-    font-size: 0.9rem;
-  }
-}
-
 .hours-day__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.4rem;
 
   button {
     display: inline-flex;
-    min-height: 2.1rem;
+    min-height: 2.35rem;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0 0.55rem;
-    border: 1px solid transparent;
+    gap: 0.3rem;
+    padding: 0 0.7rem;
+    border: 1px solid var(--color-line);
     border-radius: var(--radius-sm);
-    color: var(--color-slate);
-    background: transparent;
-    font-size: 0.72rem;
-    font-weight: 600;
+    color: var(--color-pine-700);
+    background: var(--color-white);
+    font-size: 0.78rem;
+    font-weight: 650;
     cursor: pointer;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
 
     &:hover {
-      border-color: var(--color-line);
-      color: var(--color-pine-700);
+      border-color: var(--color-pine-700);
       background: var(--color-sage);
     }
 
     .material-icons {
-      font-size: 0.9rem;
+      font-size: 0.95rem;
     }
   }
 }
 
 .hours-total {
-  margin: 0.7rem 0 0;
-  color: var(--color-muted);
-  font-size: 0.75rem;
+  margin: 1rem 0 0;
+  color: var(--color-copper-600);
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 
-/* Tablet and below: stack the row so the time inputs keep full width. */
+/* Tablet and mobile responsiveness */
 @media (max-width: 60rem) {
   .hours-day {
     grid-template-columns: minmax(0, 1fr);
-    gap: 0.5rem;
-    padding: 0.85rem 0.9rem;
+    gap: 0.65rem;
+    padding: 0.95rem 1.1rem;
   }
 
   .hours-day__label {
     min-height: 0;
-  }
-
-  .hours-day__actions {
-    padding-top: 0.15rem;
-  }
-}
-
-@media (max-width: 26rem) {
-  .hours-period {
-    width: 100%;
-    justify-content: space-between;
-
-    input {
-      width: 5.6rem;
-    }
   }
 }

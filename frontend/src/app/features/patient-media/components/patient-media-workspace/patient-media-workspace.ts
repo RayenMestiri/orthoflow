@@ -4,12 +4,18 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
+  ElementRef,
   inject,
   input,
+  OnDestroy,
   signal,
+  ViewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { PatientMediaStore } from '../../data-access/patient-media.store';
 import {
   PATIENT_MEDIA_CATEGORIES,
@@ -20,14 +26,17 @@ import {
   type TreatmentMediaOption,
 } from '../../models/patient-media.models';
 import {
+  createLocalPreview,
   formatPatientMediaSize,
   patientMediaPreviewUrl,
   patientMediaThumbnailUrl,
+  revokeLocalPreview,
   validatePatientMediaFile,
 } from '../../utils/patient-media.utils';
 
-type WorkspaceFilter = 'ALL' | 'PHOTOS' | 'XRAYS' | 'DOCUMENTS' | 'ARCHIVED';
-type DrawerMode = 'upload' | 'preview' | 'edit';
+export type WorkspaceFilter = 'ALL' | 'PHOTOS' | 'XRAYS' | 'DOCUMENTS' | 'ARCHIVED';
+export type DrawerMode = 'upload' | 'preview' | 'edit';
+export type SortOrder = 'newest' | 'oldest';
 
 @Component({
   selector: 'app-patient-media-workspace',
@@ -37,18 +46,18 @@ type DrawerMode = 'upload' | 'preview' | 'edit';
   styleUrl: './patient-media-workspace.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PatientMediaWorkspace {
+export class PatientMediaWorkspace implements OnDestroy {
   private readonly document = inject(DOCUMENT);
-  protected readonly workspaceFilters: readonly {
-    value: WorkspaceFilter;
-    label: string;
-  }[] = [
+  private readonly destroyRef = inject(DestroyRef);
+
+  protected readonly workspaceFilters: readonly { value: WorkspaceFilter; label: string }[] = [
     { value: 'ALL', label: 'All' },
     { value: 'PHOTOS', label: 'Photos' },
     { value: 'XRAYS', label: 'X-rays' },
     { value: 'DOCUMENTS', label: 'Documents' },
     { value: 'ARCHIVED', label: 'Archived' },
   ];
+
   protected readonly store = inject(PatientMediaStore);
 
   readonly patientId = input.required<string>();
@@ -58,11 +67,23 @@ export class PatientMediaWorkspace {
 
   protected readonly categories = computed(() => this.manageableCategories());
   protected readonly activeFilter = signal<WorkspaceFilter>('ALL');
+  protected readonly sortOrder = signal<SortOrder>('newest');
   protected readonly drawerMode = signal<DrawerMode | null>(null);
   protected readonly selected = signal<PatientMedia | null>(null);
   protected readonly archiveTarget = signal<PatientMedia | null>(null);
+  protected readonly deleteTarget = signal<PatientMedia | null>(null);
+  protected readonly replaceTarget = signal<PatientMedia | null>(null);
+  protected readonly replaceSelectedFile = signal<File | null>(null);
+  protected readonly replaceFileError = signal<string | null>(null);
+  protected readonly replaceLocalPreview = signal<string | null>(null);
   protected readonly selectedFile = signal<File | null>(null);
   protected readonly fileError = signal<string | null>(null);
+  /** Local ObjectURL for image preview before upload. Always string | null. */
+  protected readonly localPreviewUrl = signal<string | null>(null);
+
+  /** Template ref for the native file input — needed to reset its value on replaceFile(). */
+  @ViewChild('fileInput') private readonly fileInputRef?: ElementRef<HTMLInputElement>;
+  @ViewChild('replaceInput') protected readonly replaceInputRef?: ElementRef<HTMLInputElement>;
 
   protected readonly search = new FormControl('', { nonNullable: true });
   protected readonly archiveReason = new FormControl('', {
@@ -85,17 +106,28 @@ export class PatientMediaWorkspace {
 
   protected readonly visibleItems = computed(() => {
     const items = this.store.items();
-    switch (this.activeFilter()) {
+    const filter = this.activeFilter();
+    let filtered: PatientMedia[];
+    switch (filter) {
       case 'PHOTOS':
-        return items.filter((item) => item.mediaType === 'IMAGE' && item.category !== 'XRAY');
+        filtered = items.filter((item) => item.mediaType === 'IMAGE' && item.category !== 'XRAY');
+        break;
       case 'XRAYS':
-        return items.filter((item) => item.category === 'XRAY');
+        filtered = items.filter((item) => item.category === 'XRAY');
+        break;
       case 'DOCUMENTS':
-        return items.filter((item) => item.mediaType !== 'IMAGE');
+        filtered = items.filter((item) => item.mediaType !== 'IMAGE');
+        break;
       default:
-        return items;
+        filtered = items;
     }
+    // Client-side sort (API returns newest first by default)
+    if (this.sortOrder() === 'oldest') {
+      return [...filtered].reverse();
+    }
+    return filtered;
   });
+
   protected readonly imageItems = computed(() =>
     this.visibleItems().filter((item) => item.mediaType === 'IMAGE'),
   );
@@ -106,8 +138,16 @@ export class PatientMediaWorkspace {
   constructor() {
     effect(() => {
       const patientId = this.patientId();
-      if (patientId) void this.store.load(patientId);
+      if (!patientId) return;
+      void this.store.load(patientId).then(() => {
+        // Auto-retry once on server errors (transient backend restart)
+        if (this.store.error()) {
+          setTimeout(() => void this.retryLoad(), 1500);
+        }
+      });
     });
+
+    // Scroll lock when drawer or archive dialog is open
     effect((onCleanup) => {
       if (this.drawerMode() === null && this.archiveTarget() === null) return;
       const previousOverflow = this.document.body.style.overflow;
@@ -116,6 +156,15 @@ export class PatientMediaWorkspace {
         this.document.body.style.overflow = previousOverflow;
       });
     });
+
+    // Debounced search — no button click needed
+    this.search.valueChanges
+      .pipe(debounceTime(350), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => void this.applySearch());
+  }
+
+  ngOnDestroy(): void {
+    revokeLocalPreview(this.localPreviewUrl());
   }
 
   protected categoryLabel(category: PatientMediaCategory): string {
@@ -168,11 +217,30 @@ export class PatientMediaWorkspace {
     );
   }
 
+  /** Re-fetches with the current active filter. Called from the error banner Retry button. */
+  protected async retryLoad(): Promise<void> {
+    await this.store.load(
+      this.patientId(),
+      {
+        status: this.activeFilter() === 'ARCHIVED' ? 'ARCHIVED' : 'ACTIVE',
+        search: this.search.value.trim() || undefined,
+        page: 1,
+        limit: 60,
+      },
+      true,
+    );
+  }
+
   protected openUpload(): void {
     this.selectedFile.set(null);
     this.fileError.set(null);
+    revokeLocalPreview(this.localPreviewUrl());
+    this.localPreviewUrl.set(null);
+    const defaultCat = this.categories().includes('PROGRESS_PHOTO')
+      ? 'PROGRESS_PHOTO'
+      : (this.categories().find((c) => c !== 'PROFILE_PHOTO') ?? 'ADMINISTRATIVE');
     this.mediaForm.reset({
-      category: this.categories()[0] ?? 'ADMINISTRATIVE',
+      category: defaultCat,
       title: '',
       capturedAt: '',
       treatmentId: '',
@@ -200,7 +268,11 @@ export class PatientMediaWorkspace {
   }
 
   protected closeDrawer(): void {
-    if (!this.store.isSaving()) this.drawerMode.set(null);
+    if (!this.store.isSaving()) {
+      this.drawerMode.set(null);
+      revokeLocalPreview(this.localPreviewUrl());
+      this.localPreviewUrl.set(null);
+    }
   }
 
   protected fileChanged(event: Event): void {
@@ -208,6 +280,26 @@ export class PatientMediaWorkspace {
     this.selectedFile.set(file);
     const error = file ? validatePatientMediaFile(file) : 'Choose a file to upload.';
     this.fileError.set(error);
+
+    // Auto-switch category from photo to document when a PDF is selected
+    if (file && file.type === 'application/pdf') {
+      const photoCategories: PatientMediaCategory[] = [
+        'PROFILE_PHOTO',
+        'EXTRAORAL_PHOTO',
+        'INTRAORAL_PHOTO',
+        'PROGRESS_PHOTO',
+      ];
+      if (photoCategories.includes(this.mediaForm.controls.category.value)) {
+        const docCat =
+          this.categories().find((c) => !photoCategories.includes(c)) ?? 'ADMINISTRATIVE';
+        this.mediaForm.controls.category.setValue(docCat);
+      }
+    }
+
+    // Revoke old preview and create new one for images
+    revokeLocalPreview(this.localPreviewUrl());
+    this.localPreviewUrl.set(file && !error ? createLocalPreview(file) : null);
+
     if (file && !error && !this.mediaForm.controls.title.value.trim()) {
       this.mediaForm.controls.title.setValue(
         file.name
@@ -215,6 +307,20 @@ export class PatientMediaWorkspace {
           .replaceAll(/[-_]+/g, ' ')
           .slice(0, 120),
       );
+    }
+  }
+
+  protected replaceFile(): void {
+    // Reset the file input to let the user pick again.
+    // The native value must also be cleared: Angular signals control the
+    // component state, but the browser still shows the old filename unless we
+    // reset the <input> element itself.
+    revokeLocalPreview(this.localPreviewUrl());
+    this.localPreviewUrl.set(null);
+    this.selectedFile.set(null);
+    this.fileError.set(null);
+    if (this.fileInputRef?.nativeElement) {
+      this.fileInputRef.nativeElement.value = '';
     }
   }
 
@@ -243,6 +349,8 @@ export class PatientMediaWorkspace {
       capturedAt: this.toInstant(value.capturedAt),
     });
     if (saved) {
+      revokeLocalPreview(this.localPreviewUrl());
+      this.localPreviewUrl.set(null);
       this.drawerMode.set(null);
       this.openPreview(saved);
     }
@@ -289,6 +397,101 @@ export class PatientMediaWorkspace {
     }
   }
 
+  protected async restore(): Promise<void> {
+    const media = this.selected();
+    if (!media) return;
+    const saved = await this.store.restore(media.id);
+    if (saved) {
+      this.drawerMode.set(null);
+      this.selected.set(null);
+    }
+  }
+
+  /**
+   * Restores an archived media item directly from the gallery/list without
+   * requiring the preview drawer to be open first.
+   * Called from Restore buttons on image cards and document rows.
+   */
+  protected async restoreItem(media: PatientMedia): Promise<void> {
+    if (!this.canManageItem(media)) return;
+    await this.store.restore(media.id);
+  }
+
+  /** Opens the permanent-delete confirmation for a single item. */
+  protected confirmDelete(media: PatientMedia): void {
+    if (!this.canManageItem(media)) return;
+    this.deleteTarget.set(media);
+  }
+
+  protected closeDelete(): void {
+    if (!this.store.isSaving()) this.deleteTarget.set(null);
+  }
+
+  /** Permanently deletes the item after confirmation. */
+  protected async deleteItem(): Promise<void> {
+    const media = this.deleteTarget();
+    if (!media) return;
+    const ok = await this.store.delete(media.id);
+    if (ok) {
+      this.deleteTarget.set(null);
+      if (this.selected()?.id === media.id) {
+        this.drawerMode.set(null);
+        this.selected.set(null);
+      }
+    }
+  }
+
+  /** Opens the replace-image file picker for an existing item. */
+  protected openReplaceImage(media: PatientMedia): void {
+    if (!this.canManageItem(media)) return;
+    this.replaceTarget.set(media);
+    this.replaceSelectedFile.set(null);
+    this.replaceFileError.set(null);
+    revokeLocalPreview(this.replaceLocalPreview());
+    this.replaceLocalPreview.set(null);
+    setTimeout(() => this.replaceInputRef?.nativeElement?.click(), 0);
+  }
+
+  protected replaceImageFileChanged(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    if (!file) return;
+    const error = validatePatientMediaFile(file);
+    this.replaceFileError.set(error);
+    this.replaceSelectedFile.set(error ? null : file);
+    revokeLocalPreview(this.replaceLocalPreview());
+    this.replaceLocalPreview.set(file && !error ? createLocalPreview(file) : null);
+    // Reset native input so same file can be selected again if needed
+    if (this.replaceInputRef?.nativeElement) this.replaceInputRef.nativeElement.value = '';
+  }
+
+  protected cancelReplaceImage(): void {
+    revokeLocalPreview(this.replaceLocalPreview());
+    this.replaceLocalPreview.set(null);
+    this.replaceSelectedFile.set(null);
+    this.replaceFileError.set(null);
+    this.replaceTarget.set(null);
+  }
+
+  protected async saveReplaceImage(): Promise<void> {
+    const media = this.replaceTarget();
+    const file = this.replaceSelectedFile();
+    if (!media || !file || this.replaceFileError()) return;
+    const saved = await this.store.replaceFile(media.id, file);
+    if (saved) {
+      revokeLocalPreview(this.replaceLocalPreview());
+      this.replaceLocalPreview.set(null);
+      this.replaceTarget.set(null);
+      this.replaceSelectedFile.set(null);
+      // Update the selected item in case the drawer is open
+      if (this.selected()?.id === saved.id) this.selected.set(saved);
+    }
+  }
+
+  protected setSortOrder(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value as SortOrder;
+    this.sortOrder.set(value);
+  }
+
   /**
    * Native submit would reload the patient profile and abandon the in-flight
    * archive request. These forms carry no `formGroup`/`ngForm`, so no Angular
@@ -297,12 +500,6 @@ export class PatientMediaWorkspace {
   protected submitArchive(event: SubmitEvent): void {
     event.preventDefault();
     void this.archive();
-  }
-
-  /** Same reason as `submitArchive`: this form has no directive to cancel it. */
-  protected submitSearch(event: SubmitEvent): void {
-    event.preventDefault();
-    void this.applySearch();
   }
 
   protected canManageItem(media: PatientMedia): boolean {

@@ -9,6 +9,9 @@ import {
   validatedQuery,
 } from '../../common/utils/request-context.js';
 import { ok, paginated } from '../../common/utils/response.js';
+import { auditLogService } from '../audit-logs/audit-log.service.js';
+import { AUDIT_RESOURCE_TYPES } from '../audit-logs/audit-log.types.js';
+import { userRepository } from '../users/user.repository.js';
 import { cashRecordService, type FinancialActorContext } from './cash-record.service.js';
 import type {
   CancelCashRecordBody,
@@ -18,6 +21,7 @@ import type {
   RecordPaymentBody,
   TreatmentIdParam,
 } from './cash-record.schema.js';
+
 
 /**
  * Thin HTTP adapter: read validated input, call a use case, shape the response.
@@ -91,6 +95,38 @@ export async function cancelCashRecordHandler(request: FastifyRequest, reply: Fa
     mutationContext(request),
   );
   return reply.send(ok(record));
+}
+
+export async function getCashRecordActivityHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const clinicId = requireTenant(request).clinicId;
+  const { cashRecordId } = validatedParams<CashRecordIdParam>(request);
+  // Verify the record belongs to this clinic before serving audit events
+  await cashRecordService.getById(clinicId, cashRecordId);
+  const { result } = await auditLogService.listForClinic(
+    clinicId,
+    { resourceType: AUDIT_RESOURCE_TYPES.CASH_RECORD, resourceId: cashRecordId },
+    { page: 1, limit: 50 },
+  );
+
+  // Resolve actor names in a single batched query so the frontend
+  // can display "by Dr Ahmed" rather than a raw user ID.
+  const actorIds = [...new Set(result.items.map((e) => e.actorUserId).filter(Boolean) as string[])];
+  const actors = await userRepository.findManyByIds(actorIds);
+  const actorMap = new Map(actors.map((u) => [u._id.toString(), `${u.firstName} ${u.lastName}`]));
+
+  const enriched = result.items.map((event) => ({
+    id: event.id,
+    action: event.action,
+    actorUserId: event.actorUserId,
+    actorName: event.actorUserId ? (actorMap.get(event.actorUserId) ?? null) : null,
+    metadata: event.metadata,
+    createdAt: event.createdAt,
+  }));
+
+  return reply.send(ok(enriched));
 }
 
 export async function getPatientFinancialSummaryHandler(

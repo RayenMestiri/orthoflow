@@ -88,6 +88,35 @@ export async function archivePatientMediaHandler(request: FastifyRequest, reply:
   return reply.send(ok(media));
 }
 
+export async function restorePatientMediaHandler(request: FastifyRequest, reply: FastifyReply) {
+  const media = await patientMediaService.restore(
+    requireTenant(request).clinicId,
+    validatedParams<PatientMediaIdParam>(request).mediaId,
+    mediaMutationContext(request),
+  );
+  return reply.send(ok(media));
+}
+
+export async function deletePatientMediaHandler(request: FastifyRequest, reply: FastifyReply) {
+  await patientMediaService.permanentDelete(
+    requireTenant(request).clinicId,
+    validatedParams<PatientMediaIdParam>(request).mediaId,
+    mediaMutationContext(request),
+  );
+  return reply.status(204).send();
+}
+
+export async function replacePatientMediaHandler(request: FastifyRequest, reply: FastifyReply) {
+  const upload = await parsePatientMediaUpload(request);
+  const media = await patientMediaService.replaceFile(
+    requireTenant(request).clinicId,
+    validatedParams<PatientMediaIdParam>(request).mediaId,
+    upload.file,
+    mediaMutationContext(request),
+  );
+  return reply.send(ok(media));
+}
+
 function mediaMutationContext(request: FastifyRequest): PatientMediaMutationContext {
   return {
     ...mutationContext(request),

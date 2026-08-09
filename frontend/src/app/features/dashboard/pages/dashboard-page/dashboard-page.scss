@@ -365,3 +365,107 @@
     width: fit-content;
   }
 }
+
+/* Quick Actions Grid */
+.dashboard__actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.dashboard__action-card {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  padding: 1.35rem 1.5rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  color: inherit;
+  text-decoration: none;
+  transition: all 180ms ease-out;
+  box-shadow: 0 4px 16px rgba(13, 41, 37, 0.04);
+
+  &:hover {
+    border-color: var(--color-pine-700);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(13, 41, 37, 0.08);
+
+    .dashboard__action-icon {
+      background: var(--color-pine-700);
+      color: var(--color-white);
+    }
+
+    .dashboard__action-arrow {
+      transform: translateX(4px);
+      color: var(--color-pine-700);
+    }
+  }
+}
+
+.dashboard__action-icon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+  background: var(--color-sage);
+  color: var(--color-pine-700);
+  transition: all 180ms ease-out;
+
+  .material-icons {
+    font-size: 1.5rem;
+  }
+}
+
+.dashboard__action-copy {
+  flex: 1;
+  min-width: 0;
+
+  h3 {
+    margin: 0 0 0.25rem;
+    color: var(--color-pine-900);
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    color: var(--color-slate);
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+}
+
+.dashboard__action-arrow {
+  color: var(--color-muted);
+  font-size: 1.25rem;
+  transition: transform 180ms ease-out, color 180ms ease-out;
+}
+
+.dashboard__link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--color-pine-700);
+  border-radius: var(--radius-sm);
+  color: var(--color-pine-700);
+  background: var(--color-white);
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition: all 140ms ease;
+
+  &:hover {
+    background: var(--color-pine-700);
+    color: var(--color-white);
+  }
+
+  .material-icons {
+    font-size: 1rem;
+  }
+}
+

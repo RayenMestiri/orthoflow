@@ -35,6 +35,41 @@
     </ol>
   </section>
 
+  <div class="dashboard__actions-grid" aria-label="Quick Navigation">
+    <a routerLink="/app/patients" class="dashboard__action-card">
+      <div class="dashboard__action-icon">
+        <span class="material-icons" aria-hidden="true">group</span>
+      </div>
+      <div class="dashboard__action-copy">
+        <h3>Patient Profiles &amp; Treatments</h3>
+        <p>Manage patient records, clinical media, and treatment plans.</p>
+      </div>
+      <span class="material-icons dashboard__action-arrow" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a routerLink="/app/schedule" class="dashboard__action-card">
+      <div class="dashboard__action-icon">
+        <span class="material-icons" aria-hidden="true">calendar_month</span>
+      </div>
+      <div class="dashboard__action-copy">
+        <h3>Appointments Schedule</h3>
+        <p>Book visits, track arrivals, and manage chair schedule.</p>
+      </div>
+      <span class="material-icons dashboard__action-arrow" aria-hidden="true">arrow_forward</span>
+    </a>
+
+    <a routerLink="/app/settings" class="dashboard__action-card">
+      <div class="dashboard__action-icon">
+        <span class="material-icons" aria-hidden="true">tune</span>
+      </div>
+      <div class="dashboard__action-copy">
+        <h3>Clinic Settings</h3>
+        <p>Update clinic branding, logo URL, and workspace configuration.</p>
+      </div>
+      <span class="material-icons dashboard__action-arrow" aria-hidden="true">arrow_forward</span>
+    </a>
+  </div>
+
   <div class="dashboard__work-grid">
     <section class="dashboard__day" aria-labelledby="day-title">
       <div class="dashboard__section-head">
@@ -42,22 +77,24 @@
           <p>Operational view</p>
           <h2 id="day-title">Today’s clinic flow</h2>
         </div>
-        <span>Schedule module pending</span>
+        <a routerLink="/app/schedule" class="dashboard__link-btn">
+          <span class="material-icons" aria-hidden="true">calendar_month</span>
+          Open schedule
+        </a>
       </div>
       <div class="dashboard__timeline">
         <div>
           <time>08:00</time><span></span>
           <p>
             <strong>Clinic opens</strong
-            ><small>The daily timeline will organize arrivals, chairs, and handoffs.</small>
+            ><small>The daily timeline organizes arrivals, chairs, and handoffs.</small>
           </p>
         </div>
         <div class="dashboard__timeline-now">
           <time>Now</time><span></span>
           <p>
-            <strong>No live schedule connected yet</strong
-            ><small
-              >This space stays intentionally quiet until appointment data is authoritative.</small
+            <strong>Live schedule active</strong
+            ><small>Click "Open schedule" above to view today's appointments and patient arrivals.</small
             >
           </p>
         </div>
@@ -65,7 +102,7 @@
           <time>Close</time><span></span>
           <p>
             <strong>Traceable day-end</strong
-            ><small>Completed work and physical-payment records will reconcile here.</small>
+            ><small>Completed work and physical-payment records reconcile here.</small>
           </p>
         </div>
       </div>

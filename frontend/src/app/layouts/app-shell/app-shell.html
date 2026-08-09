@@ -42,12 +42,23 @@
             <a [routerLink]="item.route" routerLinkActive="app-shell__nav-link--active">
               <span class="material-icons" aria-hidden="true">{{ item.icon }}</span>
               <span>{{ item.label }}</span>
+              @if (item.location) {
+                <small>{{ item.location }}</small>
+              }
             </a>
           } @else {
-            <span class="app-shell__nav-link app-shell__nav-link--future" aria-disabled="true">
+            <span
+              class="app-shell__nav-link"
+              [class.app-shell__nav-link--future]="!item.location"
+              [class.app-shell__nav-link--location]="item.location"
+              [attr.aria-disabled]="item.location ? null : true"
+              [attr.title]="
+                item.location ? 'Open a patient profile to manage treatment' : 'Coming soon'
+              "
+            >
               <span class="material-icons" aria-hidden="true">{{ item.icon }}</span>
               <span>{{ item.label }}</span>
-              <small>Soon</small>
+              <small>{{ item.location ?? 'Soon' }}</small>
             </span>
           }
         }

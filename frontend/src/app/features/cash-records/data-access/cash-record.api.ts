@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { map, type Observable } from 'rxjs';
 import type { ApiEnvelope } from '../../../core/auth/auth.models';
 import { API_BASE_URL } from '../../../core/config/api.config';
+import type { CashRecordActivity } from '../models/cash-record-activity.model';
 import type { CashRecord, CashRecordFilter, RecordPaymentInput } from '../models/cash-record.model';
 import type { FinancialSummary } from '../models/financial-summary.model';
 import type { ReceiptDocument } from '../models/receipt.model';
@@ -80,6 +81,12 @@ export class CashRecordApiService {
 
   receiptFor(cashRecordId: string): Observable<ReceiptDocument> {
     return this.getData<ReceiptDocument>(`${this.baseUrl}/cash-records/${cashRecordId}/receipt`);
+  }
+
+  activityForRecord(cashRecordId: string): Observable<CashRecordActivity[]> {
+    return this.getData<CashRecordActivity[]>(
+      `${this.baseUrl}/cash-records/${cashRecordId}/activity`,
+    );
   }
 
   private getData<T>(url: string): Observable<T> {

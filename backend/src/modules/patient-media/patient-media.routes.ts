@@ -8,8 +8,11 @@ import {
 } from '../../common/validation/api-schemas.js';
 import {
   archivePatientMediaHandler,
+  deletePatientMediaHandler,
   getPatientMediaHandler,
   listPatientMediaHandler,
+  replacePatientMediaHandler,
+  restorePatientMediaHandler,
   updatePatientMediaHandler,
   uploadPatientMediaHandler,
 } from './patient-media.controller.js';
@@ -77,6 +80,15 @@ export const patientMediaPatientRoutes: FastifyPluginAsyncZod = async (app) => {
 };
 
 export const patientMediaRoutes: FastifyPluginAsyncZod = async (app) => {
+  await app.register(multipart, {
+    limits: {
+      fields: 8,
+      files: 1,
+      parts: 9,
+      fieldSize: 2048,
+      fileSize: PATIENT_MEDIA_MAX_UPLOAD_BYTES,
+    },
+  });
   app.addHook('preHandler', app.authenticate);
   app.addHook('preHandler', app.requireClinic());
 
@@ -134,5 +146,64 @@ export const patientMediaRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     archivePatientMediaHandler,
+  );
+
+  app.post(
+    '/:mediaId/restore',
+    {
+      preHandler: [app.requirePermission(PERMISSIONS.PATIENT_MEDIA_MANAGE)],
+      schema: {
+        tags: ['patient-media'],
+        summary: 'Restore an archived patient file',
+        security: [{ bearerAuth: [] }],
+        params: patientMediaIdParamSchema,
+        response: {
+          200: successSchema(patientMediaDtoSchema),
+          ...errorResponses(400, 401, 403, 404, 422),
+        },
+      },
+    },
+    restorePatientMediaHandler,
+  );
+
+  // DELETE — permanent removal from Cloudinary + MongoDB
+  app.delete(
+    '/:mediaId',
+    {
+      preHandler: [app.requirePermission(PERMISSIONS.PATIENT_MEDIA_MANAGE)],
+      schema: {
+        tags: ['patient-media'],
+        summary: 'Permanently delete a patient media record and its binary',
+        description:
+          'Removes the file from Cloudinary and the metadata from the database. This action is irreversible.',
+        security: [{ bearerAuth: [] }],
+        params: patientMediaIdParamSchema,
+        response: {
+          ...errorResponses(401, 403, 404, 503),
+        },
+      },
+    },
+    deletePatientMediaHandler,
+  );
+
+  // POST /:mediaId/replace — swap the binary while keeping metadata
+  app.post(
+    '/:mediaId/replace',
+    {
+      preHandler: [app.requirePermission(PERMISSIONS.PATIENT_MEDIA_MANAGE)],
+      schema: {
+        tags: ['patient-media'],
+        summary: 'Replace the file binary of an existing media record',
+        description:
+          'Uploads a new image or PDF, replaces the stored binary, and removes the old Cloudinary asset. Metadata is unchanged.',
+        security: [{ bearerAuth: [] }],
+        params: patientMediaIdParamSchema,
+        response: {
+          200: successSchema(patientMediaDtoSchema),
+          ...errorResponses(400, 401, 403, 404, 422, 503),
+        },
+      },
+    },
+    replacePatientMediaHandler,
   );
 };

@@ -77,4 +77,43 @@ export class PatientMediaApiService {
       })
       .pipe(map((response) => response.data));
   }
+
+  restore(mediaId: string): Observable<PatientMedia> {
+    return this.http
+      .post<ApiEnvelope<PatientMedia>>(`${this.baseUrl}/patient-media/${mediaId}/restore`, {})
+      .pipe(map((response) => response.data));
+  }
+
+  delete(mediaId: string): Observable<void> {
+    return this.http
+      .delete<void>(`${this.baseUrl}/patient-media/${mediaId}`);
+  }
+
+  replaceFile(mediaId: string, file: File): Observable<PatientMediaUploadEvent> {
+    const form = new FormData();
+    // The replace endpoint reuses the upload validation — we only need the file.
+    // Provide dummy required fields; the service ignores them (metadata is kept).
+    form.append('category', 'XRAY'); // placeholder — server ignores for replace
+    form.append('title', file.name);
+    form.append('file', file, file.name);
+
+    return this.http
+      .post<ApiEnvelope<PatientMedia>>(`${this.baseUrl}/patient-media/${mediaId}/replace`, form, {
+        observe: 'events',
+        reportProgress: true,
+      })
+      .pipe(
+        map((event): PatientMediaUploadEvent | null => {
+          if (event.type === HttpEventType.UploadProgress) {
+            const progress = event.total ? Math.round((event.loaded / event.total) * 100) : 0;
+            return { kind: 'progress', progress };
+          }
+          if (event.type === HttpEventType.Response && event.body) {
+            return { kind: 'complete', media: event.body.data };
+          }
+          return null;
+        }),
+        filter((event): event is PatientMediaUploadEvent => event !== null),
+      );
+  }
 }

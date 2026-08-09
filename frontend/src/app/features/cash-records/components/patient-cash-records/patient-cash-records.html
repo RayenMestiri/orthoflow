@@ -29,7 +29,7 @@
       Loading payment history…
     </div>
   } @else {
-    <!-- Financial overview: calm, precise, three numbers. -->
+    <!-- Financial overview -->
     <section class="fin-summary" aria-labelledby="fin-summary-title">
       <h3 id="fin-summary-title" class="fin-summary__title">Financial overview</h3>
       <dl class="fin-summary__grid">
@@ -59,9 +59,10 @@
 
     @if (!store.hasRecords()) {
       <div class="fin-empty">
+        <span class="material-icons" aria-hidden="true">payments</span>
         <p><strong>No payments recorded yet.</strong></p>
         <p>
-          When the clinic receives money for this patient’s treatment, record it here to maintain a
+          When the clinic receives money for this patient's treatment, record it here to maintain a
           clear history.
         </p>
         @if (canRecord) {
@@ -90,109 +91,131 @@
           </div>
         </header>
 
-        @if (store.visibleRecords().length === 0) {
-          <p class="fin-history__empty">No payments match this filter.</p>
+        <!-- Flexible Search & Month/Method Filter Bar -->
+        <div class="fin-filter-bar">
+          <div class="fin-search-field">
+            <span class="material-icons" aria-hidden="true">search</span>
+            <input
+              type="text"
+              [formControl]="search"
+              placeholder="Search receipt #, payer, amount or note…"
+              aria-label="Search payment records"
+            />
+            @if (search.value) {
+              <button
+                type="button"
+                class="fin-search-clear"
+                aria-label="Clear search"
+                (click)="search.reset('')"
+              >
+                <span class="material-icons" aria-hidden="true">close</span>
+              </button>
+            }
+          </div>
+
+          <div class="fin-filter-controls">
+            <!-- Month / Date Range Filter -->
+            <label class="fin-select-wrapper">
+              <span class="material-icons" aria-hidden="true">calendar_month</span>
+              <select [formControl]="monthFilter" aria-label="Filter by month or range">
+                <option value="ALL">All dates</option>
+                <option value="THIS_MONTH">This month</option>
+                <option value="LAST_MONTH">Last month</option>
+                <option value="LAST_3_MONTHS">Past 3 months</option>
+                <option value="THIS_YEAR">This year</option>
+                @if (availableMonths().length > 0) {
+                  <optgroup label="Specific months">
+                    @for (m of availableMonths(); track m.value) {
+                      <option [value]="m.value">{{ m.label }}</option>
+                    }
+                  </optgroup>
+                }
+              </select>
+            </label>
+
+            <!-- Payment Method Filter -->
+            <label class="fin-select-wrapper">
+              <span class="material-icons" aria-hidden="true">payments</span>
+              <select [formControl]="methodFilter" aria-label="Filter by payment method">
+                <option value="ALL">All methods</option>
+                <option value="CASH">Cash</option>
+                <option value="CARD_AT_CLINIC">Card at clinic</option>
+                <option value="BANK_TRANSFER">Bank transfer</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </label>
+
+            @if (hasActiveFilters()) {
+              <button type="button" class="fin-clear-btn" (click)="clearFilters()">
+                <span class="material-icons" aria-hidden="true">filter_alt_off</span>
+                Reset
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (filteredRecords().length === 0) {
+          <div class="fin-history__empty-container">
+            <p class="fin-history__empty">No payments match your selected search and filters.</p>
+            @if (hasActiveFilters()) {
+              <button type="button" class="fin-btn" (click)="clearFilters()">
+                Reset all filters
+              </button>
+            }
+          </div>
         } @else {
           <ol class="fin-ledger">
-            @for (record of store.visibleRecords(); track record.id) {
-              <li class="fin-entry" [attr.data-status]="record.status">
-                <div class="fin-entry__main">
-                  <time class="fin-entry__when" [attr.datetime]="record.receivedAt">
-                    {{ record.receivedAt | date: 'dd MMM y' }}
-                    <span>{{ record.receivedAt | date: 'HH:mm' }}</span>
-                  </time>
-
-                  <p class="fin-entry__amount">
-                    <!-- The sign carries meaning, so status is also stated in words. -->
-                    {{ record.status === 'CANCELLED' ? '' : '+' }}{{ record.amountFormatted }}
-                    {{ record.currency }}
-                  </p>
-
-                  <div class="fin-entry__facts">
+            @for (record of filteredRecords(); track record.id) {
+              <li
+                class="fin-entry"
+                [class.fin-entry--cancelled]="record.status === 'CANCELLED'"
+                [attr.data-status]="record.status"
+              >
+                <button
+                  type="button"
+                  class="fin-entry__row"
+                  (click)="openDetails(record)"
+                  [attr.aria-label]="
+                    'View details for payment of ' + record.amountFormatted + ' ' + record.currency
+                  "
+                >
+                  <!-- Amount + Status -->
+                  <div class="fin-entry__amount-col">
+                    <span class="fin-entry__amount">
+                      {{ record.status === 'CANCELLED' ? '' : '+' }}{{ record.amountFormatted }}
+                      <span class="fin-entry__currency">{{ record.currency }}</span>
+                    </span>
                     <span class="fin-tag" [attr.data-status]="record.status">
                       {{ statusLabels[record.status] }}
                     </span>
-                    <span>{{ methodLabels[record.paymentMethod] }}</span>
-                    @if (record.receiptNumber) {
-                      <span class="fin-entry__receipt">{{ record.receiptNumber }}</span>
-                    }
                   </div>
-
-                  <div class="fin-entry__actions">
-                    <button
-                      type="button"
-                      class="fin-btn fin-btn--ghost"
-                      [attr.aria-expanded]="expandedId() === record.id"
-                      (click)="toggleDetails(record)"
-                    >
-                      {{ expandedId() === record.id ? 'Hide details' : 'Details' }}
-                    </button>
-                    @if (record.receiptId) {
-                      <button type="button" class="fin-btn" (click)="openReceipt(record)">
-                        Receipt
-                      </button>
-                    }
-                    @if (canCancel && record.status === 'RECORDED') {
-                      <button
-                        type="button"
-                        class="fin-btn fin-btn--danger"
-                        (click)="openCancel(record)"
-                      >
-                        Cancel
-                      </button>
-                    }
+                  <!-- Meta -->
+                  <div class="fin-entry__meta">
+                    <span class="fin-entry__method">{{ methodLabels[record.paymentMethod] }}</span>
+                    <span class="fin-entry__payer">{{
+                      record.payerName ?? payerLabels[record.payerType]
+                    }}</span>
                   </div>
-                </div>
-
-                @if (expandedId() === record.id) {
-                  <dl class="fin-entry__details">
-                    <div>
-                      <dt>Received by</dt>
-                      <dd>{{ record.receivedByName }}</dd>
-                    </div>
-                    <div>
-                      <dt>Paid by</dt>
-                      <dd>{{ record.payerName ?? payerLabels[record.payerType] }}</dd>
-                    </div>
-                    @if (record.note) {
-                      <div class="fin-entry__details--wide">
-                        <dt>Note</dt>
-                        <dd>{{ record.note }}</dd>
-                      </div>
+                  <!-- Date -->
+                  <div class="fin-entry__date-col">
+                    <time class="fin-entry__date" [attr.datetime]="record.receivedAt">
+                      {{ record.receivedAt | date: 'dd MMM y' }}
+                    </time>
+                    <span class="fin-entry__time">{{ record.receivedAt | date: 'HH:mm' }}</span>
+                  </div>
+                  <!-- Chevron -->
+                  <span class="fin-entry__chevron material-icons" aria-hidden="true"
+                    >chevron_right</span
+                  >
+                </button>
+                @if (record.status === 'CANCELLED' && record.cancellationReason) {
+                  <p class="fin-entry__cancel-summary">
+                    <span class="material-icons" aria-hidden="true">cancel</span>
+                    {{ record.cancellationReason }}
+                    @if (record.cancelledByName) {
+                      — by {{ record.cancelledByName }}
                     }
-                    @if (record.overpaymentOverride) {
-                      <div class="fin-entry__details--wide">
-                        <dt>Overpayment</dt>
-                        <dd>Accepted above the remaining treatment amount, with approval.</dd>
-                      </div>
-                    }
-                    @if (record.status === 'CANCELLED') {
-                      <div class="fin-entry__details--wide">
-                        <dt>Cancelled</dt>
-                        <dd>
-                          {{ record.cancellationReason }}
-                          @if (record.cancelledByName) {
-                            — by {{ record.cancelledByName }}
-                          }
-                          @if (record.cancelledAt) {
-                            on {{ record.cancelledAt | date: 'dd MMM y' }}
-                          }
-                        </dd>
-                      </div>
-                    }
-                    @if (record.correctionOfRecordId) {
-                      <div class="fin-entry__details--wide">
-                        <dt>Correction</dt>
-                        <dd>This payment replaces an earlier cancelled record.</dd>
-                      </div>
-                    }
-                    @if (record.correctedByRecordId) {
-                      <div class="fin-entry__details--wide">
-                        <dt>Replaced by</dt>
-                        <dd>A later payment was recorded to correct this one.</dd>
-                      </div>
-                    }
-                  </dl>
+                  </p>
                 }
               </li>
             }
@@ -202,7 +225,7 @@
     }
   }
 
-  <!-- Record payment -->
+  <!-- Record payment drawer -->
   @if (store.drawerMode() === 'record') {
     <app-record-payment-drawer
       [patientName]="patientName()"
@@ -214,56 +237,314 @@
     />
   }
 
-  <!-- Cancel a record -->
-  @if (store.drawerMode() === 'cancel' && store.selectedRecord(); as record) {
-    <div class="fin-modal" role="dialog" aria-modal="true" aria-labelledby="fin-cancel-title">
-      <form class="fin-modal__panel" (ngSubmit)="confirmCancel()" novalidate>
-        <h3 id="fin-cancel-title">Cancel payment record</h3>
-
-        <dl class="fin-modal__facts">
+  <!-- Payment detail drawer -->
+  @if (store.drawerMode() === 'details' && store.selectedRecord(); as record) {
+    <div
+      class="fin-overlay"
+      role="presentation"
+      (click)="store.closeDrawer()"
+      (keydown.escape)="store.closeDrawer()"
+    >
+      <aside
+        class="fin-drawer fin-drawer--detail"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="fin-detail-title"
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="store.closeDrawer()"
+      >
+        <header class="fin-drawer__header">
           <div>
-            <dt>Amount</dt>
-            <dd>{{ record.amountFormatted }} {{ record.currency }}</dd>
+            <span class="fin-detail-eyebrow">Payment record</span>
+            <h3 id="fin-detail-title">
+              {{ record.status === 'CANCELLED' ? '' : '+' }}{{ record.amountFormatted }}
+              {{ record.currency }}
+            </h3>
           </div>
-          @if (record.receiptNumber) {
+          <button
+            type="button"
+            class="fin-icon-btn"
+            aria-label="Close detail"
+            (click)="store.closeDrawer()"
+          >
+            <span class="material-icons" aria-hidden="true">close</span>
+          </button>
+        </header>
+
+        <div class="fin-drawer__body">
+          <!-- Status badge -->
+          <div class="fin-detail-status">
+            <span class="fin-tag fin-tag--large" [attr.data-status]="record.status">
+              {{ statusLabels[record.status] }}
+            </span>
+            @if (record.receiptNumber) {
+              <span class="fin-detail-receipt"
+                ><span class="material-icons" aria-hidden="true">receipt</span>
+                {{ record.receiptNumber }}</span
+              >
+            }
+          </div>
+
+          <!-- Facts -->
+          <dl class="fin-detail-facts">
             <div>
-              <dt>Receipt</dt>
-              <dd>{{ record.receiptNumber }}</dd>
+              <dt>Payment method</dt>
+              <dd>{{ methodLabels[record.paymentMethod] }}</dd>
+            </div>
+            <div>
+              <dt>Paid by</dt>
+              <dd>{{ record.payerName ?? payerLabels[record.payerType] }}</dd>
+            </div>
+            <div>
+              <dt>Received</dt>
+              <dd>{{ record.receivedAt | date: 'medium' }}</dd>
+            </div>
+            <div>
+              <dt>Received by</dt>
+              <dd>{{ record.receivedByName }}</dd>
+            </div>
+            @if (record.note) {
+              <div class="fin-detail-facts__wide">
+                <dt>Note</dt>
+                <dd>{{ record.note }}</dd>
+              </div>
+            }
+            @if (record.overpaymentOverride) {
+              <div class="fin-detail-facts__wide">
+                <dt>Overpayment</dt>
+                <dd>Accepted above the remaining treatment amount, with approval.</dd>
+              </div>
+            }
+          </dl>
+
+          <!-- Cancellation info -->
+          @if (record.status === 'CANCELLED') {
+            <div class="fin-cancellation-block">
+              <div class="fin-cancellation-block__header">
+                <span class="material-icons" aria-hidden="true">cancel</span>
+                <strong>Cancelled</strong>
+              </div>
+              @if (record.cancellationReason) {
+                <p>{{ record.cancellationReason }}</p>
+              }
+              <p class="fin-cancellation-block__meta">
+                @if (record.cancelledByName) {
+                  By {{ record.cancelledByName }}
+                }
+                @if (record.cancelledAt) {
+                  · {{ record.cancelledAt | date: 'mediumDate' }}
+                }
+              </p>
             </div>
           }
-        </dl>
 
-        <div class="fin-field">
-          <label for="fin-cancel-reason">Reason</label>
-          <input
-            id="fin-cancel-reason"
-            [formControl]="cancelReason"
-            placeholder="Incorrect amount"
-            [attr.aria-describedby]="'fin-cancel-help'"
-          />
-          @if (cancelReason.touched && cancelReason.invalid) {
-            <p class="fin-field__error" aria-live="polite">
-              Give a short reason — it stays in the financial record.
-            </p>
+          <!-- Correction links -->
+          @if (record.correctionOfRecordId) {
+            <div class="fin-link-note">
+              <span class="material-icons" aria-hidden="true">link</span>
+              This payment was recorded as a correction of an earlier cancelled entry.
+            </div>
           }
+          @if (record.correctedByRecordId) {
+            <div class="fin-link-note">
+              <span class="material-icons" aria-hidden="true">link</span>
+              A later payment was recorded to correct this one.
+            </div>
+          }
+
+          <!-- Activity timeline -->
+          <section class="fin-activity" aria-labelledby="fin-activity-title">
+            <h4 id="fin-activity-title">Activity</h4>
+            @if (activityLoading()) {
+              <p class="fin-activity__loading">Loading history…</p>
+            } @else if (activityState().length === 0) {
+              <p class="fin-activity__empty">No activity entries found.</p>
+            } @else {
+              <ol class="fin-timeline">
+                @for (event of activityState(); track event.id) {
+                  <li class="fin-timeline__item">
+                    <span class="fin-timeline__dot" aria-hidden="true"></span>
+                    <div class="fin-timeline__content">
+                      <strong>{{ activityLabel(event.action) }}</strong>
+                      @if (event.actorName) {
+                        <span class="fin-timeline__actor">by {{ event.actorName }}</span>
+                      }
+                      <time [attr.datetime]="event.createdAt">{{
+                        event.createdAt | date: 'medium'
+                      }}</time>
+                    </div>
+                  </li>
+                }
+              </ol>
+            }
+          </section>
         </div>
 
-        <p id="fin-cancel-help" class="fin-modal__explain">
-          This payment will remain visible in financial history and will no longer count toward
-          recorded totals. Its receipt is marked cancelled and is not deleted.
-        </p>
-
-        <footer class="fin-modal__actions">
-          <button type="button" class="fin-btn" (click)="store.closeDrawer()">Keep payment</button>
-          <button
-            type="submit"
-            class="fin-btn fin-btn--danger-solid"
-            [disabled]="store.isSubmitting()"
-          >
-            {{ store.isSubmitting() ? 'Cancelling…' : 'Cancel payment' }}
-          </button>
+        <!-- Actions -->
+        <footer class="fin-drawer__footer">
+          @if (record.receiptId) {
+            <button type="button" class="fin-btn" (click)="openReceipt(record)">
+              <span class="material-icons" aria-hidden="true">receipt</span>
+              View receipt
+            </button>
+          }
+          @if (record.status === 'CANCELLED') {
+            <button
+              type="button"
+              class="fin-btn fin-btn--primary"
+              (click)="openCorrection(record)"
+            >
+              <span class="material-icons" aria-hidden="true">redo</span>
+              Record corrected payment
+            </button>
+          }
+          @if (canCancel && record.status === 'RECORDED') {
+            <button
+              type="button"
+              class="fin-btn fin-btn--danger"
+              (click)="openCancel(record)"
+            >
+              Cancel payment
+            </button>
+          }
         </footer>
-      </form>
+      </aside>
+    </div>
+  }
+
+  <!-- Cancel drawer (side drawer, not modal) -->
+  @if (store.drawerMode() === 'cancel' && store.selectedRecord(); as record) {
+    <div
+      class="fin-overlay"
+      role="presentation"
+      (click)="!store.postCancelRecord() && store.closeDrawer()"
+      (keydown.escape)="!store.postCancelRecord() && store.closeDrawer()"
+    >
+      <aside
+        class="fin-drawer fin-drawer--cancel"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-labelledby]="
+          store.postCancelRecord() ? 'fin-cancel-done-title' : 'fin-cancel-title'
+        "
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="!store.postCancelRecord() && store.closeDrawer()"
+      >
+        @if (store.postCancelRecord(); as cancelled) {
+          <!-- Post-cancel success state -->
+          <header class="fin-drawer__header">
+            <div>
+              <h3 id="fin-cancel-done-title">Payment cancelled</h3>
+            </div>
+            <button
+              type="button"
+              class="fin-icon-btn"
+              aria-label="Close"
+              (click)="store.closeDrawer()"
+            >
+              <span class="material-icons" aria-hidden="true">close</span>
+            </button>
+          </header>
+          <div class="fin-drawer__body fin-cancel-success">
+            <div class="fin-cancel-success__icon">
+              <span class="material-icons" aria-hidden="true">check_circle</span>
+            </div>
+            <p>
+              The payment of <strong>{{ cancelled.amountFormatted }} {{ cancelled.currency }}</strong>
+              has been cancelled and removed from totals. Its receipt is marked cancelled.
+            </p>
+            @if (cancelled.cancellationReason) {
+              <p class="fin-cancel-success__reason">Reason: {{ cancelled.cancellationReason }}</p>
+            }
+          </div>
+          <footer class="fin-drawer__footer">
+            <button type="button" class="fin-btn" (click)="store.closeDrawer()">Close</button>
+            <button
+              type="button"
+              class="fin-btn fin-btn--primary"
+              (click)="openCorrection(cancelled)"
+            >
+              <span class="material-icons" aria-hidden="true">redo</span>
+              Record corrected payment
+            </button>
+          </footer>
+        } @else {
+          <!-- Cancel input state -->
+          <header class="fin-drawer__header">
+            <div>
+              <span class="fin-detail-eyebrow">Confirm cancellation</span>
+              <h3 id="fin-cancel-title">Cancel payment record</h3>
+            </div>
+            <button
+              type="button"
+              class="fin-icon-btn"
+              aria-label="Close"
+              (click)="store.closeDrawer()"
+            >
+              <span class="material-icons" aria-hidden="true">close</span>
+            </button>
+          </header>
+          <form class="fin-drawer__body fin-cancel-form" (submit)="confirmCancel($event)" novalidate>
+            <dl class="fin-cancel-facts">
+              <div>
+                <dt>Amount</dt>
+                <dd>{{ record.amountFormatted }} {{ record.currency }}</dd>
+              </div>
+              <div>
+                <dt>Method</dt>
+                <dd>{{ methodLabels[record.paymentMethod] }}</dd>
+              </div>
+              @if (record.receiptNumber) {
+                <div>
+                  <dt>Receipt</dt>
+                  <dd>{{ record.receiptNumber }}</dd>
+                </div>
+              }
+            </dl>
+
+            @if (store.error(); as errMessage) {
+              <p class="fin-cancel-error" role="alert">{{ errMessage }}</p>
+            }
+
+            <div class="fin-field">
+              <label for="fin-cancel-reason">Reason *</label>
+              <input
+                id="fin-cancel-reason"
+                [formControl]="cancelReason"
+                placeholder="Incorrect amount, duplicate entry…"
+                [attr.aria-describedby]="'fin-cancel-help'"
+              />
+              @if (cancelReason.touched && cancelReason.invalid) {
+                <p class="fin-field__error" aria-live="polite">
+                  Give a short reason — it stays in the financial record.
+                </p>
+              }
+            </div>
+
+            <p id="fin-cancel-help" class="fin-cancel-explain">
+              <span class="material-icons" aria-hidden="true">info</span>
+              This payment will remain visible in history and will no longer count toward totals.
+              Its receipt will be marked cancelled.
+            </p>
+
+            <footer class="fin-drawer__footer fin-drawer__footer--inside">
+              <button type="button" class="fin-btn" (click)="store.closeDrawer()">
+                Keep payment
+              </button>
+              <button
+                type="submit"
+                class="fin-btn fin-btn--danger-solid"
+                [disabled]="store.isSubmitting()"
+              >
+                @if (store.isSubmitting()) {
+                  <span class="fin-spinner" aria-hidden="true"></span>
+                }
+                {{ store.isSubmitting() ? 'Cancelling…' : 'Cancel payment' }}
+              </button>
+            </footer>
+          </form>
+        }
+      </aside>
     </div>
   }
 

@@ -98,6 +98,20 @@ export const financialSummaryDtoSchema = z.object({
 });
 
 /**
+ * A single event in the audit trail for one cash record.
+ * Returned by GET /cash-records/:id/activity.
+ * actorName is resolved server-side so the frontend never sees raw user IDs.
+ */
+export const cashRecordActivityDtoSchema = z.object({
+  id: objectIdSchema,
+  action: z.string(),
+  actorUserId: objectIdSchema.nullable(),
+  actorName: z.string().nullable(),
+  metadata: z.record(z.string(), z.unknown()),
+  createdAt: isoDateTimeSchema,
+});
+
+/**
  * `clinicId`, `receivedByUserId`, `createdBy`, `status`, `receiptNumber` and
  * `overpaymentApprovedBy` are all absent by design. Zod strips unknown keys, so
  * a client that sends them achieves nothing rather than escalating.
@@ -158,3 +172,5 @@ export type CashRecordListQuery = z.infer<typeof cashRecordListQuerySchema>;
 export type PatientIdParam = z.infer<typeof patientIdParamSchema>;
 export type CashRecordIdParam = z.infer<typeof cashRecordIdParamSchema>;
 export type TreatmentIdParam = z.infer<typeof treatmentIdParamSchema>;
+export type CashRecordActivityDto = z.infer<typeof cashRecordActivityDtoSchema>;
+

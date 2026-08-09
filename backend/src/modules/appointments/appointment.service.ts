@@ -567,7 +567,8 @@ export class AppointmentService {
     }
 
     const weekday = WEEKDAY_BY_NUMBER[start.weekday];
-    const periods = weekday ? settings.workingHours[weekday] : [];
+    const workingHours = settings.workingHours ?? DEFAULT_CLINIC_SETTINGS.workingHours;
+    const periods = weekday ? workingHours[weekday] : [];
     if (periods.length === 0) {
       throw new BusinessRuleError('The clinic is closed on this day', {
         code: ERROR_CODES.APPOINTMENT_OUTSIDE_WORKING_HOURS,

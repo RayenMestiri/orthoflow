@@ -31,6 +31,9 @@ export const AUDIT_ACTIONS = {
   PATIENT_MEDIA_UPLOADED: 'patient_media.uploaded',
   PATIENT_MEDIA_UPDATED: 'patient_media.updated',
   PATIENT_MEDIA_ARCHIVED: 'patient_media.archived',
+  PATIENT_MEDIA_RESTORED: 'patient_media.restored',
+  PATIENT_MEDIA_DELETED: 'patient_media.deleted',
+  PATIENT_MEDIA_REPLACED: 'patient_media.replaced',
 
   GUARDIAN_CREATED: 'guardian.created',
   GUARDIAN_LINKED: 'guardian.linked',

@@ -231,58 +231,67 @@ export class CashRecordService {
         );
       }
 
-      await this.audit.record({
-        clinicId,
-        actorUserId: context.actorUserId,
-        action: input.correctionOfRecordId
-          ? AUDIT_ACTIONS.CASH_RECORD_CORRECTED
-          : AUDIT_ACTIONS.CASH_RECORD_CREATED,
-        resourceType: AUDIT_RESOURCE_TYPES.CASH_RECORD,
-        resourceId: record._id.toString(),
-        // Amounts and ids only — never the note, which may carry family context.
-        metadata: {
-          patientId: input.patientId,
-          treatmentId,
-          amountMinor,
-          currency,
-          paymentMethod: input.paymentMethod,
-          payerType: input.payerType,
-          receiptId: receipt._id.toString(),
-          ...(input.correctionOfRecordId
-            ? { correctionOfRecordId: input.correctionOfRecordId }
-            : {}),
-        },
-        ip: context.ip,
-        userAgent: context.userAgent,
-      });
-
-      await this.audit.record({
-        clinicId,
-        actorUserId: context.actorUserId,
-        action: AUDIT_ACTIONS.RECEIPT_ISSUED,
-        resourceType: AUDIT_RESOURCE_TYPES.RECEIPT,
-        resourceId: receipt._id.toString(),
-        metadata: {
-          receiptNumber: receipt.receiptNumber,
-          cashRecordId: record._id.toString(),
-          amountMinor,
-          currency,
-        },
-        ip: context.ip,
-        userAgent: context.userAgent,
-      });
-
-      if (overpaymentApproved) {
-        await this.audit.record({
+      await this.audit.record(
+        {
           clinicId,
           actorUserId: context.actorUserId,
-          action: AUDIT_ACTIONS.CASH_RECORD_OVERPAYMENT_APPROVED,
+          action: input.correctionOfRecordId
+            ? AUDIT_ACTIONS.CASH_RECORD_CORRECTED
+            : AUDIT_ACTIONS.CASH_RECORD_CREATED,
           resourceType: AUDIT_RESOURCE_TYPES.CASH_RECORD,
           resourceId: record._id.toString(),
-          metadata: { treatmentId, amountMinor, currency },
+          // Amounts and ids only — never the note, which may carry family context.
+          metadata: {
+            patientId: input.patientId,
+            treatmentId,
+            amountMinor,
+            currency,
+            paymentMethod: input.paymentMethod,
+            payerType: input.payerType,
+            receiptId: receipt._id.toString(),
+            ...(input.correctionOfRecordId
+              ? { correctionOfRecordId: input.correctionOfRecordId }
+              : {}),
+          },
           ip: context.ip,
           userAgent: context.userAgent,
-        });
+        },
+        session,
+      );
+
+      await this.audit.record(
+        {
+          clinicId,
+          actorUserId: context.actorUserId,
+          action: AUDIT_ACTIONS.RECEIPT_ISSUED,
+          resourceType: AUDIT_RESOURCE_TYPES.RECEIPT,
+          resourceId: receipt._id.toString(),
+          metadata: {
+            receiptNumber: receipt.receiptNumber,
+            cashRecordId: record._id.toString(),
+            amountMinor,
+            currency,
+          },
+          ip: context.ip,
+          userAgent: context.userAgent,
+        },
+        session,
+      );
+
+      if (overpaymentApproved) {
+        await this.audit.record(
+          {
+            clinicId,
+            actorUserId: context.actorUserId,
+            action: AUDIT_ACTIONS.CASH_RECORD_OVERPAYMENT_APPROVED,
+            resourceType: AUDIT_RESOURCE_TYPES.CASH_RECORD,
+            resourceId: record._id.toString(),
+            metadata: { treatmentId, amountMinor, currency },
+            ip: context.ip,
+            userAgent: context.userAgent,
+          },
+          session,
+        );
       }
 
       return withReceipt ?? record;
@@ -329,34 +338,40 @@ export class CashRecordService {
 
       const receipt = await this.receipts.markCancelledFor(cancelled, session);
 
-      await this.audit.record({
-        clinicId,
-        actorUserId: context.actorUserId,
-        action: AUDIT_ACTIONS.CASH_RECORD_CANCELLED,
-        resourceType: AUDIT_RESOURCE_TYPES.CASH_RECORD,
-        resourceId: cashRecordId,
-        metadata: {
-          patientId: cancelled.patientId.toString(),
-          amountMinor: cancelled.amountMinor,
-          currency: cancelled.currency,
-          // The reason is an accountability fact, not clinical content.
-          reason,
-        },
-        ip: context.ip,
-        userAgent: context.userAgent,
-      });
-
-      if (receipt) {
-        await this.audit.record({
+      await this.audit.record(
+        {
           clinicId,
           actorUserId: context.actorUserId,
-          action: AUDIT_ACTIONS.RECEIPT_CANCELLED,
-          resourceType: AUDIT_RESOURCE_TYPES.RECEIPT,
-          resourceId: receipt._id.toString(),
-          metadata: { receiptNumber: receipt.receiptNumber, cashRecordId },
+          action: AUDIT_ACTIONS.CASH_RECORD_CANCELLED,
+          resourceType: AUDIT_RESOURCE_TYPES.CASH_RECORD,
+          resourceId: cashRecordId,
+          metadata: {
+            patientId: cancelled.patientId.toString(),
+            amountMinor: cancelled.amountMinor,
+            currency: cancelled.currency,
+            // The reason is an accountability fact, not clinical content.
+            reason,
+          },
           ip: context.ip,
           userAgent: context.userAgent,
-        });
+        },
+        session,
+      );
+
+      if (receipt) {
+        await this.audit.record(
+          {
+            clinicId,
+            actorUserId: context.actorUserId,
+            action: AUDIT_ACTIONS.RECEIPT_CANCELLED,
+            resourceType: AUDIT_RESOURCE_TYPES.RECEIPT,
+            resourceId: receipt._id.toString(),
+            metadata: { receiptNumber: receipt.receiptNumber, cashRecordId },
+            ip: context.ip,
+            userAgent: context.userAgent,
+          },
+          session,
+        );
       }
     });
 

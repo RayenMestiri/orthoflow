@@ -101,6 +101,52 @@ export class PatientMediaStore {
     return this.mutate(async () => firstValueFrom(this.api.archive(mediaId, reason)), true);
   }
 
+  async restore(mediaId: string): Promise<PatientMedia | null> {
+    return this.mutate(async () => firstValueFrom(this.api.restore(mediaId)), false, true);
+  }
+
+  async delete(mediaId: string): Promise<boolean> {
+    this.savingState.set(true);
+    this.errorState.set(null);
+    try {
+      await firstValueFrom(this.api.delete(mediaId));
+      this.itemsState.update((items) => items.filter((item) => item.id !== mediaId));
+      this.totalState.update((total) => Math.max(0, total - 1));
+      return true;
+    } catch (error) {
+      this.errorState.set(getApiProblem(error).message);
+      return false;
+    } finally {
+      this.savingState.set(false);
+    }
+  }
+
+  async replaceFile(mediaId: string, file: File): Promise<PatientMedia | null> {
+    this.savingState.set(true);
+    this.uploadProgressState.set(0);
+    this.errorState.set(null);
+    try {
+      const complete = await firstValueFrom(
+        this.api.replaceFile(mediaId, file).pipe(
+          tap((event) => {
+            if (event.kind === 'progress') this.uploadProgressState.set(event.progress);
+          }),
+          filter((event) => event.kind === 'complete'),
+        ),
+      );
+      this.itemsState.update((items) =>
+        items.map((item) => (item.id === mediaId ? complete.media : item)),
+      );
+      return complete.media;
+    } catch (error) {
+      this.errorState.set(getApiProblem(error).message);
+      return null;
+    } finally {
+      this.savingState.set(false);
+      this.uploadProgressState.set(null);
+    }
+  }
+
   dismissError(): void {
     this.errorState.set(null);
   }
@@ -108,12 +154,18 @@ export class PatientMediaStore {
   private async mutate(
     request: () => Promise<PatientMedia>,
     removeWhenActive = false,
+    removeWhenArchived = false,
   ): Promise<PatientMedia | null> {
     this.savingState.set(true);
     this.errorState.set(null);
     try {
       const saved = await request();
       if (removeWhenActive && this.filters.status !== 'ARCHIVED') {
+        // e.g. archiving: remove from active list
+        this.itemsState.update((items) => items.filter((item) => item.id !== saved.id));
+        this.totalState.update((total) => Math.max(0, total - 1));
+      } else if (removeWhenArchived && this.filters.status === 'ARCHIVED') {
+        // e.g. restoring: remove from archived list
         this.itemsState.update((items) => items.filter((item) => item.id !== saved.id));
         this.totalState.update((total) => Math.max(0, total - 1));
       } else {

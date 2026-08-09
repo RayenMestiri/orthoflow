@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AuthStore } from '../../../../core/auth/auth.store';
 import { CLINIC_ROLES, PLATFORM_ROLES } from '../../../../core/auth/auth.models';
 
@@ -11,6 +12,7 @@ interface RoleBriefing {
 
 @Component({
   selector: 'app-dashboard-page',
+  imports: [RouterLink],
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

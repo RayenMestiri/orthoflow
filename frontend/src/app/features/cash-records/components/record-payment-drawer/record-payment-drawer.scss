@@ -455,3 +455,40 @@
     transition: none;
   }
 }
+
+/* ---- Correction banner ---- */
+.pay-correction-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--color-pine-700) 25%, var(--color-line));
+  background: var(--color-sage);
+
+  > .material-icons {
+    color: var(--color-pine-700);
+    font-size: 1.15rem;
+    flex: 0 0 auto;
+    margin-top: 1px;
+  }
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  strong {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--color-pine-900);
+  }
+
+  span {
+    font-size: 0.76rem;
+    color: var(--color-slate);
+    line-height: 1.4;
+  }
+}
+

@@ -137,6 +137,63 @@ export class PatientMediaRepository {
       .lean<PatientMediaRecord | null>()
       .exec();
   }
+  async restore(
+    mediaId: string,
+    clinicId: string,
+  ): Promise<PatientMediaRecord | null> {
+    return PatientMediaModel.findOneAndUpdate(
+      {
+        ...this.baseFilter(clinicId),
+        _id: toObjectId(mediaId, 'mediaId'),
+        status: PATIENT_MEDIA_STATUSES.ARCHIVED,
+      },
+      {
+        $set: { status: PATIENT_MEDIA_STATUSES.ACTIVE },
+        $unset: { archivedAt: '', archivedByUserId: '', archiveReason: '' },
+      },
+      { new: true, runValidators: true },
+    )
+      .lean<PatientMediaRecord | null>()
+      .exec();
+  }
+
+  /** Permanently removes a media record from MongoDB. */
+  async deleteById(mediaId: string, clinicId: string): Promise<boolean> {
+    const result = await PatientMediaModel.deleteOne({
+      ...this.baseFilter(clinicId),
+      _id: toObjectId(mediaId, 'mediaId'),
+    }).exec();
+    return result.deletedCount === 1;
+  }
+
+  /**
+   * Atomically replaces the storage-level fields after a Cloudinary upload.
+   * Metadata (title, category, etc.) is left untouched.
+   */
+  async replaceStorageFields(
+    mediaId: string,
+    clinicId: string,
+    fields: {
+      publicId: string;
+      resourceType: string;
+      secureUrl: string;
+      mimeType: string;
+      fileSizeBytes: number;
+      format: string | null;
+      width: number | null;
+      height: number | null;
+      originalFileName: string;
+      uploadedAt: Date;
+    },
+  ): Promise<PatientMediaRecord | null> {
+    return PatientMediaModel.findOneAndUpdate(
+      { ...this.baseFilter(clinicId), _id: toObjectId(mediaId, 'mediaId') },
+      { $set: fields },
+      { new: true, runValidators: true },
+    )
+      .lean<PatientMediaRecord | null>()
+      .exec();
+  }
 }
 
 export const patientMediaRepository = new PatientMediaRepository();

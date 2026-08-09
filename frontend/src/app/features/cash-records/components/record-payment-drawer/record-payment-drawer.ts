@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CashRecordStore } from '../../data-access/cash-record.store';
 import {
@@ -63,6 +63,23 @@ export class RecordPaymentDrawer {
     note: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(1000)] }),
   });
 
+  /** True when this drawer is pre-filling a corrected payment. */
+  protected readonly isCorrection = computed(() => this.store.correctionPrefill() !== null);
+
+  constructor() {
+    // When a correction prefill is available, apply it to the form once
+    effect(() => {
+      const prefill = this.store.correctionPrefill();
+      if (prefill) {
+        this.form.patchValue({
+          paymentMethod: prefill.paymentMethod,
+          payerType: prefill.payerType,
+          guardianId: prefill.guardianId,
+        });
+      }
+    }, { allowSignalWrites: false });
+  }
+
   protected readonly currency = computed(() => this.summary()?.currency ?? 'TND');
 
   /** Live validation of what the user typed, in the clinic's currency. */
@@ -109,6 +126,9 @@ export class RecordPaymentDrawer {
     }
 
     this.form.markAllAsTouched();
+    this.form.controls.amount.markAsTouched();
+    this.form.controls.guardianId.markAsTouched();
+
     const value = this.form.getRawValue();
     const parsed = parseAmount(value.amount, this.currency());
 
@@ -119,9 +139,12 @@ export class RecordPaymentDrawer {
       return;
     }
 
+    const prefill = this.store.correctionPrefill();
+    const targetTreatmentId = this.treatmentId() ?? prefill?.treatmentId ?? null;
+
     await this.store.record(
       {
-        treatmentId: this.treatmentId(),
+        treatmentId: targetTreatmentId,
         payerType: value.payerType,
         guardianId: value.payerType === 'GUARDIAN' ? value.guardianId : null,
         payerLabel: value.payerType === 'OTHER' ? value.payerLabel.trim() || null : null,
@@ -130,8 +153,10 @@ export class RecordPaymentDrawer {
         note: value.note.trim() || null,
         idempotencyKey: this.idempotencyKey,
         ...(allowOverpayment ? { allowOverpayment: true } : {}),
+        // Include correction link when this drawer was opened for a correction
+        ...(prefill ? { correctionOfRecordId: prefill.correctionOfRecordId } : {}),
       },
-      this.treatmentId(),
+      targetTreatmentId,
     );
   }
 

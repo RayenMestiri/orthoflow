@@ -41,6 +41,16 @@
           </div>
         </dl>
 
+        @if (isCorrection()) {
+          <div class="pay-correction-banner">
+            <span class="material-icons" aria-hidden="true">redo</span>
+            <div>
+              <strong>Recording a corrected payment</strong>
+              <span>Method and payer pre-filled from the cancelled entry. Enter the correct amount.</span>
+            </div>
+          </div>
+        }
+
         @if (summary(); as position) {
           <section class="pay-position" aria-label="Financial summary">
             <div>
@@ -160,7 +170,7 @@
                 <option [ngValue]="guardian.id">{{ guardian.fullName }}</option>
               }
             </select>
-            @if (form.controls.payerType.touched && !form.controls.guardianId.value) {
+            @if ((form.controls.guardianId.touched || form.controls.payerType.touched) && !form.controls.guardianId.value) {
               <p class="pay-field__error" aria-live="polite">
                 Select which guardian handed the money over.
               </p>

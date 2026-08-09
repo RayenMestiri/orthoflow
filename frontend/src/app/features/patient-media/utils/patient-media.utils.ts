@@ -30,14 +30,30 @@ function cloudinaryTransform(url: string, transformation: string): string {
   return url.includes(marker) ? url.replace(marker, `${marker}${transformation}/`) : url;
 }
 
+/**
+ * Non-destructive thumbnail — c_fit preserves the complete image within the
+ * given bounds without cropping or stretching. Clinical photos must never be
+ * cut: the full composition is clinically meaningful.
+ */
 export function patientMediaThumbnailUrl(media: PatientMedia): string {
-  return media.mediaType === 'IMAGE'
-    ? cloudinaryTransform(media.secureUrl, 'c_fill,w_560,h_420,q_auto,f_auto')
-    : media.secureUrl;
+  if (media.mediaType !== 'IMAGE') return media.secureUrl;
+  // Local data-URIs have no Cloudinary /upload/ segment; return as-is
+  if (media.secureUrl.startsWith('data:')) return media.secureUrl;
+  return cloudinaryTransform(media.secureUrl, 'c_fit,w_600,h_450,q_auto,f_auto');
 }
 
 export function patientMediaPreviewUrl(media: PatientMedia): string {
-  return media.mediaType === 'IMAGE'
-    ? cloudinaryTransform(media.secureUrl, 'c_limit,w_1800,h_1800,q_auto,f_auto')
-    : media.secureUrl;
+  if (media.mediaType !== 'IMAGE') return media.secureUrl;
+  if (media.secureUrl.startsWith('data:')) return media.secureUrl;
+  return cloudinaryTransform(media.secureUrl, 'c_limit,w_1800,h_1800,q_auto,f_auto');
+}
+
+/** Creates a temporary local preview URL from a File object. Call revokeLocalPreview() to clean up. */
+export function createLocalPreview(file: File): string | null {
+  if (!file.type.startsWith('image/')) return null;
+  return URL.createObjectURL(file);
+}
+
+export function revokeLocalPreview(url: string | null): void {
+  if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
 }

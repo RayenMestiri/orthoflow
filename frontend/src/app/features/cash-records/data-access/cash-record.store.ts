@@ -11,6 +11,15 @@ import type { FinancialSummary } from '../models/financial-summary.model';
 import type { ReceiptDocument } from '../models/receipt.model';
 import { CashRecordApiService } from './cash-record.api';
 
+/** Prefill data for recording a corrected payment after a cancellation. */
+export interface CorrectionPrefill {
+  correctionOfRecordId: string;
+  treatmentId: string | null;
+  paymentMethod: CashRecord['paymentMethod'];
+  payerType: CashRecord['payerType'];
+  guardianId: string | null;
+}
+
 /** Which panel the drawer is showing, or `null` when it is closed. */
 export type DrawerMode = 'record' | 'cancel' | 'details' | null;
 
@@ -45,6 +54,10 @@ export class CashRecordStore {
   private readonly errorState = signal<string | null>(null);
   private readonly overpaymentState = signal<OverpaymentWarning | null>(null);
   private readonly lastRecordedState = signal<CashRecord | null>(null);
+  /** Set after a cancel completes. Cleared on drawer close or when the correction drawer opens. */
+  private readonly postCancelState = signal<CashRecord | null>(null);
+  /** Prefill for the Record payment drawer when creating a correction. */
+  private readonly correctionPrefillState = signal<CorrectionPrefill | null>(null);
 
   readonly records = this.recordsState.asReadonly();
   readonly summary = this.summaryState.asReadonly();
@@ -60,6 +73,10 @@ export class CashRecordStore {
   readonly overpaymentWarning = this.overpaymentState.asReadonly();
   /** Set after a successful record so the drawer can confirm it. */
   readonly lastRecorded = this.lastRecordedState.asReadonly();
+  /** Set after a cancel so the drawer can offer a correction flow. */
+  readonly postCancelRecord = this.postCancelState.asReadonly();
+  /** Prefill data injected into the Record Payment drawer for corrections. */
+  readonly correctionPrefill = this.correctionPrefillState.asReadonly();
 
   /**
    * The summary the workspace displays: the treatment's when one is in scope,
@@ -116,10 +133,11 @@ export class CashRecordStore {
     this.filterState.set(filter);
   }
 
-  openRecordDrawer(): void {
+  openRecordDrawer(prefill?: CorrectionPrefill): void {
     this.overpaymentState.set(null);
     this.lastRecordedState.set(null);
     this.errorState.set(null);
+    this.correctionPrefillState.set(prefill ?? null);
     this.drawerState.set('record');
   }
 
@@ -141,6 +159,8 @@ export class CashRecordStore {
     this.drawerState.set(null);
     this.overpaymentState.set(null);
     this.lastRecordedState.set(null);
+    this.postCancelState.set(null);
+    this.correctionPrefillState.set(null);
   }
 
   dismissError(): void {
@@ -178,6 +198,7 @@ export class CashRecordStore {
       const record = await firstValueFrom(this.api.record(patientId, input));
       await this.refresh(patientId, treatmentId);
       this.lastRecordedState.set(record);
+      this.correctionPrefillState.set(null);
       return record;
     } catch (error) {
       const problem = getApiProblem(error);
@@ -205,9 +226,10 @@ export class CashRecordStore {
     this.submittingState.set(true);
     this.errorState.set(null);
     try {
-      await firstValueFrom(this.api.cancel(cashRecordId, reason));
+      const cancelled = await firstValueFrom(this.api.cancel(cashRecordId, reason));
       await this.refresh(patientId, treatmentId);
-      this.drawerState.set(null);
+      // Stay in the cancel drawer and show the post-cancel state with a correction CTA
+      this.postCancelState.set(cancelled);
       return true;
     } catch (error) {
       this.errorState.set(getApiProblem(error).message);

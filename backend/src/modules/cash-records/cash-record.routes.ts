@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { PERMISSIONS } from '../../common/constants/permissions.js';
 import {
@@ -7,6 +8,7 @@ import {
 } from '../../common/validation/api-schemas.js';
 import {
   cancelCashRecordHandler,
+  getCashRecordActivityHandler,
   getCashRecordHandler,
   getPatientFinancialSummaryHandler,
   getTreatmentFinancialSummaryHandler,
@@ -15,6 +17,7 @@ import {
 } from './cash-record.controller.js';
 import {
   cancelCashRecordBodySchema,
+  cashRecordActivityDtoSchema,
   cashRecordDtoSchema,
   cashRecordIdParamSchema,
   cashRecordListQuerySchema,
@@ -23,6 +26,7 @@ import {
   recordPaymentBodySchema,
   treatmentIdParamSchema,
 } from './cash-record.schema.js';
+
 
 /**
  * Patient-scoped financial routes, mounted at `/api/v1/patients`.
@@ -152,6 +156,25 @@ export const cashRecordRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     cancelCashRecordHandler,
+  );
+
+  app.get(
+    '/:cashRecordId/activity',
+    {
+      preHandler: [app.requirePermission(PERMISSIONS.CASH_RECORD_READ)],
+      schema: {
+        tags: ['cash-records'],
+        summary: 'Activity timeline for one payment record',
+        description: 'Returns audit log events scoped to this cash record, newest first. Tenant-isolated.',
+        security: [{ bearerAuth: [] }],
+        params: cashRecordIdParamSchema,
+        response: {
+          200: successSchema(z.array(cashRecordActivityDtoSchema)),
+          ...errorResponses(400, 401, 403, 404),
+        },
+      },
+    },
+    getCashRecordActivityHandler,
   );
 };
 

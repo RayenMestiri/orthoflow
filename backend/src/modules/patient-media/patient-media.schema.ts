@@ -20,8 +20,13 @@ export const patientMediaDtoSchema = z.object({
   mediaType: z.enum(PATIENT_MEDIA_TYPE_VALUES),
   title: z.string(),
   description: z.string().nullable(),
-  storageProvider: z.literal('CLOUDINARY'),
-  secureUrl: z.url(),
+  storageProvider: z.string(),
+  /**
+   * Either an https:// URL (Cloudinary) or a data: URI (local fallback when Cloudinary
+   * is unavailable). Validated as a plain string rather than z.url() because Zod's url()
+   * rejects the data: scheme.
+   */
+  secureUrl: z.string(),
   originalFileName: z.string(),
   mimeType: z.string(),
   fileSizeBytes: z.number().int().positive(),

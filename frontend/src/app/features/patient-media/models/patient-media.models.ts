@@ -26,7 +26,7 @@ export interface PatientMedia {
   mediaType: PatientMediaType;
   title: string;
   description: string | null;
-  storageProvider: 'CLOUDINARY';
+  storageProvider: string;
   secureUrl: string;
   originalFileName: string;
   mimeType: string;

@@ -17,6 +17,10 @@
     <div class="media-alert" role="alert">
       <span class="material-icons" aria-hidden="true">error_outline</span>
       <span>{{ message }}</span>
+      <button type="button" class="media-alert__retry" (click)="retryLoad()" aria-label="Retry">
+        <span class="material-icons" aria-hidden="true">refresh</span>
+        Retry
+      </button>
       <button type="button" aria-label="Dismiss error" (click)="store.dismissError()">
         <span class="material-icons" aria-hidden="true">close</span>
       </button>
@@ -36,17 +40,25 @@
         </button>
       }
     </div>
-    <form class="media-search" role="search" (submit)="submitSearch($event)">
-      <label class="sr-only" for="patient-media-search">Search patient files</label>
-      <span class="material-icons" aria-hidden="true">search</span>
-      <input
-        id="patient-media-search"
-        type="search"
-        [formControl]="search"
-        placeholder="Search files"
-      />
-      <button type="submit">Search</button>
-    </form>
+    <div class="media-toolbar-right">
+      <div class="media-search" role="search">
+        <label class="sr-only" for="patient-media-search">Search patient files</label>
+        <span class="material-icons" aria-hidden="true">search</span>
+        <input
+          id="patient-media-search"
+          type="search"
+          [formControl]="search"
+          placeholder="Search files…"
+        />
+      </div>
+      <label class="media-sort" aria-label="Sort order">
+        <span class="material-icons" aria-hidden="true">sort</span>
+        <select (change)="setSortOrder($event)">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+        </select>
+      </label>
+    </div>
   </div>
 
   @if (store.isLoading() && !store.isLoaded()) {
@@ -65,7 +77,7 @@
           Archived patient files remain available here for historical review.
         } @else {
           Upload treatment photos, X-rays, prescriptions or administrative documents to keep this
-          patient’s record organized.
+          patient's record organized.
         }
       </p>
       @if (canManage() && activeFilter() !== 'ARCHIVED') {
@@ -86,28 +98,110 @@
         </header>
         <div class="media-gallery">
           @for (media of imageItems(); track media.id) {
-            <button type="button" class="media-card" (click)="openPreview(media)">
-              <span class="media-card__image">
-                <img
-                  [src]="thumbnail(media)"
-                  [alt]="media.title"
-                  loading="lazy"
-                  width="560"
-                  height="420"
-                />
-                @if (media.status === 'ARCHIVED') {
-                  <span class="media-status">Archived</span>
-                }
-              </span>
-              <span class="media-card__copy">
+            <div class="media-card" [attr.data-status]="media.status">
+              <a
+                class="media-card__image-btn"
+                [href]="media.secureUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                [attr.aria-label]="'Open ' + media.title + ' in Cloudinary'"
+              >
+                <span class="media-card__image">
+                  <img
+                    [src]="thumbnail(media)"
+                    [alt]="media.title"
+                    loading="lazy"
+                    width="600"
+                    height="450"
+                  />
+                  @if (media.status === 'ARCHIVED') {
+                    <span class="media-status">Archived</span>
+                  }
+                </span>
+              </a>
+              <div class="media-card__copy">
                 <span class="media-card__category">{{ categoryLabel(media.category) }}</span>
                 <strong>{{ media.title }}</strong>
-                <small>{{ media.capturedAt ?? media.uploadedAt | date: 'mediumDate' }}</small>
+                <small>{{ (media.capturedAt ?? media.uploadedAt) | date: 'mediumDate' }}</small>
                 @if (treatmentLabel(media.treatmentId); as treatment) {
                   <span class="media-treatment">{{ treatment }}</span>
                 }
-              </span>
-            </button>
+              </div>
+              @if (canManageItem(media)) {
+                <div class="media-card__actions">
+                  <a
+                    class="media-card__menu-btn"
+                    [href]="media.secureUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    [attr.aria-label]="'Open ' + media.title + ' in Cloudinary'"
+                  >
+                    <span class="material-icons" aria-hidden="true">open_in_full</span>
+                    View
+                  </a>
+                  @if (media.status === 'ACTIVE') {
+                    <button
+                      type="button"
+                      class="media-card__menu-btn"
+                      (click)="openEdit(media)"
+                    >
+                      <span class="material-icons" aria-hidden="true">edit</span>
+                      Edit
+                    </button>
+                    @if (media.mediaType === 'IMAGE') {
+                      <button
+                        type="button"
+                        class="media-card__menu-btn"
+                        (click)="openReplaceImage(media)"
+                        [attr.aria-label]="'Replace image for ' + media.title"
+                      >
+                        <span class="material-icons" aria-hidden="true">swap_horiz</span>
+                        Replace
+                      </button>
+                    }
+                    <button
+                      type="button"
+                      class="media-card__menu-btn media-card__menu-btn--danger"
+                      (click)="confirmArchive(media)"
+                    >
+                      <span class="material-icons" aria-hidden="true">inventory_2</span>
+                      Archive
+                    </button>
+                    <button
+                      type="button"
+                      class="media-card__menu-btn media-card__menu-btn--delete"
+                      (click)="confirmDelete(media)"
+                      [attr.aria-label]="'Permanently delete ' + media.title"
+                    >
+                      <span class="material-icons" aria-hidden="true">delete_forever</span>
+                      Delete
+                    </button>
+                  }
+                  @if (media.status === 'ARCHIVED') {
+                    <button
+                      type="button"
+                      class="media-card__menu-btn media-card__menu-btn--restore"
+                      [disabled]="store.isSaving()"
+                      (click)="restoreItem(media)"
+                    >
+                      @if (store.isSaving()) {
+                        <span class="media-spinner media-spinner--sm" aria-hidden="true"></span>
+                      }
+                      Restore
+                    </button>
+                    <button
+                      type="button"
+                      class="media-card__menu-btn media-card__menu-btn--delete"
+                      (click)="confirmDelete(media)"
+                      [attr.aria-label]="'Permanently delete ' + media.title"
+                    >
+                      <span class="material-icons" aria-hidden="true">delete_forever</span>
+                      Delete
+                    </button>
+                  }
+                </div>
+              }
+            </div>
           }
         </div>
       </section>
@@ -139,7 +233,58 @@
               @if (media.status === 'ARCHIVED') {
                 <span class="media-status">Archived</span>
               }
-              <button type="button" class="media-btn" (click)="openPreview(media)">Details</button>
+              <div class="media-document-row__actions">
+                <a
+                  class="media-btn"
+                  [href]="media.secureUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  [attr.aria-label]="'Open ' + media.title + ' in Cloudinary'"
+                >View</a>
+                @if (canManageItem(media) && media.status === 'ACTIVE') {
+                  <button
+                    type="button"
+                    class="media-btn"
+                    (click)="openEdit(media)"
+                    [attr.aria-label]="'Edit details for ' + media.title"
+                  >
+                    <span class="material-icons" aria-hidden="true">edit</span>
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="media-btn media-btn--ghost"
+                    (click)="confirmArchive(media)"
+                  >
+                    Archive
+                  </button>
+                }
+                @if (canManageItem(media) && media.status === 'ARCHIVED') {
+                  <button
+                    type="button"
+                    class="media-btn media-btn--restore"
+                    [disabled]="store.isSaving()"
+                    (click)="restoreItem(media)"
+                    [attr.aria-label]="'Restore ' + media.title"
+                  >
+                    @if (store.isSaving()) {
+                      <span class="media-spinner" aria-hidden="true"></span>
+                    }
+                    Restore
+                  </button>
+                }
+                @if (canManageItem(media)) {
+                  <button
+                    type="button"
+                    class="media-btn media-btn--delete"
+                    (click)="confirmDelete(media)"
+                    [attr.aria-label]="'Permanently delete ' + media.title"
+                  >
+                    <span class="material-icons" aria-hidden="true">delete_forever</span>
+                    Delete
+                  </button>
+                }
+              </div>
             </article>
           }
         </div>
@@ -147,6 +292,7 @@
     }
   }
 
+  <!-- Drawer overlay -->
   @if (drawerMode(); as mode) {
     <div
       class="media-overlay"
@@ -197,23 +343,77 @@
             novalidate
           >
             @if (mode === 'upload') {
-              <div class="media-file-picker" [class.invalid]="fileError()">
-                <span class="material-icons" aria-hidden="true">add_photo_alternate</span>
-                <label for="patient-media-file">Choose a patient file</label>
-                <p>JPEG, PNG or WebP up to 10 MB · PDF up to 20 MB</p>
-                <input
-                  id="patient-media-file"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,application/pdf"
-                  (change)="fileChanged($event)"
-                />
-                @if (selectedFile(); as file) {
-                  <strong>{{ file.name }}</strong>
-                }
-                @if (fileError(); as error) {
-                  <small role="alert">{{ error }}</small>
-                }
-              </div>
+              <!-- Local image preview -->
+              @if (localPreviewUrl(); as previewSrc) {
+                <div class="media-local-preview">
+                  <img [src]="previewSrc" [alt]="selectedFile()?.name ?? 'Preview'" />
+                  <div class="media-local-preview__info">
+                    <span class="material-icons" aria-hidden="true">check_circle</span>
+                    <div>
+                      <strong>{{ selectedFile()?.name }}</strong>
+                      <small>{{ fileSize(selectedFile()?.size ?? 0) }}</small>
+                    </div>
+                    <button
+                      type="button"
+                      class="media-btn media-btn--ghost"
+                      (click)="replaceFile()"
+                    >
+                      Replace
+                    </button>
+                  </div>
+                </div>
+              } @else {
+                <div class="media-file-picker" [class.invalid]="fileError()">
+                  <span class="material-icons" aria-hidden="true">add_photo_alternate</span>
+                  <label for="patient-media-file">Choose a patient file</label>
+                  <p>JPEG, PNG or WebP up to 10 MB · PDF up to 20 MB</p>
+                  <input
+                    #fileInput
+                    id="patient-media-file"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    (change)="fileChanged($event)"
+                  />
+                  @if (selectedFile(); as file) {
+                    @if (file.type === 'application/pdf') {
+                      <div class="media-pdf-preview">
+                        <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
+                        <strong>{{ file.name }}</strong>
+                        <small>{{ fileSize(file.size) }}</small>
+                      </div>
+                    }
+                  }
+                  @if (fileError(); as error) {
+                    <small role="alert">{{ error }}</small>
+                  }
+                </div>
+              }
+            }
+
+            @if (mode === 'edit' && selected(); as editMedia) {
+              <!-- Compact visual preview in edit mode -->
+              @if (editMedia.mediaType === 'IMAGE') {
+                <div class="media-edit-preview">
+                  <img [src]="previewUrl(editMedia)" [alt]="editMedia.title" />
+                  <a
+                    [href]="editMedia.secureUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="media-edit-preview__link"
+                  >
+                    <span class="material-icons" aria-hidden="true">open_in_new</span>
+                    Open original
+                  </a>
+                </div>
+              } @else {
+                <div class="media-edit-doc-identity">
+                  <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
+                  <div>
+                    <strong>{{ editMedia.originalFileName }}</strong>
+                    <small>{{ fileSize(editMedia.fileSizeBytes) }} · {{ editMedia.uploadedAt | date: 'mediumDate' }}</small>
+                  </div>
+                </div>
+              }
             }
 
             <div class="media-field-row">
@@ -261,7 +461,7 @@
               <span>Note</span>
               <textarea
                 id="patient-media-description"
-                rows="4"
+                rows="3"
                 formControlName="description"
               ></textarea>
             </label>
@@ -283,9 +483,10 @@
                 class="media-btn media-btn--primary"
                 [disabled]="store.isSaving()"
               >
-                {{
-                  store.isSaving() ? 'Saving…' : mode === 'upload' ? 'Upload file' : 'Save details'
-                }}
+                @if (store.isSaving()) {
+                  <span class="media-spinner" aria-hidden="true"></span>
+                }
+                {{ store.isSaving() ? 'Saving…' : mode === 'upload' ? 'Upload file' : 'Save details' }}
               </button>
             </footer>
           </form>
@@ -302,6 +503,22 @@
                 <span>{{ fileSize(media.fileSizeBytes) }}</span>
               </div>
             }
+
+            @if (media.status === 'ARCHIVED') {
+              <div class="media-archive-note">
+                <div class="media-archive-note__badge">
+                  <span class="material-icons" aria-hidden="true">inventory_2</span>
+                  Archived
+                </div>
+                @if (media.archivedAt) {
+                  <p><strong>Archived</strong> {{ media.archivedAt | date: 'mediumDate' }}</p>
+                }
+                @if (media.archiveReason) {
+                  <p><strong>Reason</strong> {{ media.archiveReason }}</p>
+                }
+              </div>
+            }
+
             <dl class="media-metadata">
               <div>
                 <dt>Category</dt>
@@ -309,7 +526,7 @@
               </div>
               <div>
                 <dt>Date</dt>
-                <dd>{{ media.capturedAt ?? media.uploadedAt | date: 'mediumDate' }}</dd>
+                <dd>{{ (media.capturedAt ?? media.uploadedAt) | date: 'mediumDate' }}</dd>
               </div>
               <div>
                 <dt>Uploaded</dt>
@@ -326,18 +543,14 @@
                 </div>
               }
             </dl>
+
             @if (media.description) {
               <div class="media-preview__note">
                 <span>Note</span>
                 <p>{{ media.description }}</p>
               </div>
             }
-            @if (media.status === 'ARCHIVED') {
-              <div class="media-archive-note">
-                <strong>Archived</strong>
-                <span>{{ media.archiveReason || 'No archive reason recorded.' }}</span>
-              </div>
-            }
+
             <footer class="media-preview__actions">
               <a
                 class="media-btn"
@@ -347,6 +560,19 @@
               >
                 <span class="material-icons" aria-hidden="true">open_in_new</span>Open original
               </a>
+              @if (media.status === 'ARCHIVED' && canManageItem(media)) {
+                <button
+                  type="button"
+                  class="media-btn media-btn--restore"
+                  [disabled]="store.isSaving()"
+                  (click)="restore()"
+                >
+                  @if (store.isSaving()) {
+                    <span class="media-spinner" aria-hidden="true"></span>
+                  }
+                  Restore file
+                </button>
+              }
               @if (canManageItem(media) && media.status === 'ACTIVE') {
                 <button type="button" class="media-btn" (click)="openEdit(media)">
                   Edit details
@@ -366,6 +592,7 @@
     </div>
   }
 
+  <!-- Archive confirmation dialog -->
   @if (archiveTarget(); as media) {
     <div
       class="media-dialog-overlay"
@@ -384,9 +611,13 @@
         (keydown.escape)="closeArchive()"
         (submit)="submitArchive($event)"
       >
-        <h3 id="archive-media-title">Archive “{{ media.title }}”?</h3>
+        <div class="media-dialog__icon">
+          <span class="material-icons" aria-hidden="true">inventory_2</span>
+        </div>
+        <h3 id="archive-media-title">Archive "{{ media.title }}"?</h3>
         <p>
-          It will leave active documents but remain available in the patient’s archived history.
+          It will be removed from the active list but remain accessible in the Archived filter and
+          can be restored at any time.
         </p>
         <label class="media-field" for="patient-media-archive-reason">
           <span>Reason <em>Optional</em></span>
@@ -394,11 +625,146 @@
         </label>
         <footer>
           <button type="button" class="media-btn" (click)="closeArchive()">Keep active</button>
-          <button type="submit" class="media-btn media-btn--danger" [disabled]="store.isSaving()">
+          <button
+            type="submit"
+            class="media-btn media-btn--danger"
+            [disabled]="store.isSaving()"
+          >
+            @if (store.isSaving()) {
+              <span class="media-spinner" aria-hidden="true"></span>
+            }
             Archive file
           </button>
         </footer>
       </form>
+    </div>
+  }
+
+  <!-- Permanent-delete confirmation dialog -->
+  @if (deleteTarget(); as media) {
+    <div
+      class="media-dialog-overlay"
+      role="presentation"
+      (click)="closeDelete()"
+      (keydown.escape)="closeDelete()"
+    >
+      <div
+        class="media-dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-media-title"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="closeDelete()"
+      >
+        <div class="media-dialog__icon media-dialog__icon--delete">
+          <span class="material-icons" aria-hidden="true">delete_forever</span>
+        </div>
+        <h3 id="delete-media-title">Permanently delete "{{ media.title }}"?</h3>
+        <p class="media-dialog__warning">
+          This will <strong>permanently remove</strong> the file from Cloudinary and the database.
+          This action <strong>cannot be undone</strong>.
+        </p>
+        <footer>
+          <button type="button" class="media-btn" (click)="closeDelete()">Cancel</button>
+          <button
+            type="button"
+            class="media-btn media-btn--delete"
+            [disabled]="store.isSaving()"
+            (click)="deleteItem()"
+          >
+            @if (store.isSaving()) {
+              <span class="media-spinner" aria-hidden="true"></span>
+            }
+            Delete permanently
+          </button>
+        </footer>
+      </div>
+    </div>
+  }
+
+  <!-- Replace-image dialog -->
+  <!-- Hidden file input triggered programmatically by openReplaceImage() -->
+  <input
+    #replaceInput
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+    style="display:none"
+    (change)="replaceImageFileChanged($event)"
+  />
+  @if (replaceTarget(); as media) {
+    <div
+      class="media-dialog-overlay"
+      role="presentation"
+      (click)="cancelReplaceImage()"
+      (keydown.escape)="cancelReplaceImage()"
+    >
+      <div
+        class="media-dialog media-dialog--replace"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="replace-media-title"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+        (click)="$event.stopPropagation()"
+        (keydown.escape)="cancelReplaceImage()"
+      >
+        <div class="media-dialog__icon">
+          <span class="material-icons" aria-hidden="true">swap_horiz</span>
+        </div>
+        <h3 id="replace-media-title">Replace image</h3>
+        <p>Current: <strong>{{ media.title }}</strong></p>
+
+        <div class="media-replace-previews">
+          <div class="media-replace-preview">
+            <span class="media-replace-preview__label">Current</span>
+            <img [src]="thumbnail(media)" [alt]="media.title" />
+          </div>
+          @if (replaceLocalPreview()) {
+            <div class="media-replace-preview">
+              <span class="media-replace-preview__label">New</span>
+              <img [src]="replaceLocalPreview()!" alt="New image preview" />
+            </div>
+          }
+        </div>
+
+        @if (replaceFileError()) {
+          <p class="media-field-error">{{ replaceFileError() }}</p>
+        }
+
+        @if (store.uploadProgress() !== null) {
+          <div class="media-progress" role="progressbar" [attr.aria-valuenow]="store.uploadProgress()">
+            <div class="media-progress__bar" [style.width.%]="store.uploadProgress()"></div>
+          </div>
+        }
+
+        <footer>
+          <button
+            type="button"
+            class="media-btn"
+            (click)="replaceInputRef?.nativeElement?.click()"
+            [disabled]="store.isSaving()"
+          >
+            <span class="material-icons" aria-hidden="true">upload_file</span>
+            Choose new image
+          </button>
+          <button type="button" class="media-btn" (click)="cancelReplaceImage()" [disabled]="store.isSaving()">
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="media-btn media-btn--primary"
+            [disabled]="!replaceSelectedFile() || store.isSaving()"
+            (click)="saveReplaceImage()"
+          >
+            @if (store.isSaving()) {
+              <span class="media-spinner" aria-hidden="true"></span>
+            }
+            Replace image
+          </button>
+        </footer>
+      </div>
     </div>
   }
 </section>

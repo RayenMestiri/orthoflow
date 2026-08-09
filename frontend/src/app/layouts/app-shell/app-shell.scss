@@ -134,13 +134,18 @@
   opacity: 0.62;
 }
 
-.app-shell__nav-link--future small {
+.app-shell__nav-link--future small,
+.app-shell__nav-link--location small {
   padding: 0.18rem 0.35rem;
   border-radius: var(--radius-pill);
   color: rgb(255 254 251 / 0.56);
   background: rgb(255 254 251 / 0.08);
   font-size: 0.55rem;
   text-transform: uppercase;
+}
+
+.app-shell__nav-link--location {
+  color: rgb(255 254 251 / 0.82);
 }
 
 .app-shell__sidebar-note {

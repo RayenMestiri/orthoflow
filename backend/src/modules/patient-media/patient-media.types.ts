@@ -87,7 +87,8 @@ export interface PatientMediaDto {
   mediaType: PatientMediaType;
   title: string;
   description: string | null;
-  storageProvider: 'CLOUDINARY';
+  /** 'CLOUDINARY' for real uploads; stored as 'CLOUDINARY' even for local fallback. */
+  storageProvider: string;
   secureUrl: string;
   originalFileName: string;
   mimeType: string;
