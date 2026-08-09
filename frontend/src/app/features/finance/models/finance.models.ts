@@ -89,6 +89,26 @@ export interface FinanceActivityEntry {
   cancellationReason: string | null;
 }
 
+/**
+ * Whether a course of care can receive money right now.
+ *
+ * Mirrors `isTreatmentPayable` in the backend finance module so the selector
+ * only ever offers options the server will accept. The server re-checks
+ * regardless — this decides what to *show*, never what is *allowed*.
+ */
+export function isTreatmentPayable(
+  treatmentStatus: string,
+  remainingMinor: number | null,
+): boolean {
+  if (treatmentStatus === 'CANCELLED') {
+    return false;
+  }
+  if (treatmentStatus === 'COMPLETED') {
+    return remainingMinor === null || remainingMinor > 0;
+  }
+  return true;
+}
+
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   NO_PAYMENT: 'No payment',
   PARTIALLY_PAID: 'Partially paid',

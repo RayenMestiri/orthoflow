@@ -64,6 +64,26 @@ export class FinanceApiService {
       .pipe(map((response) => ({ items: response.data, ...response.pagination })));
   }
 
+  /**
+   * Every treatment for one patient, with its authoritative balance.
+   *
+   * Reuses the balances aggregation rather than fetching treatments and then a
+   * summary per treatment, which would be one request per row. The caller
+   * filters to payable ones with the shared rule.
+   */
+  treatmentsForPatient(patientId: string): Observable<PatientBalance[]> {
+    const params = new HttpParams()
+      .set('patientId', patientId)
+      .set('filter', 'ALL')
+      .set('sort', 'REMAINING_DESC')
+      .set('page', 1)
+      .set('limit', 50);
+
+    return this.http
+      .get<PaginatedEnvelope<PatientBalance>>(`${this.baseUrl}/patient-balances`, { params })
+      .pipe(map((response) => response.data));
+  }
+
   activity(limit = 12): Observable<FinanceActivityEntry[]> {
     return this.http
       .get<ApiEnvelope<FinanceActivityEntry[]>>(`${this.baseUrl}/activity`, {

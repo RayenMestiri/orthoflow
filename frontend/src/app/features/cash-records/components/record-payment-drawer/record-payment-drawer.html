@@ -35,23 +35,70 @@
             <dt>Patient</dt>
             <dd>{{ patientName() || '—' }}</dd>
           </div>
-          <div>
-            <dt>Treatment</dt>
-            <dd>{{ treatmentLabel() ?? 'No treatment selected' }}</dd>
-          </div>
         </dl>
+
+        <!-- Which course of care this money lands against -->
+        @if (treatmentsLoading()) {
+          <p class="pay-field__hint">Loading treatments…</p>
+        } @else if (hasNoPayableTreatment()) {
+          <div class="pay-no-treatment" role="status">
+            <strong>No payable treatment found for this patient.</strong>
+            <span>
+              Payments need a course of care that is active, paused, planned, or finished with a
+              balance still owing. This payment will be recorded against the patient without a
+              treatment.
+            </span>
+          </div>
+        } @else if (needsTreatmentChoice()) {
+          <div class="pay-field">
+            <label for="pay-treatment">Treatment *</label>
+            <select
+              id="pay-treatment"
+              [formControl]="treatmentControl"
+              (change)="onTreatmentChanged()"
+              [attr.aria-invalid]="treatmentTouched() && !selectedTreatmentId() ? 'true' : null"
+            >
+              <option value="" disabled>Select the treatment being paid…</option>
+              @for (treatment of payableTreatments(); track treatment.treatmentId) {
+                <option [value]="treatment.treatmentId">
+                  {{ treatmentOptionLabel(treatment) }}
+                </option>
+              }
+            </select>
+            @if (treatmentTouched() && !selectedTreatmentId()) {
+              <p class="pay-field__error" aria-live="polite">
+                Choose which treatment this payment is for.
+              </p>
+            } @else {
+              <p class="pay-field__hint">
+                This patient has {{ payableTreatments().length }} treatments that can receive a
+                payment.
+              </p>
+            }
+          </div>
+        } @else if (selectedTreatment(); as treatment) {
+          <dl class="pay-context">
+            <div>
+              <dt>Treatment</dt>
+              <dd>{{ treatmentOptionLabel(treatment) }}</dd>
+            </div>
+          </dl>
+        }
 
         @if (isCorrection()) {
           <div class="pay-correction-banner">
             <span class="material-icons" aria-hidden="true">redo</span>
             <div>
               <strong>Recording a corrected payment</strong>
-              <span>Method and payer pre-filled from the cancelled entry. Enter the correct amount.</span>
+              <span
+                >Method and payer pre-filled from the cancelled entry. Enter the correct
+                amount.</span
+              >
             </div>
           </div>
         }
 
-        @if (summary(); as position) {
+        @if (effectiveSummary(); as position) {
           <section class="pay-position" aria-label="Financial summary">
             <div>
               <dt>Agreed</dt>
@@ -170,7 +217,10 @@
                 <option [ngValue]="guardian.id">{{ guardian.fullName }}</option>
               }
             </select>
-            @if ((form.controls.guardianId.touched || form.controls.payerType.touched) && !form.controls.guardianId.value) {
+            @if (
+              (form.controls.guardianId.touched || form.controls.payerType.touched) &&
+              !form.controls.guardianId.value
+            ) {
               <p class="pay-field__error" aria-live="polite">
                 Select which guardian handed the money over.
               </p>

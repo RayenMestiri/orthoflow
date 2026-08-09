@@ -229,6 +229,7 @@
   @if (store.drawerMode() === 'record') {
     <app-record-payment-drawer
       [patientName]="patientName()"
+      [patientId]="patientId()"
       [treatmentLabel]="treatmentLabel()"
       [treatmentId]="treatmentId()"
       [guardians]="guardians()"
@@ -389,21 +390,13 @@
             </button>
           }
           @if (record.status === 'CANCELLED') {
-            <button
-              type="button"
-              class="fin-btn fin-btn--primary"
-              (click)="openCorrection(record)"
-            >
+            <button type="button" class="fin-btn fin-btn--primary" (click)="openCorrection(record)">
               <span class="material-icons" aria-hidden="true">redo</span>
               Record corrected payment
             </button>
           }
           @if (canCancel && record.status === 'RECORDED') {
-            <button
-              type="button"
-              class="fin-btn fin-btn--danger"
-              (click)="openCancel(record)"
-            >
+            <button type="button" class="fin-btn fin-btn--danger" (click)="openCancel(record)">
               Cancel payment
             </button>
           }
@@ -450,7 +443,8 @@
               <span class="material-icons" aria-hidden="true">check_circle</span>
             </div>
             <p>
-              The payment of <strong>{{ cancelled.amountFormatted }} {{ cancelled.currency }}</strong>
+              The payment of
+              <strong>{{ cancelled.amountFormatted }} {{ cancelled.currency }}</strong>
               has been cancelled and removed from totals. Its receipt is marked cancelled.
             </p>
             @if (cancelled.cancellationReason) {
@@ -484,7 +478,11 @@
               <span class="material-icons" aria-hidden="true">close</span>
             </button>
           </header>
-          <form class="fin-drawer__body fin-cancel-form" (submit)="confirmCancel($event)" novalidate>
+          <form
+            class="fin-drawer__body fin-cancel-form"
+            (submit)="confirmCancel($event)"
+            novalidate
+          >
             <dl class="fin-cancel-facts">
               <div>
                 <dt>Amount</dt>
