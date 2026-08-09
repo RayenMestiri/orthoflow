@@ -1,13 +1,12 @@
-<section class="finance-page">
-  <header class="finance-page__header">
+<section class="fin">
+  <header class="fin__masthead">
     <div>
-      <span class="finance-page__eyebrow">Financial operations</span>
+      <span class="fin__eyebrow">Financial operations</span>
       <h1>Cash records</h1>
-      <p>Treatment balances and physical payments recorded by the clinic.</p>
+      <p>Understand treatment balances and physical payments received by the clinic.</p>
     </div>
   </header>
 
-  <!-- SUMMARY -->
   @if (store.overviewError(); as message) {
     <div class="fin-alert" role="alert">
       <span class="material-icons" aria-hidden="true">error_outline</span>
@@ -15,56 +14,97 @@
       <button type="button" (click)="store.loadOverview()">Retry</button>
     </div>
   } @else if (store.isOverviewLoading() && !summary()) {
-    <div class="fin-cards" aria-hidden="true">
-      @for (skeleton of [1, 2, 3, 4]; track skeleton) {
-        <div class="fin-card fin-card--skeleton"><span></span><span></span></div>
-      }
+    <div class="fin-top" aria-hidden="true">
+      <div class="fin-pulse fin-skeleton"><span></span><span class="tall"></span><span></span></div>
+      <div class="fin-collection fin-skeleton">
+        <span></span><span class="tall"></span><span></span>
+      </div>
     </div>
   } @else if (summary(); as figures) {
-    <dl class="fin-cards">
-      <div class="fin-card">
-        <dt>Received today</dt>
-        <dd>{{ money(figures.receivedTodayMinor) }}</dd>
-        <small>{{ figures.receivedTodayCount }} payment{{ figures.receivedTodayCount === 1 ? '' : 's' }}</small>
-      </div>
-      <div class="fin-card">
-        <dt>Received this month</dt>
-        <dd>{{ money(figures.receivedMonthMinor) }}</dd>
-        <small>{{ figures.receivedMonthCount }} payment{{ figures.receivedMonthCount === 1 ? '' : 's' }}</small>
-      </div>
-      <div class="fin-card fin-card--outstanding">
-        <dt>Outstanding</dt>
-        <dd>{{ money(figures.outstandingMinor) }}</dd>
-        <small>
-          {{ figures.outstandingPatientCount }} patient{{
-            figures.outstandingPatientCount === 1 ? '' : 's'
+    <!-- Asymmetric top: the month figure leads, collection health supports it -->
+    <div class="fin-top">
+      <article class="fin-pulse" aria-labelledby="fin-pulse-title">
+        <h2 id="fin-pulse-title">Financial pulse</h2>
+
+        <p class="fin-pulse__amount">
+          {{ money(figures.receivedMonthMinor) }}
+        </p>
+        <p class="fin-pulse__caption">Received this month</p>
+
+        <dl class="fin-pulse__facts">
+          <div>
+            <dt>Today</dt>
+            <dd>+{{ money(figures.receivedTodayMinor) }}</dd>
+          </div>
+          <div>
+            <dt>Payments</dt>
+            <dd>{{ figures.receivedMonthCount }}</dd>
+          </div>
+          <div>
+            <dt>Settled patients</dt>
+            <dd>{{ distribution()?.paid ?? 0 }}</dd>
+          </div>
+        </dl>
+      </article>
+
+      <article class="fin-collection" aria-labelledby="fin-collection-title">
+        <h2 id="fin-collection-title">Collection health</h2>
+
+        <p class="fin-collection__rate">{{ figures.collectedPercent }}<span>%</span></p>
+        <p class="fin-collection__caption">of agreed treatment value collected</p>
+
+        <div
+          class="fin-rail"
+          role="progressbar"
+          [attr.aria-valuenow]="figures.collectedPercent"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-label]="
+            'Collected ' + figures.collectedPercent + ' percent of agreed treatment value'
+          "
+        >
+          <span class="fin-rail__fill" [style.width.%]="figures.collectedPercent"></span>
+        </div>
+
+        <dl class="fin-collection__facts">
+          <div>
+            <dt>Recorded</dt>
+            <dd>{{ money(figures.totalRecordedMinor) }}</dd>
+          </div>
+          <div class="fin-collection__outstanding">
+            <dt>Outstanding</dt>
+            <dd>{{ money(figures.outstandingMinor) }}</dd>
+          </div>
+        </dl>
+
+        <p class="fin-collection__foot">
+          {{ figures.activeTreatmentPatientCount }} active treatment patient{{
+            figures.activeTreatmentPatientCount === 1 ? '' : 's'
           }}
-        </small>
-      </div>
-      <div class="fin-card">
-        <dt>Active treatment patients</dt>
-        <dd class="fin-card__count">{{ figures.activeTreatmentPatientCount }}</dd>
-        <small>with a course of care under way</small>
-      </div>
-    </dl>
+        </p>
+      </article>
+    </div>
   }
 
-  <!-- NEEDS ATTENTION -->
+  <!-- Needs attention: a compact rail, not four cards -->
   @if (attentionItems().length > 0) {
     <section class="fin-attention" aria-labelledby="fin-attention-title">
-      <h2 id="fin-attention-title">Needs attention</h2>
+      <h2 id="fin-attention-title">Needs your attention</h2>
       <ul>
         @for (item of attentionItems(); track item.label) {
           <li>
             <span class="fin-attention__count">{{ item.count }}</span>
-            <span class="fin-attention__label">
-              {{ item.label }}
-              <small>{{ item.unit }}</small>
-            </span>
+            <span class="fin-attention__label">{{ item.label }}</span>
+            @if (item.detail) {
+              <span class="fin-attention__detail">{{ item.detail }}</span>
+            }
             @if (item.reviewable) {
-              <button type="button" class="fin-btn" (click)="reviewAttention(item.key)">
+              <button type="button" class="fin-review" (click)="reviewAttention(item.key)">
                 Review
+                <span class="material-icons" aria-hidden="true">arrow_forward</span>
               </button>
+            } @else {
+              <span class="fin-attention__muted">Patient payments</span>
             }
           </li>
         }
@@ -72,13 +112,51 @@
     </section>
   }
 
-  <!-- PATIENT BALANCES -->
+  <!-- Distribution: one segmented bar, no donut -->
+  @if (healthSegments().length > 0) {
+    <section class="fin-health" aria-labelledby="fin-health-title">
+      <div class="fin-health__head">
+        <h2 id="fin-health-title">Patient financial health</h2>
+        <span>{{ healthTotal() }} treatments</span>
+      </div>
+
+      <div class="fin-health__bar" role="img" [attr.aria-label]="'Treatment payment distribution'">
+        @for (segment of healthSegments(); track segment.key) {
+          <span
+            class="fin-health__segment"
+            [attr.data-status]="segment.key"
+            [style.width.%]="segment.percent"
+            [attr.title]="segment.label + ': ' + segment.count"
+          ></span>
+        }
+      </div>
+
+      <ul class="fin-health__legend">
+        @for (segment of healthSegments(); track segment.key) {
+          <li>
+            <span
+              class="fin-health__dot"
+              [attr.data-status]="segment.key"
+              aria-hidden="true"
+            ></span>
+            <span class="fin-health__legend-label">{{ segment.label }}</span>
+            <strong>{{ segment.count }}</strong>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <!-- The workspace -->
   <section class="fin-balances" aria-labelledby="fin-balances-title">
     <header class="fin-balances__head">
-      <h2 id="fin-balances-title">Patient balances</h2>
+      <div>
+        <h2 id="fin-balances-title">Patient balances</h2>
+        <p>{{ store.total() }} treatment{{ store.total() === 1 ? '' : 's' }} in this view</p>
+      </div>
 
       <div class="fin-controls">
-        <label class="sr-only" for="fin-search">Search patient</label>
+        <label class="sr-only" for="fin-search">Search patient or phone</label>
         <div class="fin-search">
           <span class="material-icons" aria-hidden="true">search</span>
           <input
@@ -110,6 +188,9 @@
           (click)="applyFilter(option.value)"
         >
           {{ option.label }}
+          @if (filterCounts()[option.value]; as count) {
+            <span class="fin-filter__count">{{ count }}</span>
+          }
         </button>
       }
     </div>
@@ -121,54 +202,84 @@
         <button type="button" (click)="store.loadBalances()">Retry</button>
       </div>
     } @else if (store.isBalancesLoading() && !store.hasBalances()) {
-      <div class="fin-loading" role="status">
-        <span class="fin-spinner" aria-hidden="true"></span>
-        Loading balances…
-      </div>
+      <ul class="fin-skeleton-rows" aria-hidden="true">
+        @for (skeleton of [1, 2, 3, 4, 5]; track skeleton) {
+          <li><span></span><span></span><span></span></li>
+        }
+      </ul>
     } @else if (!store.hasBalances()) {
       <div class="fin-empty">
         @if (store.isEmptyWorkspace()) {
-          <p><strong>No payments have been recorded yet.</strong></p>
+          <h3>No financial activity yet</h3>
           <p>
-            Record physical payments from a patient’s Payments tab to build a clear treatment
-            financial history.
+            Once the clinic records physical payments, this workspace will summarize treatment
+            balances and payment activity.
           </p>
+          <a class="fin-btn fin-btn--primary" routerLink="/app/patients">Go to patients</a>
         } @else if (store.filter() === 'OUTSTANDING') {
-          <p><strong>All treatment balances are currently settled.</strong></p>
+          <h3>All treatment balances are settled</h3>
+          <p>Nothing is currently outstanding across the clinic.</p>
         } @else {
-          <p><strong>No treatments match this view.</strong></p>
+          <h3>No treatments match this view</h3>
           <p>Try a different filter or clear the search.</p>
         }
       </div>
     } @else {
-      <!-- Desktop/tablet table -->
       <table class="fin-table">
+        <caption class="sr-only">
+          Treatment balances,
+          {{
+            store.total()
+          }}
+          results
+        </caption>
         <thead>
           <tr>
             <th scope="col">Patient</th>
             <th scope="col">Treatment</th>
-            <th scope="col" class="fin-num">Agreed</th>
-            <th scope="col" class="fin-num">Recorded</th>
+            <th scope="col">Progress</th>
             <th scope="col" class="fin-num">Remaining</th>
             <th scope="col">Status</th>
             <th scope="col">Last payment</th>
+            <th scope="col"><span class="sr-only">Open</span></th>
           </tr>
         </thead>
         <tbody>
           @for (row of store.balances(); track trackBalance($index, row)) {
             <tr
               tabindex="0"
-              role="link"
-              [attr.aria-label]="'Open ' + row.patientName"
               (click)="openPatient(row)"
               (keydown.enter)="openPatient(row)"
               (keydown.space)="openPatient(row)"
             >
-              <td class="fin-patient">{{ row.patientName }}</td>
-              <td class="fin-treatment">{{ row.treatmentLabel }}</td>
-              <td class="fin-num">{{ money(row.agreedMinor) }}</td>
-              <td class="fin-num">{{ money(row.recordedMinor) }}</td>
-              <td class="fin-num fin-num--strong">
+              <td>
+                <span class="fin-person">
+                  <span class="fin-avatar" aria-hidden="true">{{ initials(row.patientName) }}</span>
+                  <span class="fin-person__name">{{ row.patientName }}</span>
+                </span>
+              </td>
+              <td>
+                <span class="fin-treatment">{{ row.treatmentLabel }}</span>
+                <span class="fin-treatment__status">{{ row.treatmentStatus }}</span>
+              </td>
+              <td class="fin-progress-cell">
+                <span class="fin-progress__figures">
+                  {{ money(row.recordedMinor) }}
+                  <span>/ {{ money(row.agreedMinor) }}</span>
+                </span>
+                <span
+                  class="fin-progress"
+                  [attr.data-status]="row.paymentStatus"
+                  role="progressbar"
+                  [attr.aria-valuenow]="progressPercent(row)"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  [attr.aria-label]="row.patientName + ' payment progress'"
+                >
+                  <span class="fin-progress__fill" [style.width.%]="progressPercent(row)"></span>
+                </span>
+              </td>
+              <td class="fin-num fin-num--lead">
                 @if (row.paymentStatus === 'OVERPAID') {
                   +{{ money(row.overpaidMinor) }}
                 } @else {
@@ -181,38 +292,56 @@
                 </span>
               </td>
               <td class="fin-when">
-                {{ row.lastPaymentAt ? (row.lastPaymentAt | date: 'dd MMM y') : '—' }}
+                {{ row.lastPaymentAt ? (row.lastPaymentAt | date: 'dd MMM') : '—' }}
+              </td>
+              <td class="fin-chevron">
+                <span class="material-icons" aria-hidden="true">chevron_right</span>
               </td>
             </tr>
           }
         </tbody>
       </table>
 
-      <!-- Mobile cards: the same rows without a horizontal scrollbar -->
-      <ul class="fin-cards-list">
+      <!-- Mobile: intentional cards, never a shrunken table -->
+      <ul class="fin-rowcards">
         @for (row of store.balances(); track trackBalance($index, row)) {
           <li>
-            <button type="button" class="fin-row-card" (click)="openPatient(row)">
-              <span class="fin-row-card__head">
-                <strong>{{ row.patientName }}</strong>
+            <button type="button" (click)="openPatient(row)">
+              <span class="fin-rowcard__top">
+                <span class="fin-person">
+                  <span class="fin-avatar" aria-hidden="true">{{ initials(row.patientName) }}</span>
+                  <span>
+                    <strong>{{ row.patientName }}</strong>
+                    <small>{{ row.treatmentLabel }} · {{ row.treatmentStatus }}</small>
+                  </span>
+                </span>
+                <span class="material-icons fin-rowcard__go" aria-hidden="true">chevron_right</span>
+              </span>
+
+              <span class="fin-rowcard__amount">
+                <small>{{ row.paymentStatus === 'OVERPAID' ? 'Overpaid' : 'Remaining' }}</small>
+                <strong>
+                  {{
+                    row.paymentStatus === 'OVERPAID'
+                      ? money(row.overpaidMinor)
+                      : money(row.remainingMinor)
+                  }}
+                </strong>
+              </span>
+
+              <span class="fin-progress__figures">
+                {{ money(row.recordedMinor) }} <span>/ {{ money(row.agreedMinor) }}</span>
+              </span>
+              <span class="fin-progress" [attr.data-status]="row.paymentStatus">
+                <span class="fin-progress__fill" [style.width.%]="progressPercent(row)"></span>
+              </span>
+
+              <span class="fin-rowcard__foot">
                 <span class="fin-status" [attr.data-status]="row.paymentStatus">
                   {{ statusLabels[row.paymentStatus] }}
                 </span>
-              </span>
-              <span class="fin-row-card__treatment">{{ row.treatmentLabel }}</span>
-              <span class="fin-row-card__amounts">
-                <span>
-                  <small>{{ row.paymentStatus === 'OVERPAID' ? 'Overpaid' : 'Remaining' }}</small>
-                  <strong>
-                    {{
-                      row.paymentStatus === 'OVERPAID'
-                        ? money(row.overpaidMinor)
-                        : money(row.remainingMinor)
-                    }}
-                  </strong>
-                </span>
-                <span class="fin-row-card__progress">
-                  Recorded {{ money(row.recordedMinor) }} / {{ money(row.agreedMinor) }}
+                <span class="fin-when">
+                  {{ row.lastPaymentAt ? (row.lastPaymentAt | date: 'dd MMM') : 'No payment yet' }}
                 </span>
               </span>
             </button>
@@ -230,7 +359,7 @@
           >
             Previous
           </button>
-          <span>Page {{ store.page() }} of {{ store.pages() }} · {{ store.total() }} treatments</span>
+          <span>Page {{ store.page() }} of {{ store.pages() }}</span>
           <button
             type="button"
             class="fin-btn"
@@ -244,9 +373,9 @@
     }
   </section>
 
-  <!-- RECENT ACTIVITY -->
+  <!-- Recent money movement -->
   <section class="fin-activity" aria-labelledby="fin-activity-title">
-    <h2 id="fin-activity-title">Recent activity</h2>
+    <h2 id="fin-activity-title">Recent money movement</h2>
 
     @if (store.activityError(); as message) {
       <div class="fin-alert" role="alert">
@@ -255,20 +384,22 @@
         <button type="button" (click)="store.loadActivity()">Retry</button>
       </div>
     } @else if (store.isActivityLoading() && store.activity().length === 0) {
-      <div class="fin-loading" role="status">
-        <span class="fin-spinner" aria-hidden="true"></span>
-        Loading activity…
-      </div>
+      <ul class="fin-skeleton-rows" aria-hidden="true">
+        @for (skeleton of [1, 2, 3]; track skeleton) {
+          <li><span></span><span></span><span></span></li>
+        }
+      </ul>
     } @else if (store.activity().length === 0) {
-      <p class="fin-activity__empty">No financial activity recorded yet.</p>
+      <p class="fin-activity__empty">No payments have been recorded yet.</p>
     } @else {
       <ol class="fin-feed">
         @for (entry of store.activity(); track entry.cashRecordId) {
           <li [attr.data-status]="entry.status">
             <time [attr.datetime]="entry.receivedAt">
-              {{ entry.receivedAt | date: 'dd MMM' }}
-              <span>{{ entry.receivedAt | date: 'HH:mm' }}</span>
+              <strong>{{ entry.receivedAt | date: 'HH:mm' }}</strong>
+              <span>{{ entry.receivedAt | date: 'dd MMM' }}</span>
             </time>
+            <span class="fin-feed__rail" aria-hidden="true"></span>
             <div class="fin-feed__body">
               <p class="fin-feed__amount">
                 {{ entry.status === 'CANCELLED' ? '' : '+' }}{{ money(entry.amountMinor) }}

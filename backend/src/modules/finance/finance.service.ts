@@ -133,6 +133,12 @@ export class FinanceService {
         outstandingMinor: totals.outstandingMinor,
         outstandingPatientCount: totals.outstandingPatientIds.length,
         activeTreatmentPatientCount: totals.activeTreatmentPatientIds.length,
+        totalAgreedMinor: totals.totalAgreedMinor,
+        totalRecordedMinor: totals.totalRecordedMinor,
+        collectedPercent: this.collectedPercent(
+          totals.totalRecordedMinor,
+          totals.totalAgreedMinor,
+        ),
       },
       attention: {
         // Patients, not treatments: "12 patients owe money" is the sentence an
@@ -141,8 +147,32 @@ export class FinanceService {
         noPaymentCount: totals.noPaymentCount,
         overpaidCount: totals.overpaidCount,
         cancelledUncorrectedCount: cancelledUncorrected,
+        overpaidExcessMinor: totals.overpaidExcessMinor,
+        outstandingMinor: totals.outstandingMinor,
+      },
+      distribution: {
+        paid: totals.paidCount,
+        partiallyPaid: totals.partiallyPaidCount,
+        noPayment: totals.noPaymentCount,
+        overpaid: totals.overpaidCount,
+        noAgreedPrice: totals.noAgreedPriceCount,
+        overpaidExcessMinor: totals.overpaidExcessMinor,
       },
     };
+  }
+
+  /**
+   * Recorded as a share of agreed, clamped to 0–100.
+   *
+   * Clamped because overpayments would otherwise push the rail past full, and a
+   * progress bar that overflows reads as a rendering bug rather than as money.
+   * A clinic with no priced treatments collects 0% of nothing, not NaN.
+   */
+  private collectedPercent(recordedMinor: number, agreedMinor: number): number {
+    if (agreedMinor <= 0) {
+      return 0;
+    }
+    return Math.max(0, Math.min(100, Math.round((recordedMinor / agreedMinor) * 100)));
   }
 
   async listPatientBalances(

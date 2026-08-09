@@ -66,9 +66,9 @@ export class FinanceApiService {
 
   activity(limit = 12): Observable<FinanceActivityEntry[]> {
     return this.http
-      .get<
-        ApiEnvelope<FinanceActivityEntry[]>
-      >(`${this.baseUrl}/activity`, { params: new HttpParams().set('limit', limit) })
+      .get<ApiEnvelope<FinanceActivityEntry[]>>(`${this.baseUrl}/activity`, {
+        params: new HttpParams().set('limit', limit),
+      })
       .pipe(map((response) => response.data));
   }
 }

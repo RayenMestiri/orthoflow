@@ -80,8 +80,14 @@ describe('FinanceService', () => {
       aggregateBalanceTotals: vi.fn(async () => ({
         outstandingMinor: 28_700_000,
         outstandingPatientIds: ['a', 'b', 'c'],
+        totalAgreedMinor: 42_000_000,
+        totalRecordedMinor: 28_100_000,
         noPaymentCount: 5,
+        paidCount: 18,
+        partiallyPaidCount: 21,
+        noAgreedPriceCount: 1,
         overpaidCount: 2,
+        overpaidExcessMinor: 320_000,
         activeTreatmentPatientIds: ['a', 'b', 'c', 'd'],
       })),
       countCancelledWithoutCorrection: vi.fn(async () => 3),
@@ -118,6 +124,53 @@ describe('FinanceService', () => {
         noPaymentCount: 5,
         overpaidCount: 2,
         cancelledUncorrectedCount: 3,
+        overpaidExcessMinor: 320_000,
+        outstandingMinor: 28_700_000,
+      });
+    });
+
+    it('reports collection as recorded over agreed', async () => {
+      const overview = await service.getOverview(CLINIC_A);
+
+      // 28,100,000 of 42,000,000 → 67%.
+      expect(overview.summary.collectedPercent).toBe(67);
+      expect(overview.summary.totalAgreedMinor).toBe(42_000_000);
+      expect(overview.summary.totalRecordedMinor).toBe(28_100_000);
+    });
+
+    it('clamps collection to 100% when a clinic is overpaid overall', async () => {
+      // A rail rendered past full reads as a bug, not as money.
+      finance['aggregateBalanceTotals']?.mockResolvedValueOnce({
+        ...(await finance['aggregateBalanceTotals']?.()),
+        totalAgreedMinor: 1_000_000,
+        totalRecordedMinor: 1_300_000,
+      });
+
+      const overview = await service.getOverview(CLINIC_A);
+      expect(overview.summary.collectedPercent).toBe(100);
+    });
+
+    it('reports 0% rather than NaN when nothing has an agreed price', async () => {
+      finance['aggregateBalanceTotals']?.mockResolvedValueOnce({
+        ...(await finance['aggregateBalanceTotals']?.()),
+        totalAgreedMinor: 0,
+        totalRecordedMinor: 0,
+      });
+
+      const overview = await service.getOverview(CLINIC_A);
+      expect(overview.summary.collectedPercent).toBe(0);
+    });
+
+    it('exposes the status distribution for the health bar', async () => {
+      const overview = await service.getOverview(CLINIC_A);
+
+      expect(overview.distribution).toEqual({
+        paid: 18,
+        partiallyPaid: 21,
+        noPayment: 5,
+        overpaid: 2,
+        noAgreedPrice: 1,
+        overpaidExcessMinor: 320_000,
       });
     });
 

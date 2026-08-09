@@ -17,6 +17,9 @@ export const financeSummaryDtoSchema = z.object({
   outstandingMinor: z.number().int().nonnegative(),
   outstandingPatientCount: z.number().int().nonnegative(),
   activeTreatmentPatientCount: z.number().int().nonnegative(),
+  totalAgreedMinor: z.number().int().nonnegative(),
+  totalRecordedMinor: z.number().int().nonnegative(),
+  collectedPercent: z.number().int().min(0).max(100),
 });
 
 export const financeAttentionDtoSchema = z.object({
@@ -24,11 +27,23 @@ export const financeAttentionDtoSchema = z.object({
   noPaymentCount: z.number().int().nonnegative(),
   overpaidCount: z.number().int().nonnegative(),
   cancelledUncorrectedCount: z.number().int().nonnegative(),
+  overpaidExcessMinor: z.number().int().nonnegative(),
+  outstandingMinor: z.number().int().nonnegative(),
+});
+
+export const financeDistributionDtoSchema = z.object({
+  paid: z.number().int().nonnegative(),
+  partiallyPaid: z.number().int().nonnegative(),
+  noPayment: z.number().int().nonnegative(),
+  overpaid: z.number().int().nonnegative(),
+  noAgreedPrice: z.number().int().nonnegative(),
+  overpaidExcessMinor: z.number().int().nonnegative(),
 });
 
 export const financeOverviewDtoSchema = z.object({
   summary: financeSummaryDtoSchema,
   attention: financeAttentionDtoSchema,
+  distribution: financeDistributionDtoSchema,
 });
 
 export const patientBalanceDtoSchema = z.object({

@@ -27,6 +27,22 @@ export interface PatientBalanceAggregate {
   lastPaymentAt: Date | null;
 }
 
+/** Clinic-wide totals and the derived-status histogram, from one group stage. */
+export interface BalanceTotals {
+  outstandingMinor: number;
+  outstandingPatientIds: string[];
+  /** Agreed and recorded across priced treatments only, so the ratio is fair. */
+  totalAgreedMinor: number;
+  totalRecordedMinor: number;
+  noPaymentCount: number;
+  paidCount: number;
+  partiallyPaidCount: number;
+  noAgreedPriceCount: number;
+  overpaidCount: number;
+  overpaidExcessMinor: number;
+  activeTreatmentPatientIds: string[];
+}
+
 /** One recent movement, with the patient joined in and ids still as ObjectIds. */
 export interface FinanceActivityAggregate {
   _id: Types.ObjectId;
@@ -266,20 +282,13 @@ export class FinanceRepository {
    * Everything is computed from the same joined set, so "12 outstanding" in the
    * attention strip and the Outstanding filter always return the same rows.
    */
-  async aggregateBalanceTotals(clinicId: string): Promise<{
-    outstandingMinor: number;
-    outstandingPatientIds: string[];
-    noPaymentCount: number;
-    overpaidCount: number;
-    activeTreatmentPatientIds: string[];
-  }> {
-    const [result] = await TreatmentModel.aggregate<{
-      outstandingMinor: number;
-      outstandingPatientIds: unknown[];
-      noPaymentCount: number;
-      overpaidCount: number;
-      activeTreatmentPatientIds: unknown[];
-    }>([
+  async aggregateBalanceTotals(clinicId: string): Promise<BalanceTotals> {
+    const [result] = await TreatmentModel.aggregate<
+      Omit<BalanceTotals, 'outstandingPatientIds' | 'activeTreatmentPatientIds'> & {
+        outstandingPatientIds: unknown[];
+        activeTreatmentPatientIds: unknown[];
+      }
+    >([
       ...this.balanceStages(clinicId),
       {
         $group: {
@@ -290,6 +299,20 @@ export class FinanceRepository {
           outstandingPatientIds: {
             $addToSet: { $cond: [{ $gt: ['$remainingMinor', 0] }, '$patientId', '$$REMOVE'] },
           },
+          /**
+           * Clinic-wide agreed and recorded totals, plus the status histogram.
+           *
+           * Added for the collection-health and distribution panels. These are
+           * extra accumulators on the group stage that already walks this set,
+           * so there is no second query and no extra index pressure. Only
+           * priced treatments contribute, so the ratio compares like with like.
+           */
+          totalAgreedMinor: {
+            $sum: { $cond: [{ $ne: ['$agreedMinor', null] }, '$agreedMinor', 0] },
+          },
+          totalRecordedMinor: {
+            $sum: { $cond: [{ $ne: ['$agreedMinor', null] }, '$recordedMinor', 0] },
+          },
           noPaymentCount: {
             $sum: {
               $cond: [
@@ -299,8 +322,45 @@ export class FinanceRepository {
               ],
             },
           },
+          /** Exactly settled. Mirrors `derivePaymentStatus`'s PAID branch. */
+          paidCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ne: ['$agreedMinor', null] },
+                    { $gt: ['$recordedMinor', 0] },
+                    { $eq: ['$remainingMinor', 0] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          partiallyPaidCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ne: ['$agreedMinor', null] },
+                    { $gt: ['$recordedMinor', 0] },
+                    { $gt: ['$remainingMinor', 0] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          noAgreedPriceCount: {
+            $sum: { $cond: [{ $eq: ['$agreedMinor', null] }, 1, 0] },
+          },
           overpaidCount: {
             $sum: { $cond: [{ $lt: ['$remainingMinor', 0] }, 1, 0] },
+          },
+          overpaidExcessMinor: {
+            $sum: { $cond: [{ $lt: ['$remainingMinor', 0] }, { $abs: '$remainingMinor' }, 0] },
           },
           activeTreatmentPatientIds: {
             $addToSet: { $cond: [{ $eq: ['$status', 'ACTIVE'] }, '$patientId', '$$REMOVE'] },
@@ -312,8 +372,14 @@ export class FinanceRepository {
     return {
       outstandingMinor: result?.outstandingMinor ?? 0,
       outstandingPatientIds: (result?.outstandingPatientIds ?? []).map(String),
+      totalAgreedMinor: result?.totalAgreedMinor ?? 0,
+      totalRecordedMinor: result?.totalRecordedMinor ?? 0,
       noPaymentCount: result?.noPaymentCount ?? 0,
+      paidCount: result?.paidCount ?? 0,
+      partiallyPaidCount: result?.partiallyPaidCount ?? 0,
+      noAgreedPriceCount: result?.noAgreedPriceCount ?? 0,
       overpaidCount: result?.overpaidCount ?? 0,
+      overpaidExcessMinor: result?.overpaidExcessMinor ?? 0,
       activeTreatmentPatientIds: (result?.activeTreatmentPatientIds ?? []).map(String),
     };
   }

@@ -12,11 +12,7 @@
  */
 
 export type PaymentStatus =
-  | 'NO_PAYMENT'
-  | 'PARTIALLY_PAID'
-  | 'PAID'
-  | 'OVERPAID'
-  | 'NO_AGREED_PRICE';
+  'NO_PAYMENT' | 'PARTIALLY_PAID' | 'PAID' | 'OVERPAID' | 'NO_AGREED_PRICE';
 
 export type BalanceFilter = 'ALL' | 'OUTSTANDING' | 'PAID' | 'NO_PAYMENT' | 'OVERPAID';
 
@@ -31,6 +27,10 @@ export interface FinanceSummary {
   outstandingMinor: number;
   outstandingPatientCount: number;
   activeTreatmentPatientCount: number;
+  totalAgreedMinor: number;
+  totalRecordedMinor: number;
+  /** Recorded ÷ agreed, clamped 0–100 by the server. */
+  collectedPercent: number;
 }
 
 export interface FinanceAttention {
@@ -38,11 +38,24 @@ export interface FinanceAttention {
   noPaymentCount: number;
   overpaidCount: number;
   cancelledUncorrectedCount: number;
+  overpaidExcessMinor: number;
+  outstandingMinor: number;
+}
+
+/** Treatment counts per derived status, for the health bar and filter pills. */
+export interface FinanceDistribution {
+  paid: number;
+  partiallyPaid: number;
+  noPayment: number;
+  overpaid: number;
+  noAgreedPrice: number;
+  overpaidExcessMinor: number;
 }
 
 export interface FinanceOverview {
   summary: FinanceSummary;
   attention: FinanceAttention;
+  distribution: FinanceDistribution;
 }
 
 export interface PatientBalance {

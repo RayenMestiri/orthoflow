@@ -21,6 +21,9 @@ function overview(overrides: Partial<FinanceOverview['summary']> = {}): FinanceO
       outstandingMinor: 28_700_000,
       outstandingPatientCount: 31,
       activeTreatmentPatientCount: 46,
+      totalAgreedMinor: 42_000_000,
+      totalRecordedMinor: 28_100_000,
+      collectedPercent: 67,
       ...overrides,
     },
     attention: {
@@ -28,6 +31,16 @@ function overview(overrides: Partial<FinanceOverview['summary']> = {}): FinanceO
       noPaymentCount: 5,
       overpaidCount: 2,
       cancelledUncorrectedCount: 3,
+      overpaidExcessMinor: 320_000,
+      outstandingMinor: 28_700_000,
+    },
+    distribution: {
+      paid: 18,
+      partiallyPaid: 21,
+      noPayment: 5,
+      overpaid: 2,
+      noAgreedPrice: 0,
+      overpaidExcessMinor: 320_000,
     },
   };
 }

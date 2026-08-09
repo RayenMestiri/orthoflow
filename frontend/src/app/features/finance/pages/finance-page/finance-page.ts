@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { formatMoney } from '../../../cash-records/utils/money-format.util';
 import { FinanceStore } from '../../data-access/finance.store';
@@ -36,7 +36,7 @@ import {
  */
 @Component({
   selector: 'app-finance-page',
-  imports: [DatePipe, ReactiveFormsModule],
+  imports: [DatePipe, ReactiveFormsModule, RouterLink],
   providers: [FinanceStore],
   templateUrl: './finance-page.html',
   styleUrl: './finance-page.scss',
@@ -68,6 +68,49 @@ export class FinancePage {
 
   protected readonly summary = computed(() => this.store.overview()?.summary ?? null);
   protected readonly attention = computed(() => this.store.overview()?.attention ?? null);
+  protected readonly distribution = computed(() => this.store.overview()?.distribution ?? null);
+
+  /**
+   * The segmented financial-health bar.
+   *
+   * Widths are percentages of the priced-treatment population, so the segments
+   * always sum to 100 and the bar reads as a distribution rather than as four
+   * unrelated bars. Empty statuses are dropped so the bar has no hairline slivers.
+   */
+  protected readonly healthSegments = computed(() => {
+    const distribution = this.distribution();
+    if (!distribution) return [];
+
+    const segments = [
+      { key: 'PAID', label: 'Paid', count: distribution.paid },
+      { key: 'PARTIALLY_PAID', label: 'Partially paid', count: distribution.partiallyPaid },
+      { key: 'NO_PAYMENT', label: 'No payment', count: distribution.noPayment },
+      { key: 'OVERPAID', label: 'Overpaid', count: distribution.overpaid },
+      { key: 'NO_AGREED_PRICE', label: 'No agreed price', count: distribution.noAgreedPrice },
+    ];
+    const total = segments.reduce((sum, segment) => sum + segment.count, 0);
+    if (total === 0) return [];
+
+    return segments
+      .filter((segment) => segment.count > 0)
+      .map((segment) => ({ ...segment, percent: (segment.count / total) * 100 }));
+  });
+
+  protected readonly healthTotal = computed(() =>
+    this.healthSegments().reduce((sum, segment) => sum + segment.count, 0),
+  );
+
+  /** Counts shown on the filter pills, so the user sees the cost of a click. */
+  protected readonly filterCounts = computed<Partial<Record<BalanceFilter, number>>>(() => {
+    const distribution = this.distribution();
+    if (!distribution) return {};
+    return {
+      OUTSTANDING: distribution.partiallyPaid + distribution.noPayment,
+      PAID: distribution.paid,
+      NO_PAYMENT: distribution.noPayment,
+      OVERPAID: distribution.overpaid,
+    };
+  });
 
   /** The worklist, with empty categories dropped so it never shows four zeros. */
   protected readonly attentionItems = computed(() => {
@@ -79,6 +122,7 @@ export class FinancePage {
         label: 'Outstanding balances',
         count: attention.outstandingCount,
         unit: attention.outstandingCount === 1 ? 'patient' : 'patients',
+        detail: this.money(attention.outstandingMinor),
         reviewable: true,
       },
       {
@@ -86,6 +130,7 @@ export class FinancePage {
         label: 'No payment recorded',
         count: attention.noPaymentCount,
         unit: attention.noPaymentCount === 1 ? 'treatment' : 'treatments',
+        detail: 'Active care',
         reviewable: true,
       },
       {
@@ -93,6 +138,7 @@ export class FinancePage {
         label: 'Overpaid',
         count: attention.overpaidCount,
         unit: attention.overpaidCount === 1 ? 'treatment' : 'treatments',
+        detail: `+${this.money(attention.overpaidExcessMinor)}`,
         reviewable: true,
       },
       {
@@ -102,6 +148,7 @@ export class FinancePage {
         label: 'Cancelled without a linked correction',
         count: attention.cancelledUncorrectedCount,
         unit: attention.cancelledUncorrectedCount === 1 ? 'payment' : 'payments',
+        detail: null,
         reviewable: false,
       },
     ].filter((item) => item.count > 0);
@@ -155,5 +202,26 @@ export class FinancePage {
 
   protected trackBalance(_index: number, row: PatientBalance): string {
     return row.treatmentId;
+  }
+
+  /** Two letters for the row avatar. Presentation only — never a medical claim. */
+  protected initials(name: string): string {
+    const parts = name.trim().split(/\s+/);
+    const first = parts[0]?.[0] ?? '';
+    const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
+    return `${first}${last}`.toUpperCase() || '—';
+  }
+
+  /**
+   * How far a treatment is toward being settled, 0–100.
+   *
+   * Clamped for the same reason as the clinic rail: an overpaid row shows a
+   * full track plus a separate excess marker, not a bar spilling past its end.
+   */
+  protected progressPercent(row: PatientBalance): number {
+    if (row.agreedMinor === null || row.agreedMinor <= 0) {
+      return 0;
+    }
+    return Math.max(0, Math.min(100, Math.round((row.recordedMinor / row.agreedMinor) * 100)));
   }
 }

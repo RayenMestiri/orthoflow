@@ -127,6 +127,28 @@ export interface FinanceSummary {
   outstandingPatientCount: number;
 
   activeTreatmentPatientCount: number;
+
+  /**
+   * Collection position across priced treatments.
+   *
+   * `collectedPercent` is recorded ÷ agreed, clamped to 0–100 so an
+   * overpayment cannot render a 103% progress rail. It is a ratio of
+   * treatment value collected — not a profit or revenue figure.
+   */
+  totalAgreedMinor: number;
+  totalRecordedMinor: number;
+  collectedPercent: number;
+}
+
+/** How treatments distribute across the derived statuses. */
+export interface FinanceDistribution {
+  paid: number;
+  partiallyPaid: number;
+  noPayment: number;
+  overpaid: number;
+  noAgreedPrice: number;
+  /** Total excess received above agreed prices, for the attention rail. */
+  overpaidExcessMinor: number;
 }
 
 /** Compact operational worklist. Counts only — the table does the detail. */
@@ -139,11 +161,16 @@ export interface FinanceAttention {
    * "worth a look", not "an error". A cancellation may be final and correct.
    */
   cancelledUncorrectedCount: number;
+  /** Total excess above agreed prices, so the rail can quantify "2 overpaid". */
+  overpaidExcessMinor: number;
+  /** Outstanding money behind `outstandingCount`, for the same reason. */
+  outstandingMinor: number;
 }
 
 export interface FinanceOverview {
   summary: FinanceSummary;
   attention: FinanceAttention;
+  distribution: FinanceDistribution;
 }
 
 /** One entry in the clinic-wide recent activity feed. */
