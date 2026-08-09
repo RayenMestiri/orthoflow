@@ -32,6 +32,8 @@ export interface StoredMedia {
 export interface UploadMediaInput {
   clinicId: string;
   scope: MediaScope;
+  /** Opaque, validated path segments such as a patient id. */
+  subfolders?: readonly string[];
   content: Buffer;
   /** Original file name, used only to derive a readable public id. */
   fileName?: string;
@@ -53,14 +55,18 @@ export class MediaService {
    * Every asset lives under its clinic, which keeps one clinic's photos out of
    * another's folder listing even at the storage-provider level.
    */
-  buildFolder(clinicId: string, scope: MediaScope): string {
-    return `${cloudinaryConfig.rootFolder}/clinics/${clinicId}/${scope}`;
+  buildFolder(clinicId: string, scope: MediaScope, subfolders: readonly string[] = []): string {
+    const safeSegments = subfolders.filter((segment) => /^[a-zA-Z0-9_-]+$/.test(segment));
+    if (safeSegments.length !== subfolders.length) {
+      throw new Error('Media folder segments must contain opaque identifiers only');
+    }
+    return [cloudinaryConfig.rootFolder, 'clinics', clinicId, scope, ...safeSegments].join('/');
   }
 
   async upload(input: UploadMediaInput): Promise<StoredMedia> {
     const cloudinary = getCloudinary();
     const options: UploadApiOptions = {
-      folder: this.buildFolder(input.clinicId, input.scope),
+      folder: this.buildFolder(input.clinicId, input.scope, input.subfolders),
       resource_type: 'auto',
       overwrite: false,
       unique_filename: true,
@@ -75,7 +81,7 @@ export class MediaService {
         if (error || !result) {
           reject(
             new ServiceUnavailableError('Media upload failed', {
-              code: ERROR_CODES.MEDIA_STORAGE_UNAVAILABLE,
+              code: ERROR_CODES.MEDIA_UPLOAD_FAILED,
               cause: error,
             }),
           );

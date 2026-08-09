@@ -28,6 +28,9 @@ export const AUDIT_ACTIONS = {
   PATIENT_UPDATED: 'patient.updated',
   PATIENT_ARCHIVED: 'patient.archived',
   PATIENT_RESTORED: 'patient.restored',
+  PATIENT_MEDIA_UPLOADED: 'patient_media.uploaded',
+  PATIENT_MEDIA_UPDATED: 'patient_media.updated',
+  PATIENT_MEDIA_ARCHIVED: 'patient_media.archived',
 
   GUARDIAN_CREATED: 'guardian.created',
   GUARDIAN_LINKED: 'guardian.linked',
@@ -74,6 +77,7 @@ export const AUDIT_RESOURCE_TYPES = {
   CLINIC: 'clinic',
   MEMBERSHIP: 'membership',
   PATIENT: 'patient',
+  PATIENT_MEDIA: 'patient_media',
   GUARDIAN: 'guardian',
   APPOINTMENT: 'appointment',
   APPOINTMENT_TYPE: 'appointment_type',

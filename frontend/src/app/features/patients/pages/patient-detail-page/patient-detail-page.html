@@ -162,10 +162,15 @@
           <span>Payments</span>
         </button>
       }
+      @if (canViewMedia) {
+        <button type="button" [class.active]="activeView() === 'media'" (click)="openMedia()">
+          <span class="material-icons" aria-hidden="true">folder_open</span>
+          <span>Documents</span>
+        </button>
+      }
 
       <div class="future-tabs" aria-label="Future modules">
         <span title="Coming soon">Appointments</span>
-        <span title="Coming soon">Documents</span>
       </div>
     </nav>
 
@@ -378,6 +383,13 @@
         [patientId]="current.id"
         [patientName]="current.fullName"
         [guardians]="cashRecordGuardians()"
+      />
+    } @else if (activeView() === 'media') {
+      <app-patient-media-workspace
+        [patientId]="current.id"
+        [canManage]="canManageMedia"
+        [manageableCategories]="manageableMediaCategories"
+        [treatmentOptions]="mediaTreatmentOptions()"
       />
     } @else {
       <!-- Activity Log Panel -->

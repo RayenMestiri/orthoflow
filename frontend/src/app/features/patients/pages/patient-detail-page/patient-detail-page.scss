@@ -999,6 +999,12 @@
   .guardians-panel {
     grid-row: auto;
   }
+
+  // The disabled future destination must not force real patient tabs beyond
+  // the tablet viewport as Documents becomes operational.
+  .future-tabs {
+    display: none;
+  }
 }
 
 @media (max-width: 44rem) {

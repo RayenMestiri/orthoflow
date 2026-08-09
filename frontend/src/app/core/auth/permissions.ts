@@ -8,6 +8,9 @@ export const PERMISSIONS = {
   PATIENTS_CREATE: 'patients.create',
   PATIENTS_UPDATE: 'patients.update',
   PATIENTS_ARCHIVE: 'patients.archive',
+  PATIENT_MEDIA_VIEW: 'patient-media.view',
+  PATIENT_MEDIA_MANAGE_ADMIN: 'patient-media.manage-administrative',
+  PATIENT_MEDIA_MANAGE_CLINICAL: 'patient-media.manage-clinical',
   APPOINTMENTS_VIEW: 'appointments.view',
   TREATMENTS_VIEW: 'treatments.view',
   /** Plan, edit and drive the lifecycle of a course of care — a clinical decision. */
@@ -30,6 +33,9 @@ const clinicalPermissions: Permission[] = [
   PERMISSIONS.PATIENTS_CREATE,
   PERMISSIONS.PATIENTS_UPDATE,
   PERMISSIONS.PATIENTS_ARCHIVE,
+  PERMISSIONS.PATIENT_MEDIA_VIEW,
+  PERMISSIONS.PATIENT_MEDIA_MANAGE_ADMIN,
+  PERMISSIONS.PATIENT_MEDIA_MANAGE_CLINICAL,
   PERMISSIONS.APPOINTMENTS_VIEW,
   PERMISSIONS.TREATMENTS_VIEW,
   PERMISSIONS.TREATMENTS_MANAGE,
@@ -52,6 +58,8 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
     PERMISSIONS.PATIENTS_VIEW,
     PERMISSIONS.PATIENTS_CREATE,
     PERMISSIONS.PATIENTS_UPDATE,
+    PERMISSIONS.PATIENT_MEDIA_VIEW,
+    PERMISSIONS.PATIENT_MEDIA_MANAGE_ADMIN,
     PERMISSIONS.APPOINTMENTS_VIEW,
     PERMISSIONS.TREATMENTS_VIEW,
     // The front desk is who physically takes the money.
@@ -61,6 +69,7 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
   [CLINIC_ROLES.ASSISTANT]: [
     PERMISSIONS.DASHBOARD_VIEW,
     PERMISSIONS.PATIENTS_VIEW,
+    PERMISSIONS.PATIENT_MEDIA_VIEW,
     PERMISSIONS.APPOINTMENTS_VIEW,
     PERMISSIONS.TREATMENTS_VIEW,
   ],

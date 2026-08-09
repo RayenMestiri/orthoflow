@@ -1,0 +1,315 @@
+import { A11yModule } from '@angular/cdk/a11y';
+import { DOCUMENT, DatePipe } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { PatientMediaStore } from '../../data-access/patient-media.store';
+import {
+  PATIENT_MEDIA_CATEGORIES,
+  patientMediaCategoryLabel,
+  patientMediaDefaultTitle,
+  type PatientMedia,
+  type PatientMediaCategory,
+  type TreatmentMediaOption,
+} from '../../models/patient-media.models';
+import {
+  formatPatientMediaSize,
+  patientMediaPreviewUrl,
+  patientMediaThumbnailUrl,
+  validatePatientMediaFile,
+} from '../../utils/patient-media.utils';
+
+type WorkspaceFilter = 'ALL' | 'PHOTOS' | 'XRAYS' | 'DOCUMENTS' | 'ARCHIVED';
+type DrawerMode = 'upload' | 'preview' | 'edit';
+
+@Component({
+  selector: 'app-patient-media-workspace',
+  imports: [A11yModule, DatePipe, ReactiveFormsModule],
+  providers: [PatientMediaStore],
+  templateUrl: './patient-media-workspace.html',
+  styleUrl: './patient-media-workspace.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class PatientMediaWorkspace {
+  private readonly document = inject(DOCUMENT);
+  protected readonly workspaceFilters: readonly {
+    value: WorkspaceFilter;
+    label: string;
+  }[] = [
+    { value: 'ALL', label: 'All' },
+    { value: 'PHOTOS', label: 'Photos' },
+    { value: 'XRAYS', label: 'X-rays' },
+    { value: 'DOCUMENTS', label: 'Documents' },
+    { value: 'ARCHIVED', label: 'Archived' },
+  ];
+  protected readonly store = inject(PatientMediaStore);
+
+  readonly patientId = input.required<string>();
+  readonly canManage = input(false);
+  readonly treatmentOptions = input<TreatmentMediaOption[]>([]);
+  readonly manageableCategories = input<readonly PatientMediaCategory[]>(PATIENT_MEDIA_CATEGORIES);
+
+  protected readonly categories = computed(() => this.manageableCategories());
+  protected readonly activeFilter = signal<WorkspaceFilter>('ALL');
+  protected readonly drawerMode = signal<DrawerMode | null>(null);
+  protected readonly selected = signal<PatientMedia | null>(null);
+  protected readonly archiveTarget = signal<PatientMedia | null>(null);
+  protected readonly selectedFile = signal<File | null>(null);
+  protected readonly fileError = signal<string | null>(null);
+
+  protected readonly search = new FormControl('', { nonNullable: true });
+  protected readonly archiveReason = new FormControl('', {
+    nonNullable: true,
+    validators: [Validators.maxLength(500)],
+  });
+  protected readonly mediaForm = new FormGroup({
+    category: new FormControl<PatientMediaCategory>('PROGRESS_PHOTO', { nonNullable: true }),
+    title: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(120)],
+    }),
+    capturedAt: new FormControl('', { nonNullable: true }),
+    treatmentId: new FormControl('', { nonNullable: true }),
+    description: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(1000)],
+    }),
+  });
+
+  protected readonly visibleItems = computed(() => {
+    const items = this.store.items();
+    switch (this.activeFilter()) {
+      case 'PHOTOS':
+        return items.filter((item) => item.mediaType === 'IMAGE' && item.category !== 'XRAY');
+      case 'XRAYS':
+        return items.filter((item) => item.category === 'XRAY');
+      case 'DOCUMENTS':
+        return items.filter((item) => item.mediaType !== 'IMAGE');
+      default:
+        return items;
+    }
+  });
+  protected readonly imageItems = computed(() =>
+    this.visibleItems().filter((item) => item.mediaType === 'IMAGE'),
+  );
+  protected readonly documentItems = computed(() =>
+    this.visibleItems().filter((item) => item.mediaType !== 'IMAGE'),
+  );
+
+  constructor() {
+    effect(() => {
+      const patientId = this.patientId();
+      if (patientId) void this.store.load(patientId);
+    });
+    effect((onCleanup) => {
+      if (this.drawerMode() === null && this.archiveTarget() === null) return;
+      const previousOverflow = this.document.body.style.overflow;
+      this.document.body.style.overflow = 'hidden';
+      onCleanup(() => {
+        this.document.body.style.overflow = previousOverflow;
+      });
+    });
+  }
+
+  protected categoryLabel(category: PatientMediaCategory): string {
+    return patientMediaCategoryLabel(category);
+  }
+
+  protected fileSize(bytes: number): string {
+    return formatPatientMediaSize(bytes);
+  }
+
+  protected thumbnail(media: PatientMedia): string {
+    return patientMediaThumbnailUrl(media);
+  }
+
+  protected previewUrl(media: PatientMedia): string {
+    return patientMediaPreviewUrl(media);
+  }
+
+  protected treatmentLabel(treatmentId: string | null): string | null {
+    if (!treatmentId) return null;
+    return (
+      this.treatmentOptions().find((option) => option.id === treatmentId)?.label ?? 'Treatment'
+    );
+  }
+
+  protected async selectFilter(filter: WorkspaceFilter): Promise<void> {
+    this.activeFilter.set(filter);
+    await this.store.load(
+      this.patientId(),
+      {
+        status: filter === 'ARCHIVED' ? 'ARCHIVED' : 'ACTIVE',
+        search: this.search.value.trim() || undefined,
+        page: 1,
+        limit: 60,
+      },
+      true,
+    );
+  }
+
+  protected async applySearch(): Promise<void> {
+    await this.store.load(
+      this.patientId(),
+      {
+        status: this.activeFilter() === 'ARCHIVED' ? 'ARCHIVED' : 'ACTIVE',
+        search: this.search.value.trim() || undefined,
+        page: 1,
+        limit: 60,
+      },
+      true,
+    );
+  }
+
+  protected openUpload(): void {
+    this.selectedFile.set(null);
+    this.fileError.set(null);
+    this.mediaForm.reset({
+      category: this.categories()[0] ?? 'ADMINISTRATIVE',
+      title: '',
+      capturedAt: '',
+      treatmentId: '',
+      description: '',
+    });
+    this.drawerMode.set('upload');
+  }
+
+  protected openPreview(media: PatientMedia): void {
+    this.selected.set(media);
+    this.drawerMode.set('preview');
+  }
+
+  protected openEdit(media: PatientMedia): void {
+    if (!this.canManageItem(media)) return;
+    this.selected.set(media);
+    this.mediaForm.reset({
+      category: media.category,
+      title: media.title,
+      capturedAt: media.capturedAt?.slice(0, 10) ?? '',
+      treatmentId: media.treatmentId ?? '',
+      description: media.description ?? '',
+    });
+    this.drawerMode.set('edit');
+  }
+
+  protected closeDrawer(): void {
+    if (!this.store.isSaving()) this.drawerMode.set(null);
+  }
+
+  protected fileChanged(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    this.selectedFile.set(file);
+    const error = file ? validatePatientMediaFile(file) : 'Choose a file to upload.';
+    this.fileError.set(error);
+    if (file && !error && !this.mediaForm.controls.title.value.trim()) {
+      this.mediaForm.controls.title.setValue(
+        file.name
+          .replace(/\.[^.]+$/, '')
+          .replaceAll(/[-_]+/g, ' ')
+          .slice(0, 120),
+      );
+    }
+  }
+
+  protected categoryChanged(): void {
+    if (!this.mediaForm.controls.title.dirty) {
+      this.mediaForm.controls.title.setValue(
+        patientMediaDefaultTitle(this.mediaForm.controls.category.value),
+      );
+    }
+  }
+
+  protected async saveUpload(): Promise<void> {
+    const file = this.selectedFile();
+    if (!file) this.fileError.set('Choose a file to upload.');
+    if (this.mediaForm.invalid || !file || this.fileError()) {
+      this.mediaForm.markAllAsTouched();
+      return;
+    }
+    const value = this.mediaForm.getRawValue();
+    const saved = await this.store.upload({
+      file,
+      category: value.category,
+      title: value.title.trim(),
+      description: value.description.trim() || null,
+      treatmentId: value.treatmentId || null,
+      capturedAt: this.toInstant(value.capturedAt),
+    });
+    if (saved) {
+      this.drawerMode.set(null);
+      this.openPreview(saved);
+    }
+  }
+
+  protected async saveEdit(): Promise<void> {
+    const media = this.selected();
+    if (!media || this.mediaForm.invalid) {
+      this.mediaForm.markAllAsTouched();
+      return;
+    }
+    const value = this.mediaForm.getRawValue();
+    const saved = await this.store.update(media.id, {
+      category: value.category,
+      title: value.title.trim(),
+      description: value.description.trim() || null,
+      treatmentId: value.treatmentId || null,
+      capturedAt: this.toInstant(value.capturedAt),
+    });
+    if (saved) {
+      this.selected.set(saved);
+      this.drawerMode.set('preview');
+    }
+  }
+
+  protected confirmArchive(media: PatientMedia): void {
+    if (!this.canManageItem(media)) return;
+    this.archiveReason.reset('');
+    this.archiveTarget.set(media);
+  }
+
+  protected closeArchive(): void {
+    if (!this.store.isSaving()) this.archiveTarget.set(null);
+  }
+
+  protected async archive(): Promise<void> {
+    const media = this.archiveTarget();
+    if (!media || this.archiveReason.invalid) return;
+    const saved = await this.store.archive(media.id, this.archiveReason.value.trim() || null);
+    if (saved) {
+      this.archiveTarget.set(null);
+      this.drawerMode.set(null);
+      this.selected.set(null);
+    }
+  }
+
+  /**
+   * Native submit would reload the patient profile and abandon the in-flight
+   * archive request. These forms carry no `formGroup`/`ngForm`, so no Angular
+   * directive cancels the default for us — the handler must do it explicitly.
+   */
+  protected submitArchive(event: SubmitEvent): void {
+    event.preventDefault();
+    void this.archive();
+  }
+
+  /** Same reason as `submitArchive`: this form has no directive to cancel it. */
+  protected submitSearch(event: SubmitEvent): void {
+    event.preventDefault();
+    void this.applySearch();
+  }
+
+  protected canManageItem(media: PatientMedia): boolean {
+    return this.canManage() && this.categories().includes(media.category);
+  }
+
+  private toInstant(day: string): string | null {
+    return day ? new Date(`${day}T12:00:00.000Z`).toISOString() : null;
+  }
+}

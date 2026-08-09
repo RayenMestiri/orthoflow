@@ -7,7 +7,15 @@ import { firstValueFrom } from 'rxjs';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { getApiProblem } from '../../../../core/http/api-error';
 import { PatientCashRecords } from '../../../cash-records/components/patient-cash-records/patient-cash-records';
+import { PatientMediaWorkspace } from '../../../patient-media/components/patient-media-workspace/patient-media-workspace';
+import {
+  PATIENT_MEDIA_CATEGORIES,
+  type PatientMediaCategory,
+  type TreatmentMediaOption,
+} from '../../../patient-media/models/patient-media.models';
 import { PatientTreatments } from '../../../treatments/components/patient-treatments/patient-treatments';
+import { TreatmentsApiService } from '../../../treatments/data-access/treatments-api.service';
+import { treatmentTypeLabel } from '../../../treatments/models/treatment.models';
 import { PatientsApiService } from '../../data-access/patients-api.service';
 import type {
   ContactPreference,
@@ -24,6 +32,7 @@ import type {
     A11yModule,
     DatePipe,
     PatientCashRecords,
+    PatientMediaWorkspace,
     PatientTreatments,
     ReactiveFormsModule,
     RouterLink,
@@ -36,6 +45,7 @@ export class PatientDetailPage {
   private readonly api = inject(PatientsApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly permissions = inject(PermissionService);
+  private readonly treatmentsApi = inject(TreatmentsApiService);
   readonly patientId = this.route.snapshot.paramMap.get('patientId') ?? '';
   readonly patient = signal<Patient | null>(null);
   readonly guardians = signal<Guardian[]>([]);
@@ -49,7 +59,11 @@ export class PatientDetailPage {
         ? 'Patient information saved.'
         : null,
   );
-  readonly activeView = signal<'overview' | 'activity' | 'treatments' | 'payments'>('overview');
+  readonly activeView = signal<'overview' | 'activity' | 'treatments' | 'payments' | 'media'>(
+    'overview',
+  );
+  readonly mediaTreatmentOptions = signal<TreatmentMediaOption[]>([]);
+  private readonly mediaTreatmentsLoaded = signal(false);
   readonly guardianPanelOpen = signal(false);
   readonly editingGuardian = signal<Guardian | null>(null);
   readonly guardianSaving = signal(false);
@@ -63,6 +77,13 @@ export class PatientDetailPage {
   readonly canManageTreatments = this.permissions.can(PERMISSIONS.TREATMENTS_MANAGE);
   /** Assistants follow the chair, not the till. */
   readonly canViewPayments = this.permissions.can(PERMISSIONS.CASH_RECORDS_VIEW);
+  readonly canViewMedia = this.permissions.can(PERMISSIONS.PATIENT_MEDIA_VIEW);
+  readonly canManageMedia = this.permissions.can(PERMISSIONS.PATIENT_MEDIA_MANAGE_ADMIN);
+  readonly manageableMediaCategories: readonly PatientMediaCategory[] = this.permissions.can(
+    PERMISSIONS.PATIENT_MEDIA_MANAGE_CLINICAL,
+  )
+    ? PATIENT_MEDIA_CATEGORIES
+    : ['ADMINISTRATIVE'];
   /** Guardians the payment drawer may offer as the payer. */
   readonly cashRecordGuardians = computed(() =>
     this.guardians().map((guardian) => ({ id: guardian.id, fullName: guardian.fullName })),
@@ -135,6 +156,26 @@ export class PatientDetailPage {
       this.error.set(getApiProblem(error).message);
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  async openMedia(): Promise<void> {
+    this.activeView.set('media');
+    if (this.mediaTreatmentsLoaded()) return;
+    this.mediaTreatmentsLoaded.set(true);
+    try {
+      const treatments = await firstValueFrom(this.treatmentsApi.listForPatient(this.patientId));
+      this.mediaTreatmentOptions.set(
+        treatments.map((treatment) => ({
+          id: treatment.id,
+          label: treatmentTypeLabel(treatment.type, treatment.customTypeLabel),
+          status: this.formatEnumLabel(treatment.status),
+        })),
+      );
+    } catch {
+      // Treatment association is optional; media remains fully usable when the
+      // treatment list cannot be loaded.
+      this.mediaTreatmentOptions.set([]);
     }
   }
 
