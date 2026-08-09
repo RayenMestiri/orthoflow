@@ -13,6 +13,12 @@ coverage/
 .env.*
 !.env.example
 
+# patient data — NEVER commit clinical files
+# Binaries belong in the storage provider, never on our disk or in git. A
+# previous revision wrote uploads here; the directory stays ignored so a stray
+# clinical photo can never reach the repository.
+uploads/
+
 # logs
 logs/
 *.log

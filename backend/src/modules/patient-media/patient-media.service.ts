@@ -69,6 +69,8 @@ export class PatientMediaService {
     await this.requirePatient(clinicId, patientId);
     this.assertManageableCategory(metadata.category, context);
     await this.assertTreatment(clinicId, patientId, metadata.treatmentId ?? null);
+    // Fail before reading the file into a provider call: an unconfigured
+    // deployment should say so plainly rather than surface a transport error.
     if (!this.storage.isEnabled()) {
       throw new ServiceUnavailableError('Patient media storage is not configured', {
         code: ERROR_CODES.MEDIA_STORAGE_UNAVAILABLE,
@@ -83,6 +85,8 @@ export class PatientMediaService {
           : MEDIA_SCOPES.PATIENT_DOCUMENTS,
       subfolders: [patientId],
       content: file.content,
+      fileName: file.originalFileName,
+      mimeType: file.mimeType,
     });
 
     let created: PatientMediaRecord;
@@ -182,6 +186,146 @@ export class PatientMediaService {
       event: 'archived',
     });
     return toPatientMediaDto(archived);
+  }
+
+  async restore(
+    clinicId: string,
+    mediaId: string,
+    context: PatientMediaMutationContext,
+  ): Promise<PatientMediaDto> {
+    const existing = await this.requireMedia(clinicId, mediaId);
+    this.assertManageableCategory(existing.category, context);
+    if (existing.status !== PATIENT_MEDIA_STATUSES.ARCHIVED) {
+      throw new BusinessRuleError('This patient file is not archived', {
+        code: ERROR_CODES.MEDIA_ALREADY_ARCHIVED,
+      });
+    }
+    const restored = await this.media.restore(mediaId, clinicId);
+    if (!restored) throw this.notFound();
+    await this.audit.record({
+      ...context,
+      clinicId,
+      patientId: restored.patientId.toString(),
+      mediaId,
+      treatmentId: restored.treatmentId?.toString() ?? null,
+      event: 'restored',
+    });
+    return toPatientMediaDto(restored);
+  }
+
+  async permanentDelete(
+    clinicId: string,
+    mediaId: string,
+    context: PatientMediaMutationContext,
+  ): Promise<void> {
+    const existing = await this.requireMedia(clinicId, mediaId);
+    this.assertManageableCategory(existing.category, context);
+
+    // Remove the binary from Cloudinary first.
+    // If storage removal fails we abort — the record stays intact so the clinic
+    // can retry. A "deleted from DB but still in Cloudinary" state is far worse.
+    if (this.storage.isEnabled() && existing.publicId) {
+      await this.storage.remove(existing.publicId, existing.resourceType);
+    }
+
+    const deleted = await this.media.deleteById(mediaId, clinicId);
+    if (!deleted) throw this.notFound();
+
+    await this.audit.record({
+      ...context,
+      clinicId,
+      patientId: existing.patientId.toString(),
+      mediaId,
+      treatmentId: existing.treatmentId?.toString() ?? null,
+      event: 'deleted',
+    });
+  }
+
+  /**
+   * Replaces the binary of an existing media record with a new upload.
+   * Metadata (title, category, capturedAt, etc.) is kept as-is.
+   * The old Cloudinary asset is deleted after the DB record is updated.
+   */
+  async replaceFile(
+    clinicId: string,
+    mediaId: string,
+    file: PatientMediaUploadFile,
+    context: PatientMediaMutationContext,
+  ): Promise<PatientMediaDto> {
+    const existing = await this.requireMedia(clinicId, mediaId);
+    this.assertManageableCategory(existing.category, context);
+
+    if (!this.storage.isEnabled()) {
+      throw new ServiceUnavailableError('Patient media storage is not configured', {
+        code: ERROR_CODES.MEDIA_STORAGE_UNAVAILABLE,
+      });
+    }
+
+    const scope =
+      existing.category === PATIENT_MEDIA_CATEGORIES.PROFILE_PHOTO
+        ? MEDIA_SCOPES.PROFILE_PHOTOS
+        : MEDIA_SCOPES.PATIENT_DOCUMENTS;
+
+    // Upload the new binary first. If this fails the existing record is intact.
+    const stored = await this.storage.upload({
+      clinicId,
+      scope,
+      subfolders: [existing.patientId.toString()],
+      content: file.content,
+      fileName: file.originalFileName,
+      mimeType: file.mimeType,
+    });
+
+    // Swap the storage fields in MongoDB.
+    const updated = await this.media.replaceStorageFields(mediaId, clinicId, {
+      publicId: stored.publicId,
+      resourceType: stored.resourceType,
+      secureUrl: stored.secureUrl,
+      mimeType: file.mimeType,
+      fileSizeBytes: stored.bytes,
+      format: stored.format || null,
+      width: stored.width,
+      height: stored.height,
+      originalFileName: file.originalFileName,
+      uploadedAt: stored.uploadedAt,
+    });
+
+    if (!updated) {
+      // DB write failed — clean up the newly uploaded asset so it doesn't become an orphan.
+      try {
+        await this.storage.remove(stored.publicId, stored.resourceType);
+      } catch (cleanupError) {
+        logger.error(
+          { err: cleanupError, clinicId, mediaId },
+          'Failed to clean up orphaned replacement media',
+        );
+      }
+      throw this.notFound();
+    }
+
+    // Now safe to delete the old asset — the new one is already serving.
+    if (existing.publicId) {
+      try {
+        await this.storage.remove(existing.publicId, existing.resourceType);
+      } catch (cleanupError) {
+        logger.error(
+          { err: cleanupError, clinicId, mediaId, publicId: existing.publicId },
+          'Failed to remove old Cloudinary asset after replacement — manual cleanup needed',
+        );
+        // Non-fatal: the clinic can still use the new file.
+      }
+    }
+
+    await this.audit.record({
+      ...context,
+      clinicId,
+      patientId: existing.patientId.toString(),
+      mediaId,
+      treatmentId: existing.treatmentId?.toString() ?? null,
+      event: 'replaced',
+    });
+
+    return toPatientMediaDto(updated);
   }
 
   private async requirePatient(clinicId: string, patientId: string): Promise<void> {

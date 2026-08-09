@@ -19,6 +19,7 @@ interface AppNavigationItem {
   label: string;
   icon: string;
   route?: string;
+  location?: string;
   visible: boolean;
 }
 
@@ -85,11 +86,16 @@ export class AppShell {
     {
       label: 'Treatments',
       icon: 'dentistry',
+      route: '/app/patients',
+      location: 'Patient profiles',
       visible: this.permissions.can(PERMISSIONS.TREATMENTS_VIEW),
     },
     {
       label: 'Cash records',
       icon: 'receipt_long',
+      // Clinic-wide financial operations. Recording money stays on the
+      // patient's Payments tab; this is the review surface.
+      route: '/app/cash-records',
       visible: this.permissions.can(PERMISSIONS.CASH_RECORDS_VIEW),
     },
     {

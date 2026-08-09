@@ -37,6 +37,7 @@ export interface UploadMediaInput {
   content: Buffer;
   /** Original file name, used only to derive a readable public id. */
   fileName?: string;
+  mimeType?: string;
 }
 
 /**
@@ -44,6 +45,15 @@ export interface UploadMediaInput {
  *
  * Controllers and services depend on this interface, never on the SDK, so the
  * storage provider can be swapped (S3, on-prem) without touching any domain.
+ *
+ * NO LOCAL FALLBACK, DELIBERATELY. An earlier revision base64-encoded the file
+ * into a `data:` URL and stored it in `secureUrl` whenever Cloudinary was
+ * unconfigured or threw. That put the binary inside the MongoDB document: a
+ * 10 MB photo becomes ~13 MB of base64 against a 16 MB document ceiling, a
+ * 20 MB PDF cannot be written at all, and every gallery read drags the whole
+ * payload back through Mongo, Fastify and Angular. It also hid real upload
+ * failures behind an apparent success. Storage being down is an outage the
+ * clinic must see, not something to paper over — see AGENTS.md §9 and §16.
  */
 export class MediaService {
   isEnabled(): boolean {
@@ -64,10 +74,20 @@ export class MediaService {
   }
 
   async upload(input: UploadMediaInput): Promise<StoredMedia> {
+    if (!this.isEnabled()) {
+      throw new ServiceUnavailableError('Media storage is not configured', {
+        code: ERROR_CODES.MEDIA_STORAGE_UNAVAILABLE,
+      });
+    }
+
+    const isPdf =
+      input.mimeType === 'application/pdf' ||
+      (input.fileName !== undefined && input.fileName.toLowerCase().endsWith('.pdf'));
+
     const cloudinary = getCloudinary();
     const options: UploadApiOptions = {
       folder: this.buildFolder(input.clinicId, input.scope, input.subfolders),
-      resource_type: 'auto',
+      resource_type: isPdf ? 'raw' : 'auto',
       overwrite: false,
       unique_filename: true,
       use_filename: input.fileName !== undefined,
@@ -79,6 +99,8 @@ export class MediaService {
     const response = await new Promise<UploadApiResponse>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
         if (error || !result) {
+          // A typed error, never the provider's raw object: the client gets a
+          // stable code and the provider's internals stay out of the response.
           reject(
             new ServiceUnavailableError('Media upload failed', {
               code: ERROR_CODES.MEDIA_UPLOAD_FAILED,
@@ -110,9 +132,15 @@ export class MediaService {
    *
    * Callers are responsible for the audit entry — deleting a treatment photo is
    * a clinically meaningful act and must leave a trace even though the binary
-   * is gone.
+   * is gone. Errors propagate: this is used for orphan cleanup after a failed
+   * metadata write, and a silent failure there leaves a file nobody knows about.
    */
   async remove(publicId: string, resourceType = 'image'): Promise<void> {
+    if (!this.isEnabled()) {
+      throw new ServiceUnavailableError('Media storage is not configured', {
+        code: ERROR_CODES.MEDIA_STORAGE_UNAVAILABLE,
+      });
+    }
     const cloudinary = getCloudinary();
     await cloudinary.uploader.destroy(publicId, { resource_type: resourceType, invalidate: true });
   }

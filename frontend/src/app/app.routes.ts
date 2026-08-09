@@ -92,6 +92,16 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'cash-records',
+        title: 'Cash records — OrthoFlow',
+        canActivate: [permissionGuard],
+        data: { permission: PERMISSIONS.CASH_RECORDS_VIEW },
+        loadComponent: () =>
+          import('./features/finance/pages/finance-page/finance-page').then(
+            (component) => component.FinancePage,
+          ),
+      },
+      {
         path: 'settings',
         title: 'Settings — OrthoFlow',
         loadComponent: () =>

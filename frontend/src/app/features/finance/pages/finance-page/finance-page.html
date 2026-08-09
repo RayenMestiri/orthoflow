@@ -1,0 +1,299 @@
+<section class="finance-page">
+  <header class="finance-page__header">
+    <div>
+      <span class="finance-page__eyebrow">Financial operations</span>
+      <h1>Cash records</h1>
+      <p>Treatment balances and physical payments recorded by the clinic.</p>
+    </div>
+  </header>
+
+  <!-- SUMMARY -->
+  @if (store.overviewError(); as message) {
+    <div class="fin-alert" role="alert">
+      <span class="material-icons" aria-hidden="true">error_outline</span>
+      <span>{{ message }}</span>
+      <button type="button" (click)="store.loadOverview()">Retry</button>
+    </div>
+  } @else if (store.isOverviewLoading() && !summary()) {
+    <div class="fin-cards" aria-hidden="true">
+      @for (skeleton of [1, 2, 3, 4]; track skeleton) {
+        <div class="fin-card fin-card--skeleton"><span></span><span></span></div>
+      }
+    </div>
+  } @else if (summary(); as figures) {
+    <dl class="fin-cards">
+      <div class="fin-card">
+        <dt>Received today</dt>
+        <dd>{{ money(figures.receivedTodayMinor) }}</dd>
+        <small>{{ figures.receivedTodayCount }} payment{{ figures.receivedTodayCount === 1 ? '' : 's' }}</small>
+      </div>
+      <div class="fin-card">
+        <dt>Received this month</dt>
+        <dd>{{ money(figures.receivedMonthMinor) }}</dd>
+        <small>{{ figures.receivedMonthCount }} payment{{ figures.receivedMonthCount === 1 ? '' : 's' }}</small>
+      </div>
+      <div class="fin-card fin-card--outstanding">
+        <dt>Outstanding</dt>
+        <dd>{{ money(figures.outstandingMinor) }}</dd>
+        <small>
+          {{ figures.outstandingPatientCount }} patient{{
+            figures.outstandingPatientCount === 1 ? '' : 's'
+          }}
+        </small>
+      </div>
+      <div class="fin-card">
+        <dt>Active treatment patients</dt>
+        <dd class="fin-card__count">{{ figures.activeTreatmentPatientCount }}</dd>
+        <small>with a course of care under way</small>
+      </div>
+    </dl>
+  }
+
+  <!-- NEEDS ATTENTION -->
+  @if (attentionItems().length > 0) {
+    <section class="fin-attention" aria-labelledby="fin-attention-title">
+      <h2 id="fin-attention-title">Needs attention</h2>
+      <ul>
+        @for (item of attentionItems(); track item.label) {
+          <li>
+            <span class="fin-attention__count">{{ item.count }}</span>
+            <span class="fin-attention__label">
+              {{ item.label }}
+              <small>{{ item.unit }}</small>
+            </span>
+            @if (item.reviewable) {
+              <button type="button" class="fin-btn" (click)="reviewAttention(item.key)">
+                Review
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <!-- PATIENT BALANCES -->
+  <section class="fin-balances" aria-labelledby="fin-balances-title">
+    <header class="fin-balances__head">
+      <h2 id="fin-balances-title">Patient balances</h2>
+
+      <div class="fin-controls">
+        <label class="sr-only" for="fin-search">Search patient</label>
+        <div class="fin-search">
+          <span class="material-icons" aria-hidden="true">search</span>
+          <input
+            id="fin-search"
+            type="search"
+            [formControl]="searchControl"
+            placeholder="Search patient or phone"
+          />
+        </div>
+
+        <label class="sr-only" for="fin-sort">Sort balances</label>
+        <select id="fin-sort" class="fin-select" (change)="changeSort($any($event.target).value)">
+          @for (option of sorts; track option.value) {
+            <option [value]="option.value" [selected]="store.sort() === option.value">
+              {{ option.label }}
+            </option>
+          }
+        </select>
+      </div>
+    </header>
+
+    <div class="fin-filters" role="group" aria-label="Filter balances">
+      @for (option of filters; track option.value) {
+        <button
+          type="button"
+          class="fin-filter"
+          [class.fin-filter--active]="store.filter() === option.value"
+          [attr.aria-pressed]="store.filter() === option.value"
+          (click)="applyFilter(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </div>
+
+    @if (store.balancesError(); as message) {
+      <div class="fin-alert" role="alert">
+        <span class="material-icons" aria-hidden="true">error_outline</span>
+        <span>{{ message }}</span>
+        <button type="button" (click)="store.loadBalances()">Retry</button>
+      </div>
+    } @else if (store.isBalancesLoading() && !store.hasBalances()) {
+      <div class="fin-loading" role="status">
+        <span class="fin-spinner" aria-hidden="true"></span>
+        Loading balances…
+      </div>
+    } @else if (!store.hasBalances()) {
+      <div class="fin-empty">
+        @if (store.isEmptyWorkspace()) {
+          <p><strong>No payments have been recorded yet.</strong></p>
+          <p>
+            Record physical payments from a patient’s Payments tab to build a clear treatment
+            financial history.
+          </p>
+        } @else if (store.filter() === 'OUTSTANDING') {
+          <p><strong>All treatment balances are currently settled.</strong></p>
+        } @else {
+          <p><strong>No treatments match this view.</strong></p>
+          <p>Try a different filter or clear the search.</p>
+        }
+      </div>
+    } @else {
+      <!-- Desktop/tablet table -->
+      <table class="fin-table">
+        <thead>
+          <tr>
+            <th scope="col">Patient</th>
+            <th scope="col">Treatment</th>
+            <th scope="col" class="fin-num">Agreed</th>
+            <th scope="col" class="fin-num">Recorded</th>
+            <th scope="col" class="fin-num">Remaining</th>
+            <th scope="col">Status</th>
+            <th scope="col">Last payment</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of store.balances(); track trackBalance($index, row)) {
+            <tr
+              tabindex="0"
+              role="link"
+              [attr.aria-label]="'Open ' + row.patientName"
+              (click)="openPatient(row)"
+              (keydown.enter)="openPatient(row)"
+              (keydown.space)="openPatient(row)"
+            >
+              <td class="fin-patient">{{ row.patientName }}</td>
+              <td class="fin-treatment">{{ row.treatmentLabel }}</td>
+              <td class="fin-num">{{ money(row.agreedMinor) }}</td>
+              <td class="fin-num">{{ money(row.recordedMinor) }}</td>
+              <td class="fin-num fin-num--strong">
+                @if (row.paymentStatus === 'OVERPAID') {
+                  +{{ money(row.overpaidMinor) }}
+                } @else {
+                  {{ money(row.remainingMinor) }}
+                }
+              </td>
+              <td>
+                <span class="fin-status" [attr.data-status]="row.paymentStatus">
+                  {{ statusLabels[row.paymentStatus] }}
+                </span>
+              </td>
+              <td class="fin-when">
+                {{ row.lastPaymentAt ? (row.lastPaymentAt | date: 'dd MMM y') : '—' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <!-- Mobile cards: the same rows without a horizontal scrollbar -->
+      <ul class="fin-cards-list">
+        @for (row of store.balances(); track trackBalance($index, row)) {
+          <li>
+            <button type="button" class="fin-row-card" (click)="openPatient(row)">
+              <span class="fin-row-card__head">
+                <strong>{{ row.patientName }}</strong>
+                <span class="fin-status" [attr.data-status]="row.paymentStatus">
+                  {{ statusLabels[row.paymentStatus] }}
+                </span>
+              </span>
+              <span class="fin-row-card__treatment">{{ row.treatmentLabel }}</span>
+              <span class="fin-row-card__amounts">
+                <span>
+                  <small>{{ row.paymentStatus === 'OVERPAID' ? 'Overpaid' : 'Remaining' }}</small>
+                  <strong>
+                    {{
+                      row.paymentStatus === 'OVERPAID'
+                        ? money(row.overpaidMinor)
+                        : money(row.remainingMinor)
+                    }}
+                  </strong>
+                </span>
+                <span class="fin-row-card__progress">
+                  Recorded {{ money(row.recordedMinor) }} / {{ money(row.agreedMinor) }}
+                </span>
+              </span>
+            </button>
+          </li>
+        }
+      </ul>
+
+      @if (store.pages() > 1) {
+        <nav class="fin-pagination" aria-label="Balance pages">
+          <button
+            type="button"
+            class="fin-btn"
+            [disabled]="store.page() <= 1"
+            (click)="store.setPage(store.page() - 1)"
+          >
+            Previous
+          </button>
+          <span>Page {{ store.page() }} of {{ store.pages() }} · {{ store.total() }} treatments</span>
+          <button
+            type="button"
+            class="fin-btn"
+            [disabled]="store.page() >= store.pages()"
+            (click)="store.setPage(store.page() + 1)"
+          >
+            Next
+          </button>
+        </nav>
+      }
+    }
+  </section>
+
+  <!-- RECENT ACTIVITY -->
+  <section class="fin-activity" aria-labelledby="fin-activity-title">
+    <h2 id="fin-activity-title">Recent activity</h2>
+
+    @if (store.activityError(); as message) {
+      <div class="fin-alert" role="alert">
+        <span class="material-icons" aria-hidden="true">error_outline</span>
+        <span>{{ message }}</span>
+        <button type="button" (click)="store.loadActivity()">Retry</button>
+      </div>
+    } @else if (store.isActivityLoading() && store.activity().length === 0) {
+      <div class="fin-loading" role="status">
+        <span class="fin-spinner" aria-hidden="true"></span>
+        Loading activity…
+      </div>
+    } @else if (store.activity().length === 0) {
+      <p class="fin-activity__empty">No financial activity recorded yet.</p>
+    } @else {
+      <ol class="fin-feed">
+        @for (entry of store.activity(); track entry.cashRecordId) {
+          <li [attr.data-status]="entry.status">
+            <time [attr.datetime]="entry.receivedAt">
+              {{ entry.receivedAt | date: 'dd MMM' }}
+              <span>{{ entry.receivedAt | date: 'HH:mm' }}</span>
+            </time>
+            <div class="fin-feed__body">
+              <p class="fin-feed__amount">
+                {{ entry.status === 'CANCELLED' ? '' : '+' }}{{ money(entry.amountMinor) }}
+                @if (entry.status === 'CANCELLED') {
+                  <span class="fin-status" data-status="CANCELLED">Cancelled</span>
+                }
+              </p>
+              <p class="fin-feed__patient">{{ entry.patientName }}</p>
+              <p class="fin-feed__meta">
+                @if (entry.status === 'CANCELLED') {
+                  Cancelled by {{ entry.cancelledByName ?? 'clinic staff' }}
+                  @if (entry.cancellationReason) {
+                    · {{ entry.cancellationReason }}
+                  }
+                } @else {
+                  {{ entry.paymentMethod }} · {{ entry.receivedByName }}
+                  @if (entry.receiptNumber) {
+                    · {{ entry.receiptNumber }}
+                  }
+                }
+              </p>
+            </div>
+          </li>
+        }
+      </ol>
+    }
+  </section>
+</section>
