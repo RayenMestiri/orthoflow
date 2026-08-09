@@ -78,6 +78,14 @@ export class AppShell {
       visible: this.permissions.can(PERMISSIONS.PATIENTS_VIEW),
     },
     {
+      // The daily operations board. Sits above Schedule because it is what the
+      // front desk opens in the morning and keeps open all day.
+      label: 'Today',
+      icon: 'pending_actions',
+      route: '/app/today',
+      visible: this.permissions.can(PERMISSIONS.APPOINTMENTS_VIEW),
+    },
+    {
       label: 'Schedule',
       icon: 'calendar_month',
       route: '/app/schedule',

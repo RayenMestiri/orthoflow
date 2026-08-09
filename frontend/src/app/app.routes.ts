@@ -92,6 +92,16 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'today',
+        title: 'Today — OrthoFlow',
+        canActivate: [permissionGuard],
+        data: { permission: PERMISSIONS.APPOINTMENTS_VIEW },
+        loadComponent: () =>
+          import('./features/reception/pages/today-page/today-page').then(
+            (component) => component.TodayPage,
+          ),
+      },
+      {
         path: 'cash-records',
         title: 'Cash records — OrthoFlow',
         canActivate: [permissionGuard],

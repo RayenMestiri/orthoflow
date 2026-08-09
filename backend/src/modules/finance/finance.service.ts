@@ -1,6 +1,7 @@
 import type { PaginatedResult, PaginationParams } from '../../common/types/common.types.js';
 import { toPaginationParams } from '../../common/utils/pagination.js';
 import { DEFAULT_CURRENCY, formatMinor } from '../../common/utils/money.js';
+import { clinicDayBounds, clinicMonthStart } from '../../common/utils/clinic-day.js';
 import { clinicRepository, type ClinicRepository } from '../clinics/clinic.repository.js';
 import { userRepository, type UserRepository } from '../users/user.repository.js';
 import { receiptRepository, type ReceiptRepository } from '../receipts/receipt.repository.js';
@@ -36,67 +37,19 @@ export class FinanceService {
   ) {}
 
   /**
-   * "Today" means the clinic's today.
+   * "Today" and "this month" mean the clinic's, not UTC's.
    *
-   * A Tunis clinic closing at 19:00 local is still on the same business day
-   * that UTC has already ended, so bucketing by UTC midnight would move the
-   * evening's cash into tomorrow's figure. The offset is read from the zone
-   * itself rather than assumed, so DST changes need no special case.
+   * Delegated to `common/utils/clinic-day` so the reception board and this
+   * workspace agree on where a clinic day begins — see AGENTS.md on single
+   * sources of truth.
    */
   private resolvePeriods(timezone: string, now: Date): ClinicPeriods {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).formatToParts(now);
-    const read = (type: Intl.DateTimeFormatPartTypes): string =>
-      parts.find((part) => part.type === type)?.value ?? '';
-
-    const year = Number(read('year'));
-    const month = Number(read('month'));
-    const day = Number(read('day'));
-
-    // Midnight local expressed as an instant: take the naive local midnight,
-    // then correct by the zone's offset at that moment.
-    const localMidnightUtc = Date.UTC(year, month - 1, day);
-    const offsetMs = this.zoneOffsetMs(new Date(localMidnightUtc), timezone);
-
-    const todayStart = new Date(localMidnightUtc - offsetMs);
-    const monthStartUtc = Date.UTC(year, month - 1, 1);
-    const monthStart = new Date(monthStartUtc - this.zoneOffsetMs(new Date(monthStartUtc), timezone));
-
+    const today = clinicDayBounds(timezone, now);
     return {
-      todayStart,
-      monthStart,
-      nextDayStart: new Date(todayStart.getTime() + 24 * 60 * 60 * 1000),
+      todayStart: today.start,
+      monthStart: clinicMonthStart(timezone, now),
+      nextDayStart: today.end,
     };
-  }
-
-  /** How far the zone is ahead of UTC at a given instant, in milliseconds. */
-  private zoneOffsetMs(instant: Date, timezone: string): number {
-    const formatted = new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    }).formatToParts(instant);
-    const read = (type: Intl.DateTimeFormatPartTypes): number =>
-      Number(formatted.find((part) => part.type === type)?.value ?? '0');
-
-    const asUtc = Date.UTC(
-      read('year'),
-      read('month') - 1,
-      read('day'),
-      read('hour') === 24 ? 0 : read('hour'),
-      read('minute'),
-      read('second'),
-    );
-    return asUtc - instant.getTime();
   }
 
   private async resolveClinic(clinicId: string): Promise<{ currency: string; timezone: string }> {

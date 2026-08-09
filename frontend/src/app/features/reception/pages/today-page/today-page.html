@@ -1,0 +1,323 @@
+<section class="today">
+  <header class="today__masthead">
+    <div>
+      <span class="today__eyebrow">Clinic flow</span>
+      <h1>Today</h1>
+      @if (store.board(); as board) {
+        <p>{{ board.date | date: 'EEEE, d MMMM' }}</p>
+      }
+    </div>
+
+    @if (store.summary(); as summary) {
+      <dl class="today__counters">
+        <div>
+          <dt>Appointments</dt>
+          <dd>{{ summary.total }}</dd>
+        </div>
+        <div>
+          <dt>Completed</dt>
+          <dd>{{ summary.completed }}</dd>
+        </div>
+        <div class="today__counters--live">
+          <dt>Waiting</dt>
+          <dd>{{ summary.waiting }}</dd>
+        </div>
+        @if (summary.late > 0) {
+          <div class="today__counters--late">
+            <dt>Late</dt>
+            <dd>{{ summary.late }}</dd>
+          </div>
+        }
+        <div>
+          <dt>Upcoming</dt>
+          <dd>{{ summary.upcoming }}</dd>
+        </div>
+      </dl>
+    }
+  </header>
+
+  @if (store.error(); as message) {
+    <div class="flow-alert" role="alert">
+      <span class="material-icons" aria-hidden="true">error_outline</span>
+      <span>{{ message }}</span>
+      <button type="button" (click)="store.load()">Retry</button>
+    </div>
+  }
+
+  @if (store.isLoading() && !store.isLoaded()) {
+    <ul class="flow-skeleton" aria-hidden="true">
+      @for (skeleton of [1, 2, 3, 4]; track skeleton) {
+        <li><span></span><span></span><span></span></li>
+      }
+    </ul>
+  } @else if (store.isEmptyDay()) {
+    <div class="flow-empty">
+      <h2>No appointments scheduled today.</h2>
+      <p>Use the day to review patients or prepare upcoming visits.</p>
+    </div>
+  } @else {
+    <!-- Next patient: prominent, but not a billboard -->
+    @if (nextPatient(); as next) {
+      <aside class="flow-next" aria-labelledby="flow-next-title">
+        <div>
+          <h2 id="flow-next-title">Next</h2>
+          <p class="flow-next__name">{{ next.patientName }}</p>
+          <p class="flow-next__meta">
+            {{ next.startAt | date: 'HH:mm' }} · {{ next.appointmentTypeName }}
+          </p>
+        </div>
+        <p class="flow-next__eta">
+          @if (next.status === 'WAITING' || next.status === 'ARRIVED') {
+            Waiting {{ waitingFor(next) }}
+          } @else if (nextInMinutes(); as minutes) {
+            @if (minutes > 0) {
+              in {{ minutes }} min
+            } @else {
+              due now
+            }
+          }
+        </p>
+      </aside>
+    }
+
+    @for (section of visibleSections(); track section.group) {
+      <section class="flow-section" [attr.data-group]="section.group">
+        <header>
+          <h2>{{ section.title }}</h2>
+          <span>{{ section.rows.length }}</span>
+          <small>{{ section.hint }}</small>
+        </header>
+
+        <ul class="flow-list">
+          @for (row of section.rows; track trackRow($index, row)) {
+            <li
+              class="flow-row"
+              [attr.data-status]="row.status"
+              [class.flow-row--pending]="store.isPending(row.appointmentId)"
+              tabindex="0"
+              (click)="openDetail(row)"
+              (keydown.enter)="openDetail(row)"
+            >
+              <time class="flow-row__time" [attr.datetime]="row.startAt">
+                {{ row.startAt | date: 'HH:mm' }}
+              </time>
+
+              <span class="flow-row__avatar" aria-hidden="true">{{
+                initials(row.patientName)
+              }}</span>
+
+              <div class="flow-row__identity">
+                <button
+                  type="button"
+                  class="flow-row__name"
+                  (click)="openPatient(row, $event)"
+                  [attr.aria-label]="'Open ' + row.patientName + ' profile'"
+                >
+                  {{ row.patientName }}
+                </button>
+                <span class="flow-row__meta">
+                  {{ row.appointmentTypeName }}
+                  @if (row.treatmentLabel) {
+                    · {{ row.treatmentLabel }}
+                  }
+                </span>
+              </div>
+
+              <div class="flow-row__state">
+                <span class="flow-chip" [attr.data-status]="row.status">
+                  {{ statusLabels[row.status] }}
+                </span>
+                @if (row.flowGroup === 'WAITING' || row.flowGroup === 'ARRIVED') {
+                  <span class="flow-row__timer">Waiting {{ waitingFor(row) }}</span>
+                } @else if (row.flowGroup === 'IN_TREATMENT') {
+                  <span class="flow-row__timer">In chair {{ inTreatmentFor(row) }}</span>
+                } @else if (row.flowGroup === 'LATE') {
+                  <span class="flow-row__timer flow-row__timer--late">
+                    {{ lateFor(row) }} late
+                  </span>
+                } @else if (row.status === 'COMPLETED' && row.completedAt) {
+                  <span class="flow-row__timer">{{ row.completedAt | date: 'HH:mm' }}</span>
+                }
+              </div>
+
+              <div class="flow-row__actions">
+                @if (action(row); as next) {
+                  <button
+                    type="button"
+                    class="flow-btn flow-btn--primary"
+                    [disabled]="store.isPending(row.appointmentId)"
+                    (click)="advance(row, $event)"
+                  >
+                    {{ store.isPending(row.appointmentId) ? 'Saving…' : next.label }}
+                  </button>
+                }
+                @if (showNoShow(row)) {
+                  <button
+                    type="button"
+                    class="flow-btn flow-btn--quiet"
+                    [disabled]="store.isPending(row.appointmentId)"
+                    (click)="markNoShow(row, $event)"
+                  >
+                    No-show
+                  </button>
+                }
+              </div>
+
+              @if (store.rowError(row.appointmentId); as rowError) {
+                <p class="flow-row__error" role="alert">
+                  {{ rowError }}
+                  <button type="button" (click)="store.clearRowError(row.appointmentId)">
+                    Dismiss
+                  </button>
+                </p>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+
+  <!-- Appointment detail -->
+  @if (selected(); as row) {
+    <div class="flow-drawer" role="dialog" aria-modal="true" aria-labelledby="flow-detail-title">
+      <header class="flow-drawer__head">
+        <div>
+          <span class="today__eyebrow">Appointment</span>
+          <h2 id="flow-detail-title">{{ row.patientName }}</h2>
+        </div>
+        <button type="button" class="flow-drawer__close" aria-label="Close" (click)="closeDetail()">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </header>
+
+      <div class="flow-drawer__body">
+        <dl class="flow-facts">
+          <div>
+            <dt>Time</dt>
+            <dd>{{ row.startAt | date: 'HH:mm' }} – {{ row.endAt | date: 'HH:mm' }}</dd>
+          </div>
+          <div>
+            <dt>Type</dt>
+            <dd>{{ row.appointmentTypeName }}</dd>
+          </div>
+          <div>
+            <dt>Treatment</dt>
+            <dd>{{ row.treatmentLabel ?? 'No active treatment' }}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>
+              <span class="flow-chip" [attr.data-status]="row.status">
+                {{ statusLabels[row.status] }}
+              </span>
+            </dd>
+          </div>
+        </dl>
+
+        @if (row.note) {
+          <div class="flow-note">
+            <span>Note</span>
+            <p>{{ row.note }}</p>
+          </div>
+        }
+
+        <!-- Visit timeline, from persisted timestamps only -->
+        <section class="flow-timeline" aria-labelledby="flow-timeline-title">
+          <h3 id="flow-timeline-title">Visit timeline</h3>
+          <ol>
+            <li>
+              <strong>{{ row.startAt | date: 'HH:mm' }}</strong>
+              <span>Scheduled</span>
+            </li>
+            @if (row.arrivedAt) {
+              <li>
+                <strong>{{ row.arrivedAt | date: 'HH:mm' }}</strong>
+                <span>Patient arrived</span>
+              </li>
+            }
+            @if (row.treatmentStartedAt) {
+              <li>
+                <strong>{{ row.treatmentStartedAt | date: 'HH:mm' }}</strong>
+                <span>Visit started</span>
+              </li>
+            }
+            @if (row.completedAt) {
+              <li>
+                <strong>{{ row.completedAt | date: 'HH:mm' }}</strong>
+                <span>Visit completed</span>
+              </li>
+            }
+            @if (row.noShowAt) {
+              <li>
+                <strong>{{ row.noShowAt | date: 'HH:mm' }}</strong>
+                <span>Marked no-show</span>
+              </li>
+            }
+          </ol>
+          <p class="flow-timeline__note">
+            Who performed each action is recorded in the appointment activity log.
+          </p>
+        </section>
+
+        @if (row.cancellationReason) {
+          <div class="flow-note flow-note--cancelled">
+            <span>Cancelled</span>
+            <p>{{ row.cancellationReason }}</p>
+          </div>
+        }
+      </div>
+
+      <footer class="flow-drawer__actions">
+        @if (action(row); as next) {
+          <button
+            type="button"
+            class="flow-btn flow-btn--primary"
+            [disabled]="store.isPending(row.appointmentId)"
+            (click)="advance(row)"
+          >
+            {{ next.label }}
+          </button>
+        }
+        @if (row.status !== 'COMPLETED' && row.status !== 'CANCELLED' && row.status !== 'NO_SHOW') {
+          <button type="button" class="flow-btn flow-btn--danger" (click)="openCancel(row)">
+            Cancel appointment
+          </button>
+        }
+      </footer>
+    </div>
+  }
+
+  <!-- Cancel confirmation -->
+  @if (cancelTarget(); as row) {
+    <div class="flow-modal" role="dialog" aria-modal="true" aria-labelledby="flow-cancel-title">
+      <form class="flow-modal__panel" (ngSubmit)="confirmCancel()" novalidate>
+        <h3 id="flow-cancel-title">Cancel {{ row.patientName }}’s appointment?</h3>
+        <p>The appointment stays in the day’s record as cancelled. It is never deleted.</p>
+
+        <div class="flow-field">
+          <label for="flow-cancel-reason">Reason</label>
+          <input
+            id="flow-cancel-reason"
+            [formControl]="cancelReason"
+            placeholder="Patient called"
+          />
+          @if (cancelReason.touched && cancelReason.invalid) {
+            <p class="flow-field__error" aria-live="polite">Give a short reason for the record.</p>
+          }
+        </div>
+
+        <footer class="flow-modal__actions">
+          <button type="button" class="flow-btn" (click)="closeCancel()">Keep appointment</button>
+          <button
+            type="submit"
+            class="flow-btn flow-btn--danger-solid"
+            [disabled]="store.isPending(row.appointmentId)"
+          >
+            Cancel appointment
+          </button>
+        </footer>
+      </form>
+    </div>
+  }
+</section>

@@ -1,0 +1,796 @@
+/**
+ * Today — the reception workspace.
+ *
+ * A command centre, not a calendar: dense operational rows, one obvious next
+ * action each, and status carried by words with colour only reinforcing it.
+ * Sections are separated by tone and spacing rather than by boxing everything.
+ */
+
+:host {
+  display: block;
+  padding-bottom: 3.5rem;
+}
+
+.today {
+  width: min(100%, 82rem);
+  margin-inline: auto;
+  display: grid;
+  gap: 1.35rem;
+  color: var(--color-pine-900);
+}
+
+.today__masthead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+
+  h1 {
+    margin: 0.2rem 0 0.25rem;
+    font-size: clamp(1.7rem, 3vw, 2.15rem);
+    font-weight: 750;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+  }
+
+  p {
+    margin: 0;
+    color: var(--color-slate);
+    font-size: 0.9rem;
+  }
+}
+
+.today__eyebrow {
+  color: var(--color-copper-600);
+  font-size: 0.67rem;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+/* Compact counters, not KPI cards. */
+.today__counters {
+  display: flex;
+  gap: clamp(1rem, 2.5vw, 2rem);
+  flex-wrap: wrap;
+  margin: 0;
+
+  dt {
+    color: var(--color-slate);
+    font-size: 0.65rem;
+    font-weight: 750;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 0.15rem 0 0;
+    font-size: 1.3rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+  }
+
+  &--live dd {
+    color: var(--color-pine-700);
+  }
+
+  &--late dd {
+    color: var(--color-copper-600);
+  }
+}
+
+/* Next patient */
+.flow-next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  color: var(--color-porcelain);
+  background: var(--color-pine-900);
+
+  h2 {
+    margin: 0;
+    color: color-mix(in srgb, var(--color-porcelain) 60%, transparent);
+    font-size: 0.65rem;
+    font-weight: 750;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+}
+
+.flow-next__name {
+  margin: 0.3rem 0 0.1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.flow-next__meta {
+  margin: 0;
+  color: color-mix(in srgb, var(--color-porcelain) 70%, transparent);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.flow-next__eta {
+  margin: 0;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Sections */
+.flow-section > header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+
+  h2 {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+  }
+
+  span {
+    padding: 0.05rem 0.45rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-mist);
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  small {
+    color: var(--color-slate);
+    font-size: 0.76rem;
+  }
+}
+
+.flow-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/**
+ * A row: time, who, what, state, next action.
+ *
+ * Grid rather than flex so the columns line up across every section — a
+ * receptionist scans down the times and the actions, not across each row.
+ */
+.flow-row {
+  display: grid;
+  grid-template-columns: 3.25rem 2.25rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid var(--color-line);
+  border-left: 3px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: color-mix(in srgb, var(--color-pine-700) 35%, var(--color-line));
+    background: color-mix(in srgb, var(--color-sage) 30%, var(--color-white));
+    outline: none;
+  }
+
+  &--pending {
+    opacity: 0.72;
+  }
+}
+
+/* The left rail is the only place status uses colour alone — the chip says it too. */
+.flow-row[data-status='IN_TREATMENT'] {
+  border-left-color: var(--color-pine-700);
+}
+
+.flow-row[data-status='WAITING'],
+.flow-row[data-status='ARRIVED'] {
+  border-left-color: var(--color-info);
+}
+
+.flow-row[data-status='COMPLETED'] {
+  border-left-color: var(--color-success);
+}
+
+.flow-row[data-status='NO_SHOW'],
+.flow-row[data-status='CANCELLED'] {
+  border-left-color: var(--color-mist);
+  background: color-mix(in srgb, var(--color-mist) 28%, var(--color-white));
+}
+
+.flow-row__time {
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.flow-row__avatar {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-pine-700);
+  background: var(--color-sage);
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.flow-row__identity {
+  min-width: 0;
+}
+
+.flow-row__name {
+  display: block;
+  padding: 0;
+  border: 0;
+  color: var(--color-pine-900);
+  background: transparent;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
+
+.flow-row__meta {
+  display: block;
+  color: var(--color-slate);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.flow-row__state {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.flow-row__timer {
+  color: var(--color-slate);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  &--late {
+    color: var(--color-copper-600);
+    font-weight: 700;
+  }
+}
+
+.flow-row__actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.flow-row__error {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.5rem 0 0;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 7%, white);
+  font-size: 0.78rem;
+  font-weight: 650;
+
+  button {
+    margin-left: auto;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    font-size: 0.75rem;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+}
+
+/* Status chips — restrained, always with a word. */
+.flow-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.16rem 0.55rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.65rem;
+  font-weight: 750;
+  letter-spacing: 0.045em;
+  white-space: nowrap;
+}
+
+.flow-chip[data-status='SCHEDULED'],
+.flow-chip[data-status='CONFIRMED'] {
+  color: var(--color-slate);
+  background: var(--color-mist);
+}
+
+.flow-chip[data-status='ARRIVED'],
+.flow-chip[data-status='WAITING'] {
+  color: var(--color-info);
+  background: color-mix(in srgb, var(--color-info) 12%, white);
+}
+
+.flow-chip[data-status='IN_TREATMENT'] {
+  color: var(--color-pine-900);
+  background: var(--color-sage);
+}
+
+.flow-chip[data-status='COMPLETED'] {
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 12%, white);
+}
+
+.flow-chip[data-status='NO_SHOW'] {
+  color: var(--color-copper-700);
+  background: color-mix(in srgb, var(--color-copper-600) 13%, white);
+}
+
+.flow-chip[data-status='CANCELLED'] {
+  color: var(--color-slate);
+  background: var(--color-mist);
+}
+
+/* Buttons */
+.flow-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 44px — the target size the design system requires. */
+  min-height: 2.75rem;
+  padding: 0.4rem 0.95rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-pine-700);
+  background: var(--color-white);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-pine-700);
+    background: var(--color-sage);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &--primary {
+    border-color: transparent;
+    color: var(--color-white);
+    background: var(--color-pine-700);
+
+    &:hover:not(:disabled) {
+      background: var(--color-pine-800);
+    }
+  }
+
+  &--quiet {
+    color: var(--color-slate);
+  }
+
+  &--danger {
+    color: var(--color-danger);
+
+    &:hover:not(:disabled) {
+      border-color: var(--color-danger);
+      background: color-mix(in srgb, var(--color-danger) 7%, white);
+    }
+  }
+
+  &--danger-solid {
+    border-color: transparent;
+    color: var(--color-white);
+    background: var(--color-danger);
+  }
+}
+
+/* Detail drawer */
+.flow-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 27rem);
+  border-left: 1px solid var(--color-line);
+  background: var(--color-white);
+  box-shadow: -18px 0 48px rgba(13, 41, 37, 0.16);
+}
+
+.flow-drawer__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.35rem 1rem;
+  border-bottom: 1px solid var(--color-line);
+
+  h2 {
+    margin: 0.15rem 0 0;
+    font-size: 1.15rem;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+  }
+}
+
+.flow-drawer__close {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-slate);
+  background: transparent;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--color-line);
+    background: var(--color-mist);
+  }
+}
+
+.flow-drawer__body {
+  flex: 1;
+  display: grid;
+  gap: 1.1rem;
+  align-content: start;
+  padding: 1.25rem 1.35rem;
+  overflow-y: auto;
+}
+
+.flow-drawer__actions {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  padding: 1rem 1.35rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.flow-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin: 0;
+
+  dt {
+    color: var(--color-slate);
+    font-size: 0.65rem;
+    font-weight: 750;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 0.2rem 0 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+}
+
+.flow-note {
+  padding: 0.75rem 0.9rem;
+  border-left: 2px solid var(--color-copper-600);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-copper-600) 5%, white);
+
+  span {
+    color: var(--color-copper-600);
+    font-size: 0.65rem;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  p {
+    margin: 0.25rem 0 0;
+    color: var(--color-slate);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+
+  &--cancelled {
+    border-left-color: var(--color-danger);
+    background: color-mix(in srgb, var(--color-danger) 5%, white);
+
+    span {
+      color: var(--color-danger);
+    }
+  }
+}
+
+.flow-timeline {
+  h3 {
+    margin: 0 0 0.65rem;
+    color: var(--color-slate);
+    font-size: 0.65rem;
+    font-weight: 750;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  ol {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: 3.25rem minmax(0, 1fr);
+    gap: 0.75rem;
+    font-size: 0.84rem;
+  }
+
+  strong {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  span {
+    color: var(--color-slate);
+  }
+}
+
+.flow-timeline__note {
+  margin: 0.75rem 0 0;
+  color: var(--color-slate);
+  font-size: 0.74rem;
+  font-style: italic;
+}
+
+/* Modal */
+.flow-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(13, 41, 37, 0.45);
+  overflow-y: auto;
+}
+
+.flow-modal__panel {
+  display: grid;
+  gap: 1rem;
+  width: min(100%, 30rem);
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: 0 24px 60px rgba(13, 41, 37, 0.26);
+
+  h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 750;
+  }
+
+  p {
+    margin: 0;
+    color: var(--color-slate);
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+}
+
+.flow-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.flow-field {
+  display: grid;
+  gap: 0.35rem;
+
+  label {
+    font-size: 0.8rem;
+    font-weight: 650;
+  }
+
+  input {
+    min-height: 2.75rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-sm);
+    color: var(--color-pine-900);
+    background: var(--color-white);
+    font: inherit;
+    font-size: 0.88rem;
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--color-pine-700);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-pine-700) 15%, transparent);
+    }
+  }
+}
+
+.flow-field__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+/* States */
+.flow-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  border-left: 3px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 6%, white);
+  font-size: 0.82rem;
+  font-weight: 650;
+
+  > span:nth-child(2) {
+    flex: 1;
+  }
+
+  button {
+    min-height: 2.75rem;
+    padding-inline: 0.9rem;
+    border: 1px solid currentColor;
+    border-radius: var(--radius-sm);
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 650;
+    cursor: pointer;
+  }
+}
+
+.flow-empty {
+  padding: 3.5rem 1.5rem;
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius-lg);
+  text-align: center;
+
+  h2 {
+    margin: 0 0 0.4rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  p {
+    max-width: 30rem;
+    margin: 0 auto;
+    color: var(--color-slate);
+    font-size: 0.88rem;
+  }
+}
+
+.flow-skeleton {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: 3rem 2fr 1fr;
+    gap: 1rem;
+    padding: 1.1rem 0.95rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+  }
+
+  span {
+    height: 0.7rem;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-mist) 70%, transparent);
+  }
+}
+
+/**
+ * Tablet: the action column drops below the row rather than squeezing the
+ * patient name, which is the thing the desk reads first.
+ */
+@media (max-width: 60rem) {
+  .flow-row {
+    grid-template-columns: 3.25rem 2.25rem minmax(0, 1fr);
+    row-gap: 0.6rem;
+  }
+
+  .flow-row__state {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
+
+  .flow-row__actions {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 40rem) {
+  .today__masthead {
+    align-items: flex-start;
+  }
+
+  .flow-row {
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+  }
+
+  .flow-row__time {
+    grid-column: 2;
+    order: -1;
+  }
+
+  .flow-row__avatar {
+    grid-row: span 2;
+    align-self: start;
+  }
+
+  .flow-row__state,
+  .flow-row__actions {
+    grid-column: 1 / -1;
+  }
+
+  .flow-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .flow-next {
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-row,
+  .flow-btn {
+    transition: none;
+  }
+}
