@@ -25,6 +25,7 @@ const CLINIC_B = '652f1c9b8a1e4f0012ab99ff';
 const DOCTOR_ID = '652f1c9b8a1e4f0012ab0001';
 const PATIENT_ID = '652f1c9b8a1e4f0012abaaaa';
 const TYPE_ID = '652f1c9b8a1e4f0012abcccc';
+const TREATMENT_ID = '652f1c9b8a1e4f0012abdddd';
 const ACTOR: MutationContext = { actorUserId: DOCTOR_ID, ip: null, userAgent: null };
 
 /** A practitioner: may put a patient in the chair and declare the visit over. */
@@ -52,6 +53,7 @@ class FakeAppointmentRepository {
   private materialize(input: {
     clinicId: string;
     patientId: string;
+    treatmentId?: string | null;
     doctorId: string;
     appointmentTypeId: string;
     startAt: Date;
@@ -67,6 +69,7 @@ class FakeAppointmentRepository {
       _id: new Types.ObjectId(),
       clinicId: new Types.ObjectId(input.clinicId),
       patientId: new Types.ObjectId(input.patientId),
+      treatmentId: input.treatmentId ? new Types.ObjectId(input.treatmentId) : null,
       doctorId: new Types.ObjectId(input.doctorId),
       appointmentTypeId: new Types.ObjectId(input.appointmentTypeId),
       startAt: input.startAt,
@@ -296,6 +299,33 @@ function buildService(scheduling: Partial<ClinicSchedulingSettings> = {}): Fakes
       })),
     ),
   };
+  const treatments = {
+    findByIdInClinic: vi.fn(async (treatmentId: string, clinicId: string) =>
+      treatmentId === TREATMENT_ID && clinicId === CLINIC_A
+        ? {
+            _id: new Types.ObjectId(TREATMENT_ID),
+            clinicId: new Types.ObjectId(CLINIC_A),
+            patientId: new Types.ObjectId(PATIENT_ID),
+            type: 'METAL_BRACES',
+            customTypeLabel: null,
+            status: 'ACTIVE',
+          }
+        : null,
+    ),
+    findManyByIdsInClinic: vi.fn(async (ids: string[]) =>
+      ids.includes(TREATMENT_ID)
+        ? [
+            {
+              _id: new Types.ObjectId(TREATMENT_ID),
+              patientId: new Types.ObjectId(PATIENT_ID),
+              type: 'METAL_BRACES',
+              customTypeLabel: null,
+              status: 'ACTIVE',
+            },
+          ]
+        : [],
+    ),
+  };
 
   const service = new AppointmentService(
     store as never,
@@ -306,9 +336,10 @@ function buildService(scheduling: Partial<ClinicSchedulingSettings> = {}): Fakes
     memberships as never,
     audit as never,
     users as never,
+    treatments as never,
   );
 
-  return { service, store, patients, memberships, audit, users };
+  return { service, store, patients, memberships, audit, users, treatments };
 }
 
 describe('clinic wall-clock conversion', () => {
@@ -385,6 +416,22 @@ describe('AppointmentService.create', () => {
 
     expect(fakes.memberships.findActiveOwner).toHaveBeenCalledWith(CLINIC_A);
     expect(dto.doctorId).toBe(DOCTOR_ID);
+  });
+
+  it('persists a validated treatment context without copying follow-up state', async () => {
+    const dto = await fakes.service.create(
+      CLINIC_A,
+      {
+        patientId: PATIENT_ID,
+        treatmentId: TREATMENT_ID,
+        appointmentTypeId: TYPE_ID,
+        startAt: MONDAY_9_LOCAL,
+      },
+      ACTOR,
+    );
+    expect(fakes.treatments.findByIdInClinic).toHaveBeenCalledWith(TREATMENT_ID, CLINIC_A);
+    expect(dto.treatmentId).toBe(TREATMENT_ID);
+    expect(dto.treatment?.label).toBe('Metal braces');
   });
 
   it('accepts two overlaps and asks for explicit owner approval for the third', async () => {

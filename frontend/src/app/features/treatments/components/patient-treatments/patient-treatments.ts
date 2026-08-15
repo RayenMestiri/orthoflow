@@ -14,6 +14,8 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { ClinicalVisitsApiService } from '../../../clinical-visits/data-access/clinical-visits-api.service';
+import { FollowUpsApiService } from '../../../follow-ups/data-access/follow-ups-api.service';
+import type { FollowUpRow } from '../../../follow-ups/models/follow-up.models';
 import {
   clinicalLabel,
   type ClinicalVisitSummary,
@@ -47,6 +49,7 @@ type DrawerMode = 'create' | 'edit-treatment' | 'add-milestone' | 'edit-mileston
 export class PatientTreatments {
   private readonly permissions = inject(PermissionService);
   private readonly clinicalVisitsApi = inject(ClinicalVisitsApiService);
+  private readonly followUpsApi = inject(FollowUpsApiService);
   protected readonly store = inject(TreatmentsStore);
 
   readonly patientId = input.required<string>();
@@ -59,6 +62,7 @@ export class PatientTreatments {
   protected readonly historyOpen = signal(false);
   protected readonly cancelling = signal<string | null>(null);
   protected readonly clinicalVisits = signal<ClinicalVisitSummary[]>([]);
+  protected readonly followUps = signal<FollowUpRow[]>([]);
   protected readonly clinicalLabel = clinicalLabel;
 
   protected readonly current = computed(
@@ -75,8 +79,16 @@ export class PatientTreatments {
   protected readonly currentClinicalVisits = computed(() => {
     const treatmentId = this.current()?.id;
     return treatmentId
-      ? this.clinicalVisits().filter((visit) => visit.treatmentId === treatmentId).slice(0, 5)
+      ? this.clinicalVisits()
+          .filter((visit) => visit.treatmentId === treatmentId)
+          .slice(0, 5)
       : [];
+  });
+  protected readonly currentFollowUp = computed(() => {
+    const treatmentId = this.current()?.id;
+    return treatmentId
+      ? (this.followUps().find((row) => row.treatment?.id === treatmentId) ?? null)
+      : null;
   });
 
   protected readonly treatmentForm = new FormGroup({
@@ -119,6 +131,7 @@ export class PatientTreatments {
       if (patientId) {
         void this.store.load(patientId);
         void this.loadClinicalVisits(patientId);
+        void this.loadFollowUps(patientId);
       }
     });
   }
@@ -325,11 +338,30 @@ export class PatientTreatments {
 
   private async loadClinicalVisits(patientId: string): Promise<void> {
     try {
-      this.clinicalVisits.set(await firstValueFrom(this.clinicalVisitsApi.listForPatient(patientId)));
+      this.clinicalVisits.set(
+        await firstValueFrom(this.clinicalVisitsApi.listForPatient(patientId)),
+      );
     } catch {
       // Treatment management remains usable if the read-only clinical history
       // is temporarily unavailable; the canonical Visits tab offers retry UX.
       this.clinicalVisits.set([]);
+    }
+  }
+
+  private async loadFollowUps(patientId: string): Promise<void> {
+    try {
+      const result = await firstValueFrom(
+        this.followUpsApi.list({
+          page: 1,
+          limit: 50,
+          filter: 'ALL',
+          sort: 'RECENTLY_VISITED',
+          patientId,
+        }),
+      );
+      this.followUps.set(result.rows);
+    } catch {
+      this.followUps.set([]);
     }
   }
 

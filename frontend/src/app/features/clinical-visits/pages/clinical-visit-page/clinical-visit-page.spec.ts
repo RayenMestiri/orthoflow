@@ -4,6 +4,7 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { ClinicalVisitsApiService } from '../../data-access/clinical-visits-api.service';
+import { FollowUpsApiService } from '../../../follow-ups/data-access/follow-ups-api.service';
 import type { ClinicalVisit } from '../../models/clinical-visit.models';
 import { ClinicalVisitPage } from './clinical-visit-page';
 
@@ -45,6 +46,7 @@ const VISIT: ClinicalVisit = {
 describe('ClinicalVisitPage', () => {
   let fixture: ComponentFixture<ClinicalVisitPage>;
   let api: Record<string, ReturnType<typeof vi.fn>>;
+  let followUpsApi: { list: ReturnType<typeof vi.fn> };
   const owner = true;
 
   beforeEach(async () => {
@@ -53,6 +55,15 @@ describe('ClinicalVisitPage', () => {
       get: vi.fn().mockReturnValue(of(VISIT)),
       update: vi.fn().mockReturnValue(of(VISIT)),
       complete: vi.fn().mockReturnValue(of({ ...VISIT, status: 'COMPLETED' })),
+    };
+    followUpsApi = {
+      list: vi.fn().mockReturnValue(
+        of({
+          summary: { needsScheduling: 1, overdue: 0, scheduled: 0 },
+          rows: [],
+          pagination: { page: 1, limit: 10, total: 0, pages: 0 },
+        }),
+      ),
     };
     await TestBed.configureTestingModule({
       imports: [ClinicalVisitPage],
@@ -67,6 +78,10 @@ describe('ClinicalVisitPage', () => {
           },
         },
         { provide: ClinicalVisitsApiService, useValue: api },
+        {
+          provide: FollowUpsApiService,
+          useValue: followUpsApi,
+        },
         {
           provide: PermissionService,
           useValue: {
@@ -97,8 +112,9 @@ describe('ClinicalVisitPage', () => {
 
   it('saves a draft explicitly and retains the structured procedures', async () => {
     const element = await render();
-    (element.querySelector('textarea[formcontrolname="observations"]') as HTMLTextAreaElement).value =
-      'New finding';
+    (
+      element.querySelector('textarea[formcontrolname="observations"]') as HTMLTextAreaElement
+    ).value = 'New finding';
     element
       .querySelector('textarea[formcontrolname="observations"]')
       ?.dispatchEvent(new Event('input'));
@@ -123,9 +139,13 @@ describe('ClinicalVisitPage', () => {
   });
 
   it('keeps form data and exposes the backend error when saving fails', async () => {
-    api['update']?.mockReturnValue(throwError(() => ({ error: { error: { message: 'Save failed' } } })));
+    api['update']?.mockReturnValue(
+      throwError(() => ({ error: { error: { message: 'Save failed' } } })),
+    );
     const element = await render();
-    const note = element.querySelector('textarea[formcontrolname="doctorNote"]') as HTMLTextAreaElement;
+    const note = element.querySelector(
+      'textarea[formcontrolname="doctorNote"]',
+    ) as HTMLTextAreaElement;
     note.value = 'Keep this text';
     note.dispatchEvent(new Event('input'));
     (element.querySelector('button[type="submit"]') as HTMLButtonElement).click();
@@ -133,5 +153,22 @@ describe('ClinicalVisitPage', () => {
     fixture.detectChanges();
     expect(note.value).toBe('Keep this text');
     expect(element.querySelector('[role="alert"]')).not.toBeNull();
+  });
+
+  it('shows a deliberate scheduling CTA after a recommendation is completed', async () => {
+    const completed = {
+      ...VISIT,
+      status: 'COMPLETED' as const,
+      completedAt: '2026-08-15T09:30:00.000Z',
+      nextVisitRecommendedAt: '2026-09-12T12:00:00.000Z',
+    };
+    const element = await render(completed);
+    expect(element.textContent).toContain('No appointment scheduled');
+    const link = [...element.querySelectorAll('a')].find((item) =>
+      item.textContent?.includes('Schedule next appointment'),
+    ) as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toContain('patientId=patient-1');
+    expect(link.getAttribute('href')).toContain('treatmentId=treatment-1');
+    expect(link.getAttribute('href')).toContain('recommendedDate=2026-09-12');
   });
 });

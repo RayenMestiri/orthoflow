@@ -1,11 +1,23 @@
 import type { AppointmentTypeRecord } from '../appointment-types/appointment-type.types.js';
 import type { PatientRecord } from '../patients/patient.types.js';
+import type { TreatmentRecord } from '../treatments/treatment.types.js';
 import type {
   AppointmentDto,
   AppointmentPatientSummary,
   AppointmentRecord,
   AppointmentTypeSummary,
+  AppointmentTreatmentSummary,
 } from './appointment.types.js';
+
+function treatmentLabel(record: TreatmentRecord): string {
+  if (record.customTypeLabel) return record.customTypeLabel;
+  const words = record.type.toLowerCase().replaceAll('_', ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+export function toTreatmentSummary(record: TreatmentRecord): AppointmentTreatmentSummary {
+  return { id: record._id.toString(), label: treatmentLabel(record), status: record.status };
+}
 
 function computeAge(birthDate: Date | null): number | null {
   if (!birthDate) {
@@ -51,12 +63,14 @@ export function toAppointmentDto(
   record: AppointmentRecord,
   patient: PatientRecord | undefined,
   appointmentType: AppointmentTypeRecord | undefined,
+  treatment: TreatmentRecord | undefined,
   slotCapacity: AppointmentDto['slotCapacity'],
 ): AppointmentDto {
   return {
     id: record._id.toString(),
     clinicId: record.clinicId.toString(),
     patientId: record.patientId.toString(),
+    treatmentId: record.treatmentId?.toString() ?? null,
     doctorId: record.doctorId.toString(),
     appointmentTypeId: record.appointmentTypeId.toString(),
 
@@ -85,6 +99,7 @@ export function toAppointmentDto(
     updatedAt: record.updatedAt.toISOString(),
 
     patient: patient ? toPatientSummary(patient) : null,
+    treatment: treatment ? toTreatmentSummary(treatment) : null,
     appointmentType: appointmentType ? toTypeSummary(appointmentType) : null,
     slotCapacity,
   };

@@ -7,6 +7,7 @@ import {
   OnInit,
   viewChild,
 } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { AppointmentDrawer } from '../../components/appointment-drawer/appointment-drawer';
 import {
@@ -33,6 +34,7 @@ import { formatLongDate, formatTime } from '../../utils/appointment-time.utils';
 export class SchedulePage implements OnInit {
   protected readonly store = inject(ScheduleStore);
   private readonly permissions = inject(PermissionService);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly calendar = viewChild(ScheduleCalendar);
 
@@ -76,7 +78,25 @@ export class SchedulePage implements OnInit {
     this.store.setView(this.initialView);
     // Settings may have changed since the last visit; refresh the authoritative
     // clinic policy whenever the Schedule route is entered.
-    void this.store.initialize(true);
+    void this.initializeRoute();
+  }
+
+  private async initializeRoute(): Promise<void> {
+    await this.store.initialize(true);
+    const patientId = this.route.snapshot.queryParamMap.get('patientId');
+    const appointmentId = this.route.snapshot.queryParamMap.get('appointmentId');
+    if (appointmentId) {
+      await this.store.openRemote(appointmentId);
+      return;
+    }
+    if (!patientId) return;
+    this.store.setPrefill({
+      patientId,
+      treatmentId: this.route.snapshot.queryParamMap.get('treatmentId'),
+      recommendedDate: this.route.snapshot.queryParamMap.get('recommendedDate'),
+      returnUrl: this.route.snapshot.queryParamMap.get('returnUrl'),
+    });
+    this.store.openCreate(null);
   }
 
   @HostListener('document:keydown.escape')

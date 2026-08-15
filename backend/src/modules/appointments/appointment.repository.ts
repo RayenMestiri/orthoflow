@@ -100,6 +100,8 @@ export class AppointmentRepository {
         {
           clinicId: toObjectId(input.clinicId, 'clinicId'),
           patientId: toObjectId(input.patientId, 'patientId'),
+          treatmentId:
+            input.treatmentId == null ? null : toObjectId(input.treatmentId, 'treatmentId'),
           doctorId: toObjectId(input.doctorId, 'doctorId'),
           appointmentTypeId: toObjectId(input.appointmentTypeId, 'appointmentTypeId'),
           startAt: input.startAt,
@@ -136,6 +138,10 @@ export class AppointmentRepository {
 
     if (changes.patientId !== undefined) {
       set.patientId = toObjectId(changes.patientId, 'patientId');
+    }
+    if (changes.treatmentId !== undefined) {
+      set.treatmentId =
+        changes.treatmentId === null ? null : toObjectId(changes.treatmentId, 'treatmentId');
     }
     if (changes.appointmentTypeId !== undefined) {
       set.appointmentTypeId = toObjectId(changes.appointmentTypeId, 'appointmentTypeId');

@@ -12,6 +12,7 @@ import type {
   ClinicScheduleConfiguration,
   CreateAppointmentInput,
   DraftSlot,
+  SchedulePrefill,
   UpdateAppointmentInput,
   VisibleRange,
 } from '../models/schedule.models';
@@ -44,6 +45,7 @@ export class ScheduleStore {
   private readonly draftSlotState = signal<DraftSlot | null>(null);
   private readonly capacityWarningState = signal<CapacityWarning | null>(null);
   private readonly activityState = signal<AppointmentActivity[]>([]);
+  private readonly prefillState = signal<SchedulePrefill | null>(null);
 
   private requestSequence = 0;
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -64,6 +66,7 @@ export class ScheduleStore {
   readonly draftSlot = this.draftSlotState.asReadonly();
   readonly capacityWarning = this.capacityWarningState.asReadonly();
   readonly activity = this.activityState.asReadonly();
+  readonly prefill = this.prefillState.asReadonly();
 
   readonly activeTypes = computed(() => {
     return this.typesState().filter((type) => type.isActive !== false);
@@ -192,6 +195,10 @@ export class ScheduleStore {
     this.clearCapacityWarning();
   }
 
+  setPrefill(prefill: SchedulePrefill | null): void {
+    this.prefillState.set(prefill);
+  }
+
   openEdit(appointmentId: string, preserveCapacityWarning = false): void {
     void this.initialize(true);
     const appointment =
@@ -207,12 +214,26 @@ export class ScheduleStore {
     void this.loadActivity(appointmentId);
   }
 
+  async openRemote(appointmentId: string): Promise<void> {
+    try {
+      const appointment = await firstValueFrom(this.api.getAppointment(appointmentId));
+      this.upsert(appointment);
+      this.selectedState.set(appointment);
+      this.draftSlotState.set(null);
+      this.drawerModeState.set('edit');
+      void this.loadActivity(appointmentId);
+    } catch (error) {
+      this.errorState.set(getApiProblem(error).message);
+    }
+  }
+
   closeDrawer(): void {
     this.drawerModeState.set(null);
     this.selectedState.set(null);
     this.draftSlotState.set(null);
     this.clearCapacityWarning();
     this.activityState.set([]);
+    this.prefillState.set(null);
   }
 
   // --- mutations -----------------------------------------------------------

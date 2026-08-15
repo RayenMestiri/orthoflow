@@ -10,10 +10,16 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { debounceTime, distinctUntilChanged, of, startWith, switchMap } from 'rxjs';
 import { PatientsApiService } from '../../../patients/data-access/patients-api.service';
 import type { Patient } from '../../../patients/models/patient.models';
+import { TreatmentsApiService } from '../../../treatments/data-access/treatments-api.service';
+import {
+  treatmentTypeLabel,
+  type TreatmentWithMilestones,
+} from '../../../treatments/models/treatment.models';
 import { ScheduleStore } from '../../data-access/schedule.store';
 import {
   STATUS_LABELS,
@@ -65,11 +71,14 @@ export class AppointmentDrawer {
   protected readonly store = inject(ScheduleStore);
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly patientsApi = inject(PatientsApiService);
+  private readonly treatmentsApi = inject(TreatmentsApiService);
+  private readonly router = inject(Router);
 
   protected readonly firstField = viewChild<ElementRef<HTMLInputElement>>('firstField');
 
   protected readonly form = this.fb.group({
     patientSearch: [''],
+    treatmentId: [''],
     appointmentTypeId: ['', Validators.required],
     date: ['', Validators.required],
     startTime: ['', Validators.required],
@@ -87,6 +96,7 @@ export class AppointmentDrawer {
   protected readonly searchOpen = signal(false);
   protected readonly cancelPanelOpen = signal(false);
   protected readonly moreActionsOpen = signal(false);
+  protected readonly treatmentOptions = signal<TreatmentWithMilestones[]>([]);
 
   private readonly formValue = toSignal(this.form.valueChanges);
 
@@ -195,7 +205,7 @@ export class AppointmentDrawer {
     effect(() => {
       const mode = this.mode();
       if (mode === 'create') {
-        this.seedCreateForm();
+        void this.seedCreateForm();
       } else if (mode === 'edit') {
         this.seedEditForm();
       }
@@ -223,12 +233,15 @@ export class AppointmentDrawer {
     this.selectedPatient.set(patient);
     this.form.controls.patientSearch.setValue(patient.fullName);
     this.searchOpen.set(false);
+    void this.loadTreatments(patient.id);
   }
 
   clearPatient(): void {
     this.selectedPatient.set(null);
     this.form.controls.patientSearch.setValue('');
     this.searchOpen.set(true);
+    this.treatmentOptions.set([]);
+    this.form.controls.treatmentId.setValue('');
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
@@ -251,12 +264,14 @@ export class AppointmentDrawer {
       return;
     }
 
-    const { appointmentTypeId, date, startTime, durationMinutes, note } = this.form.getRawValue();
+    const { treatmentId, appointmentTypeId, date, startTime, durationMinutes, note } =
+      this.form.getRawValue();
     const schedule = this.store.clinicSchedule();
     if (!schedule) return;
     const startAt = fromDateAndTimeInputs(date, startTime, schedule.timezone);
     const payload = {
       patientId: patient.id,
+      treatmentId: treatmentId || null,
       appointmentTypeId,
       startAt,
       durationMinutes,
@@ -264,7 +279,11 @@ export class AppointmentDrawer {
     };
 
     if (this.mode() === 'create') {
-      await this.store.createAppointment(payload);
+      const returnUrl = this.store.prefill()?.returnUrl;
+      const created = await this.store.createAppointment(payload);
+      if (created && returnUrl?.startsWith('/app/')) {
+        await this.router.navigateByUrl(returnUrl);
+      }
     } else {
       const current = this.appointment();
       if (current) {
@@ -293,7 +312,11 @@ export class AppointmentDrawer {
   }
 
   async confirmOverbooking(): Promise<void> {
-    await this.store.confirmOverbooking();
+    const returnUrl = this.store.prefill()?.returnUrl;
+    const created = await this.store.confirmOverbooking();
+    if (created && returnUrl?.startsWith('/app/')) {
+      await this.router.navigateByUrl(returnUrl);
+    }
   }
 
   close(): void {
@@ -304,20 +327,27 @@ export class AppointmentDrawer {
 
   // --- seeding -------------------------------------------------------------
 
-  private seedCreateForm(): void {
+  private async seedCreateForm(): Promise<void> {
     const slot = this.store.draftSlot();
     const defaultType = this.store.activeTypes()[0] ?? null;
     const schedule = this.store.clinicSchedule();
     if (!schedule) return;
     const defaultDuration = schedule.scheduling.defaultAppointmentDurationMinutes;
     const duration = defaultType?.durationMinutes ?? defaultDuration;
-    const startIso = slot?.startAt ?? this.nextBookableSlot(duration);
+    const prefill = this.store.prefill();
+    const startIso =
+      slot?.startAt ??
+      (prefill?.recommendedDate
+        ? this.slotForRecommendedDate(prefill.recommendedDate, duration)
+        : this.nextBookableSlot(duration));
 
     this.submitted.set(false);
     this.selectedPatient.set(null);
+    this.treatmentOptions.set([]);
     this.cancelPanelOpen.set(false);
     this.form.reset({
       patientSearch: '',
+      treatmentId: prefill?.treatmentId ?? '',
       appointmentTypeId: defaultType?.id ?? '',
       date: toDateInputValue(startIso, schedule.timezone),
       startTime: toTimeInputValue(startIso, schedule.timezone),
@@ -325,6 +355,32 @@ export class AppointmentDrawer {
       note: '',
     });
     this.searchOpen.set(true);
+    if (prefill?.patientId) {
+      try {
+        const patient = await firstValueFrom(this.patientsApi.get(prefill.patientId));
+        if (this.mode() !== 'create' || this.store.prefill()?.patientId !== patient.id) return;
+        this.selectedPatient.set(patient);
+        this.form.controls.patientSearch.setValue(patient.fullName);
+        this.searchOpen.set(false);
+        await this.loadTreatments(patient.id, prefill.treatmentId);
+      } catch {
+        this.store.setPrefill(null);
+      }
+    }
+  }
+
+  private slotForRecommendedDate(date: string, durationMinutes: number): string {
+    const schedule = this.store.clinicSchedule();
+    if (!schedule || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+      return this.nextBookableSlot(durationMinutes);
+    const [year = 0, month = 1, day = 1] = date.split('-').map(Number);
+    const weekday = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][
+      new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+    ] as keyof typeof schedule.workingHours;
+    const opening = schedule.workingHours[weekday]?.[0]?.start;
+    return opening
+      ? fromDateAndTimeInputs(date, opening, schedule.timezone)
+      : this.nextBookableSlot(durationMinutes);
   }
 
   private nextBookableSlot(durationMinutes: number): string {
@@ -383,8 +439,10 @@ export class AppointmentDrawer {
           } as unknown as Patient)
         : null,
     );
+    void this.loadTreatments(appointment.patientId, appointment.treatmentId);
     this.form.reset({
       patientSearch: appointment.patient?.fullName ?? '',
+      treatmentId: appointment.treatmentId ?? '',
       appointmentTypeId: appointment.appointmentTypeId,
       date: toDateInputValue(appointment.startAt, this.store.clinicSchedule()?.timezone ?? 'UTC'),
       startTime: toTimeInputValue(
@@ -395,6 +453,23 @@ export class AppointmentDrawer {
       note: appointment.note ?? '',
     });
     this.searchOpen.set(false);
+  }
+
+  private async loadTreatments(patientId: string, selectedId: string | null = null): Promise<void> {
+    try {
+      const treatments = await firstValueFrom(this.treatmentsApi.listForPatient(patientId));
+      if (this.selectedPatient()?.id !== patientId) return;
+      this.treatmentOptions.set(treatments.filter((item) => item.status !== 'CANCELLED'));
+      if (selectedId && treatments.some((item) => item.id === selectedId)) {
+        this.form.controls.treatmentId.setValue(selectedId);
+      }
+    } catch {
+      this.treatmentOptions.set([]);
+    }
+  }
+
+  protected treatmentLabel(treatment: TreatmentWithMilestones): string {
+    return treatmentTypeLabel(treatment.type, treatment.customTypeLabel);
   }
 
   protected patientMeta(patient: Patient): string {

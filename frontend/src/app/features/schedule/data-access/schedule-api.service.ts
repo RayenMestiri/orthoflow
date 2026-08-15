@@ -37,6 +37,12 @@ export class ScheduleApiService {
       .pipe(map((response) => response.data));
   }
 
+  getAppointment(appointmentId: string): Observable<Appointment> {
+    return this.http
+      .get<ApiEnvelope<Appointment>>(`${this.baseUrl}/appointments/${appointmentId}`)
+      .pipe(map((response) => response.data));
+  }
+
   createAppointment(input: CreateAppointmentInput): Observable<Appointment> {
     return this.http
       .post<ApiEnvelope<Appointment>>(`${this.baseUrl}/appointments`, input)

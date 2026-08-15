@@ -30,6 +30,20 @@ export class TreatmentRepository {
       .exec();
   }
 
+  async findManyByIdsInClinic(
+    treatmentIds: string[],
+    clinicId: string,
+  ): Promise<TreatmentRecord[]> {
+    if (treatmentIds.length === 0) return [];
+    return TreatmentModel.find({
+      ...this.baseFilter(clinicId),
+      _id: { $in: treatmentIds.map((id) => toObjectId(id, 'treatmentId')) },
+    })
+      .limit(treatmentIds.length)
+      .lean<TreatmentRecord[]>()
+      .exec();
+  }
+
   async listByPatient(
     patientId: string,
     clinicId: string,

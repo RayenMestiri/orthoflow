@@ -54,6 +54,9 @@ export const PERMISSIONS = {
   /** Amendments after sign-off are exceptional and owner-audited. */
   CLINICAL_VISIT_EDIT_COMPLETED: 'clinical-visit:edit-completed',
 
+  /** Operational recommendation queue; intentionally grants no note-body access. */
+  FOLLOW_UP_READ: 'follow-up:read',
+
   /**
    * Cash records acknowledge money the clinic physically received. They are
    * never deleted, so the permissions separate "record it" from "undo it".
@@ -100,6 +103,7 @@ const PRACTITIONER_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.TREATMENT_MANAGE_LIFECYCLE,
   PERMISSIONS.CLINICAL_VISIT_READ,
   PERMISSIONS.CLINICAL_VISIT_MANAGE,
+  PERMISSIONS.FOLLOW_UP_READ,
   // Practitioners take money at the chair, but undoing a record and waiving a
   // balance stay with the owner — see SECRETARY_PERMISSIONS for the same split.
   PERMISSIONS.CASH_RECORD_READ,
@@ -128,6 +132,7 @@ const SECRETARY_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.APPOINTMENT_TYPE_READ,
   // The front desk sees the treatment plan but never decides clinical care.
   PERMISSIONS.TREATMENT_READ,
+  PERMISSIONS.FOLLOW_UP_READ,
   // The front desk is who physically takes the money, so it records payments
   // and prints receipts — but cancelling a record is an owner decision.
   PERMISSIONS.CASH_RECORD_READ,

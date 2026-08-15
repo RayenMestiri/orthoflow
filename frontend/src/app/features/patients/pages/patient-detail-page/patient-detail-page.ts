@@ -7,6 +7,8 @@ import { firstValueFrom } from 'rxjs';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { getApiProblem } from '../../../../core/http/api-error';
 import { PatientCashRecords } from '../../../cash-records/components/patient-cash-records/patient-cash-records';
+import { FollowUpsApiService } from '../../../follow-ups/data-access/follow-ups-api.service';
+import type { FollowUpRow } from '../../../follow-ups/models/follow-up.models';
 import { PatientClinicalVisits } from '../../../clinical-visits/components/patient-clinical-visits/patient-clinical-visits';
 import { PatientMediaWorkspace } from '../../../patient-media/components/patient-media-workspace/patient-media-workspace';
 import {
@@ -48,10 +50,12 @@ export class PatientDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly permissions = inject(PermissionService);
   private readonly treatmentsApi = inject(TreatmentsApiService);
+  private readonly followUpsApi = inject(FollowUpsApiService);
   readonly patientId = this.route.snapshot.paramMap.get('patientId') ?? '';
   readonly patient = signal<Patient | null>(null);
   readonly guardians = signal<Guardian[]>([]);
   readonly activity = signal<PatientActivity[]>([]);
+  readonly nextFollowUp = signal<FollowUpRow | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly notice = signal<string | null>(
@@ -61,9 +65,9 @@ export class PatientDetailPage {
         ? 'Patient information saved.'
         : null,
   );
-  readonly activeView = signal<'overview' | 'activity' | 'treatments' | 'visits' | 'payments' | 'media'>(
-    'overview',
-  );
+  readonly activeView = signal<
+    'overview' | 'activity' | 'treatments' | 'visits' | 'payments' | 'media'
+  >('overview');
   readonly mediaTreatmentOptions = signal<TreatmentMediaOption[]>([]);
   private readonly mediaTreatmentsLoaded = signal(false);
   readonly guardianPanelOpen = signal(false);
@@ -78,6 +82,7 @@ export class PatientDetailPage {
   readonly canViewTreatments = this.permissions.can(PERMISSIONS.TREATMENTS_VIEW);
   readonly canManageTreatments = this.permissions.can(PERMISSIONS.TREATMENTS_MANAGE);
   readonly canViewClinicalVisits = this.permissions.can(PERMISSIONS.CLINICAL_VISITS_VIEW);
+  readonly canViewFollowUps = this.permissions.can(PERMISSIONS.FOLLOWUPS_VIEW);
   /** Assistants follow the chair, not the till. */
   readonly canViewPayments = this.permissions.can(PERMISSIONS.CASH_RECORDS_VIEW);
   readonly canViewMedia = this.permissions.can(PERMISSIONS.PATIENT_MEDIA_VIEW);
@@ -155,6 +160,22 @@ export class PatientDetailPage {
       this.patient.set(patient);
       this.guardians.set(guardians);
       this.activity.set(activity.items);
+      if (this.canViewFollowUps) {
+        try {
+          const followUps = await firstValueFrom(
+            this.followUpsApi.list({
+              page: 1,
+              limit: 1,
+              filter: 'ALL',
+              sort: 'MOST_OVERDUE',
+              patientId: this.patientId,
+            }),
+          );
+          this.nextFollowUp.set(followUps.rows[0] ?? null);
+        } catch {
+          this.nextFollowUp.set(null);
+        }
+      }
     } catch (error) {
       this.error.set(getApiProblem(error).message);
     } finally {

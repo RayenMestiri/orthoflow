@@ -32,6 +32,10 @@ import {
 import { patientRepository, type PatientRepository } from '../patients/patient.repository.js';
 import { PATIENT_STATUSES } from '../patients/patient.types.js';
 import { userRepository, type UserRepository } from '../users/user.repository.js';
+import {
+  treatmentRepository,
+  type TreatmentRepository,
+} from '../treatments/treatment.repository.js';
 import { toAppointmentDto } from './appointment.mapper.js';
 import type { ClientSession } from 'mongoose';
 import { appointmentRepository, type AppointmentRepository } from './appointment.repository.js';
@@ -52,6 +56,7 @@ import {
 
 export interface CreateAppointmentCommand {
   patientId: string;
+  treatmentId?: string | null;
   appointmentTypeId: string;
   /** UTC instant. */
   startAt: Date;
@@ -63,6 +68,7 @@ export interface CreateAppointmentCommand {
 
 export interface UpdateAppointmentCommand {
   patientId?: string;
+  treatmentId?: string | null;
   appointmentTypeId?: string;
   startAt?: Date;
   durationMinutes?: number;
@@ -119,6 +125,7 @@ export class AppointmentService {
     private readonly memberships: MembershipRepository = membershipRepository,
     private readonly audit: AuditLogService = auditLogService,
     private readonly users: UserRepository = userRepository,
+    private readonly treatments: TreatmentRepository = treatmentRepository,
   ) {}
 
   // --- reads ---------------------------------------------------------------
@@ -213,6 +220,9 @@ export class AppointmentService {
     const clinic = await this.requireClinic(clinicId);
     const doctorId = await this.resolveDoctorId(clinicId);
     const patient = await this.requireBookablePatient(clinicId, command.patientId);
+    const treatment = command.treatmentId
+      ? await this.requireTreatmentForPatient(clinicId, command.treatmentId, command.patientId)
+      : null;
     const appointmentType = await this.typeService.requireBookable(
       clinicId,
       command.appointmentTypeId,
@@ -240,6 +250,7 @@ export class AppointmentService {
     const record = await this.appointments.create({
       clinicId,
       patientId: patient._id.toString(),
+      treatmentId: treatment?._id.toString() ?? null,
       doctorId,
       appointmentTypeId: appointmentType._id.toString(),
       startAt,
@@ -263,6 +274,7 @@ export class AppointmentService {
       resourceId: record._id.toString(),
       metadata: {
         patientId: patient._id.toString(),
+        treatmentId: treatment?._id.toString() ?? null,
         appointmentTypeId: appointmentType._id.toString(),
         startAt: startAt.toISOString(),
         endAt: endAt.toISOString(),
@@ -305,6 +317,15 @@ export class AppointmentService {
       await this.requireBookablePatient(clinicId, command.patientId);
     }
 
+    const resolvedPatientId = command.patientId ?? existing.patientId.toString();
+    const resolvedTreatmentId =
+      command.treatmentId === undefined
+        ? (existing.treatmentId?.toString() ?? null)
+        : command.treatmentId;
+    if (resolvedTreatmentId) {
+      await this.requireTreatmentForPatient(clinicId, resolvedTreatmentId, resolvedPatientId);
+    }
+
     const typeChanged =
       command.appointmentTypeId !== undefined &&
       command.appointmentTypeId !== existing.appointmentTypeId.toString();
@@ -343,6 +364,7 @@ export class AppointmentService {
 
     const updated = await this.appointments.updateFields(appointmentId, clinicId, {
       ...(command.patientId === undefined ? {} : { patientId: command.patientId }),
+      ...(command.treatmentId === undefined ? {} : { treatmentId: command.treatmentId }),
       ...(command.appointmentTypeId === undefined
         ? {}
         : { appointmentTypeId: command.appointmentTypeId }),
@@ -564,6 +586,20 @@ export class AppointmentService {
     return patient;
   }
 
+  private async requireTreatmentForPatient(
+    clinicId: string,
+    treatmentId: string,
+    patientId: string,
+  ) {
+    const treatment = await this.treatments.findByIdInClinic(treatmentId, clinicId);
+    if (!treatment || treatment.patientId.toString() !== patientId) {
+      throw new NotFoundError('Treatment not found for this patient', {
+        code: ERROR_CODES.TREATMENT_NOT_FOUND,
+      });
+    }
+    return treatment;
+  }
+
   /**
    * The visit must sit inside one working day of the clinic, in the clinic's
    * own timezone. Instants are UTC; `toWallClock` does the tz conversion.
@@ -742,20 +778,32 @@ export class AppointmentService {
     const typeIds = [
       ...new Set(uniqueRecords.map((record) => record.appointmentTypeId.toString())),
     ];
+    const treatmentIds = [
+      ...new Set(
+        uniqueRecords.flatMap((record) =>
+          record.treatmentId ? [record.treatmentId.toString()] : [],
+        ),
+      ),
+    ];
 
-    const [patients, types] = await Promise.all([
+    const [patients, types, treatments] = await Promise.all([
       this.patients.findManyByIdsInClinic(patientIds, clinicId),
       this.types.findManyByIdsInClinic(typeIds, clinicId),
+      this.treatments.findManyByIdsInClinic(treatmentIds, clinicId),
     ]);
 
     const patientsById = new Map(patients.map((patient) => [patient._id.toString(), patient]));
     const typesById = new Map(types.map((type) => [type._id.toString(), type]));
+    const treatmentsById = new Map(
+      treatments.map((treatment) => [treatment._id.toString(), treatment]),
+    );
 
     return uniqueRecords.map((record) =>
       toAppointmentDto(
         record,
         patientsById.get(record.patientId.toString()),
         typesById.get(record.appointmentTypeId.toString()),
+        record.treatmentId ? treatmentsById.get(record.treatmentId.toString()) : undefined,
         capacityInfoForRecord(record, uniqueRecords, recommendedCapacity),
       ),
     );

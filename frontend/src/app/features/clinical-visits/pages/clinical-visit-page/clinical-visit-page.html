@@ -15,7 +15,9 @@
         <span class="material-icons" aria-hidden="true">arrow_back</span>
       </a>
       <div class="patient-identity">
-        <span class="avatar" aria-hidden="true">{{ current.context.patient.fullName.slice(0, 1) }}</span>
+        <span class="avatar" aria-hidden="true">{{
+          current.context.patient.fullName.slice(0, 1)
+        }}</span>
         <div>
           <span>Clinical visit</span>
           <h1>{{ current.context.patient.fullName }}</h1>
@@ -25,14 +27,20 @@
         <strong>{{ current.context.appointment.startAt | date: 'EEE, MMM d · HH:mm' }}</strong>
         <span>{{ current.context.treatment?.label || 'General consultation' }}</span>
       </div>
-      <span class="visit-status" [attr.data-status]="current.status">{{ label(current.status) }}</span>
+      <span class="visit-status" [attr.data-status]="current.status">{{
+        label(current.status)
+      }}</span>
     </header>
 
     <div class="workspace">
       <div class="workspace__intro">
         <div>
           <span class="eyebrow">Session note</span>
-          <h2>{{ current.status === 'COMPLETED' ? 'Completed visit record' : 'Document today’s visit' }}</h2>
+          <h2>
+            {{
+              current.status === 'COMPLETED' ? 'Completed visit record' : 'Document today’s visit'
+            }}
+          </h2>
           <p>Concise clinical facts linked to this appointment and patient.</p>
         </div>
         @if (current.status === 'COMPLETED' && canAmendCompleted && !amending()) {
@@ -42,20 +50,78 @@
         }
       </div>
 
-      @if (notice()) { <div class="notice" role="status">{{ notice() }}</div> }
-      @if (error()) { <div class="notice notice--error" role="alert">{{ error() }}</div> }
+      @if (notice()) {
+        <div class="notice" role="status">{{ notice() }}</div>
+      }
+      @if (error()) {
+        <div class="notice notice--error" role="alert">{{ error() }}</div>
+      }
+
+      @if (current.status === 'COMPLETED' && current.nextVisitRecommendedAt) {
+        <section class="completion-follow-up" aria-labelledby="completion-follow-up-title">
+          <div>
+            <span class="material-icons" aria-hidden="true">event_repeat</span>
+            <div>
+              <span class="eyebrow">Next visit</span>
+              <h3 id="completion-follow-up-title">
+                Recommended {{ current.nextVisitRecommendedAt | date: 'mediumDate' }}
+              </h3>
+              @if (followUp()?.appointment; as nextAppointment) {
+                <p>Scheduled for {{ nextAppointment.startAt | date: 'EEE, MMM d · HH:mm' }}.</p>
+              } @else {
+                <p>No appointment scheduled. The recommendation remains in Follow-ups.</p>
+              }
+            </div>
+          </div>
+          <div class="completion-follow-up__actions">
+            @if (followUp()?.appointment; as nextAppointment) {
+              <a
+                class="button button--primary"
+                routerLink="/app/schedule"
+                [queryParams]="{ appointmentId: nextAppointment.id }"
+                >View appointment</a
+              >
+            } @else {
+              <a
+                class="button button--primary"
+                routerLink="/app/schedule"
+                [queryParams]="{
+                  patientId: current.patientId,
+                  treatmentId: current.treatmentId,
+                  recommendedDate: current.nextVisitRecommendedAt.slice(0, 10),
+                  returnUrl: '/app/clinical-visits/' + current.id,
+                }"
+                >Schedule next appointment</a
+              >
+            }
+            <a class="button button--quiet" routerLink="/app/today">Back to Today</a>
+          </div>
+        </section>
+      }
 
       @if (current.context.previousVisit; as previous) {
         <section class="previous">
-          <button type="button" (click)="previousOpen.set(!previousOpen())" [attr.aria-expanded]="previousOpen()">
+          <button
+            type="button"
+            (click)="previousOpen.set(!previousOpen())"
+            [attr.aria-expanded]="previousOpen()"
+          >
             <span class="material-icons" aria-hidden="true">history</span>
-            <span><strong>Previous visit</strong> · {{ previous.startedAt | date: 'mediumDate' }} · {{ previous.reasonOther || label(previous.reasonCode) }}</span>
+            <span
+              ><strong>Previous visit</strong> · {{ previous.startedAt | date: 'mediumDate' }} ·
+              {{ previous.reasonOther || label(previous.reasonCode) }}</span
+            >
             <span class="material-icons chevron" aria-hidden="true">expand_more</span>
           </button>
           @if (previousOpen()) {
             <div>
-              <p><strong>Procedures:</strong> {{ previous.procedures.length ? previous.procedures.join(', ') : 'None recorded' }}</p>
-              <p><strong>Instructions:</strong> {{ previous.patientInstructions || 'None recorded' }}</p>
+              <p>
+                <strong>Procedures:</strong>
+                {{ previous.procedures.length ? previous.procedures.join(', ') : 'None recorded' }}
+              </p>
+              <p>
+                <strong>Instructions:</strong> {{ previous.patientInstructions || 'None recorded' }}
+              </p>
               <p><strong>Next step:</strong> {{ previous.nextStepNote || 'None recorded' }}</p>
             </div>
           }
@@ -65,7 +131,13 @@
       <form [formGroup]="form" (ngSubmit)="saveDraft()">
         <fieldset [disabled]="readOnly() || saving()">
           <section class="form-section">
-            <div class="section-title"><span>01</span><div><h3>Reason for visit</h3><p>Required before completion.</p></div></div>
+            <div class="section-title">
+              <span>01</span>
+              <div>
+                <h3>Reason for visit</h3>
+                <p>Required before completion.</p>
+              </div>
+            </div>
             <div class="reason-grid" role="radiogroup" aria-label="Reason for visit">
               @for (reason of reasons; track reason) {
                 <label [class.selected]="form.controls.reasonCode.value === reason">
@@ -75,43 +147,119 @@
               }
             </div>
             @if (form.controls.reasonCode.value === 'OTHER') {
-              <label class="field"><span>Describe the reason</span><input formControlName="reasonOther" maxlength="160" /></label>
+              <label class="field"
+                ><span>Describe the reason</span
+                ><input formControlName="reasonOther" maxlength="160"
+              /></label>
             }
           </section>
 
           <section class="form-section">
-            <div class="section-title"><span>02</span><div><h3>Clinical observations</h3><p>Findings and relevant changes since the last visit.</p></div></div>
-            <label class="field"><span>Observations</span><textarea formControlName="observations" rows="5" maxlength="5000" placeholder="Record objective findings…"></textarea></label>
+            <div class="section-title">
+              <span>02</span>
+              <div>
+                <h3>Clinical observations</h3>
+                <p>Findings and relevant changes since the last visit.</p>
+              </div>
+            </div>
+            <label class="field"
+              ><span>Observations</span
+              ><textarea
+                formControlName="observations"
+                rows="5"
+                maxlength="5000"
+                placeholder="Record objective findings…"
+              ></textarea>
+            </label>
           </section>
 
           <section class="form-section">
-            <div class="section-title"><span>03</span><div><h3>Procedures performed</h3><p>Select all that apply, then add useful detail.</p></div></div>
+            <div class="section-title">
+              <span>03</span>
+              <div>
+                <h3>Procedures performed</h3>
+                <p>Select all that apply, then add useful detail.</p>
+              </div>
+            </div>
             <div class="procedure-chips">
               @for (procedure of procedureOptions; track procedure) {
-                <button type="button" [class.selected]="isSelected(procedure)" [attr.aria-pressed]="isSelected(procedure)" (click)="toggleProcedure(procedure)">
-                  <span class="material-icons" aria-hidden="true">{{ isSelected(procedure) ? 'check' : 'add' }}</span>{{ label(procedure) }}
+                <button
+                  type="button"
+                  [class.selected]="isSelected(procedure)"
+                  [attr.aria-pressed]="isSelected(procedure)"
+                  (click)="toggleProcedure(procedure)"
+                >
+                  <span class="material-icons" aria-hidden="true">{{
+                    isSelected(procedure) ? 'check' : 'add'
+                  }}</span
+                  >{{ label(procedure) }}
                 </button>
               }
             </div>
-            <label class="field"><span>Procedure details</span><textarea formControlName="procedureDetails" rows="4" maxlength="5000" placeholder="Materials, archwire, appliance details…"></textarea></label>
+            <label class="field"
+              ><span>Procedure details</span
+              ><textarea
+                formControlName="procedureDetails"
+                rows="4"
+                maxlength="5000"
+                placeholder="Materials, archwire, appliance details…"
+              ></textarea>
+            </label>
           </section>
 
           <section class="form-section split-fields">
             <div>
-              <div class="section-title"><span>04</span><div><h3>Patient instructions</h3><p>What the patient should do after leaving.</p></div></div>
-              <label class="field"><span>Instructions</span><textarea formControlName="patientInstructions" rows="5" maxlength="3000"></textarea></label>
+              <div class="section-title">
+                <span>04</span>
+                <div>
+                  <h3>Patient instructions</h3>
+                  <p>What the patient should do after leaving.</p>
+                </div>
+              </div>
+              <label class="field"
+                ><span>Instructions</span
+                ><textarea
+                  formControlName="patientInstructions"
+                  rows="5"
+                  maxlength="3000"
+                ></textarea>
+              </label>
             </div>
             <div>
-              <div class="section-title"><span>05</span><div><h3>Private doctor note</h3><p>Clinical detail for practitioners.</p></div></div>
-              <label class="field"><span>Doctor note</span><textarea formControlName="doctorNote" rows="5" maxlength="5000"></textarea></label>
+              <div class="section-title">
+                <span>05</span>
+                <div>
+                  <h3>Private doctor note</h3>
+                  <p>Clinical detail for practitioners.</p>
+                </div>
+              </div>
+              <label class="field"
+                ><span>Doctor note</span
+                ><textarea formControlName="doctorNote" rows="5" maxlength="5000"></textarea>
+              </label>
             </div>
           </section>
 
           <section class="form-section">
-            <div class="section-title"><span>06</span><div><h3>Next recommendation</h3><p>A recommendation only; this does not create an appointment.</p></div></div>
+            <div class="section-title">
+              <span>06</span>
+              <div>
+                <h3>Next recommendation</h3>
+                <p>A recommendation only; this does not create an appointment.</p>
+              </div>
+            </div>
             <div class="recommendation-grid">
-              <label class="field"><span>Recommended date</span><input type="date" formControlName="nextVisitRecommendedAt" /></label>
-              <label class="field"><span>Next step</span><input formControlName="nextStepNote" maxlength="1000" placeholder="e.g. Review alignment and change wire" /></label>
+              <label class="field"
+                ><span>Recommended date</span
+                ><input type="date" formControlName="nextVisitRecommendedAt"
+              /></label>
+              <label class="field"
+                ><span>Next step</span
+                ><input
+                  formControlName="nextStepNote"
+                  maxlength="1000"
+                  placeholder="e.g. Review alignment and change wire"
+              /></label>
             </div>
           </section>
         </fieldset>
@@ -119,11 +267,28 @@
         <footer class="action-bar">
           <span>{{ hasUnsavedChanges ? 'Unsaved changes' : 'All changes saved' }}</span>
           <div>
-            <a class="button button--quiet" [routerLink]="['/app/patients', current.patientId]">Patient profile</a>
+            <a class="button button--quiet" [routerLink]="['/app/patients', current.patientId]"
+              >Patient profile</a
+            >
             @if (!readOnly()) {
-              <button type="submit" class="button button--secondary" [disabled]="saving()">{{ saving() ? 'Saving…' : current.status === 'COMPLETED' ? 'Save amendment' : 'Save draft' }}</button>
+              <button type="submit" class="button button--secondary" [disabled]="saving()">
+                {{
+                  saving()
+                    ? 'Saving…'
+                    : current.status === 'COMPLETED'
+                      ? 'Save amendment'
+                      : 'Save draft'
+                }}
+              </button>
               @if (current.status === 'DRAFT') {
-                <button type="button" class="button button--primary" [disabled]="saving()" (click)="complete()">Complete visit</button>
+                <button
+                  type="button"
+                  class="button button--primary"
+                  [disabled]="saving()"
+                  (click)="complete()"
+                >
+                  Complete visit
+                </button>
               }
             }
           </div>

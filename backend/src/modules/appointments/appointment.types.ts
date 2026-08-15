@@ -130,6 +130,8 @@ export interface AppointmentAttributes {
   /** Tenant key. Present in every single query against this collection. */
   clinicId: Types.ObjectId;
   patientId: Types.ObjectId;
+  /** Optional care context. Null means a general consultation. */
+  treatmentId: Types.ObjectId | null;
   doctorId: Types.ObjectId;
   appointmentTypeId: Types.ObjectId;
 
@@ -165,6 +167,7 @@ export type AppointmentRecord = AppointmentAttributes & { _id: Types.ObjectId };
 export interface CreateAppointmentInput {
   clinicId: string;
   patientId: string;
+  treatmentId?: string | null;
   doctorId: string;
   appointmentTypeId: string;
   startAt: Date;
@@ -179,6 +182,7 @@ export interface CreateAppointmentInput {
 
 export interface UpdateAppointmentFields {
   patientId?: string;
+  treatmentId?: string | null;
   appointmentTypeId?: string;
   startAt?: Date;
   endAt?: Date;
@@ -212,6 +216,12 @@ export interface AppointmentTypeSummary {
   durationMinutes: number;
 }
 
+export interface AppointmentTreatmentSummary {
+  id: string;
+  label: string;
+  status: string;
+}
+
 export type SlotCapacityState = 'AVAILABLE' | 'BUSY' | 'AT_CAPACITY' | 'OVERBOOKED';
 
 export interface SlotCapacityInfo {
@@ -243,6 +253,7 @@ export interface AppointmentDto {
   id: string;
   clinicId: string;
   patientId: string;
+  treatmentId: string | null;
   doctorId: string;
   appointmentTypeId: string;
 
@@ -271,6 +282,7 @@ export interface AppointmentDto {
   updatedAt: string;
 
   patient: AppointmentPatientSummary | null;
+  treatment: AppointmentTreatmentSummary | null;
   appointmentType: AppointmentTypeSummary | null;
   slotCapacity: SlotCapacityInfo;
 }

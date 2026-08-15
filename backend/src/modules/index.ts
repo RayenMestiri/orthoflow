@@ -28,6 +28,7 @@ import {
   clinicalVisitRoutes,
   patientClinicalVisitRoutes,
 } from './clinical-visits/clinical-visit.routes.js';
+import { followUpRoutes } from './follow-ups/follow-up.routes.js';
 
 /**
  * The API surface, in one place.
@@ -62,6 +63,7 @@ export const registerModules: FastifyPluginAsyncZod = async (app) => {
   await app.register(appointmentRoutes, { prefix: `${API_PREFIX}/appointments` });
   await app.register(appointmentClinicalVisitRoutes, { prefix: `${API_PREFIX}/appointments` });
   await app.register(clinicalVisitRoutes, { prefix: `${API_PREFIX}/clinical-visits` });
+  await app.register(followUpRoutes, { prefix: `${API_PREFIX}/follow-ups` });
   await app.register(appointmentTypeRoutes, { prefix: `${API_PREFIX}/appointment-types` });
   await app.register(auditLogRoutes, { prefix: `${API_PREFIX}/audit-logs` });
 };

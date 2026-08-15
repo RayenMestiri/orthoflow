@@ -12,6 +12,7 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
     id: 'appointment-1',
     clinicId: 'clinic-1',
     patientId: 'patient-1',
+    treatmentId: null,
     doctorId: 'doctor-1',
     appointmentTypeId: 'type-1',
     startAt: start,
@@ -23,6 +24,7 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
     cancelledAt: null,
     cancelledBy: null,
     arrivedAt: null,
+    waitingAt: null,
     treatmentStartedAt: null,
     completedAt: null,
     noShowAt: null,
@@ -34,6 +36,7 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
     createdAt: start,
     updatedAt: start,
     patient: { id: 'patient-1', fullName: 'Yasmine Trabelsi', phone: null, age: 12 },
+    treatment: null,
     appointmentType: { id: 'type-1', name: 'Monthly control', color: null, durationMinutes: 15 },
     slotCapacity: {
       state: 'AVAILABLE',
@@ -83,6 +86,7 @@ describe('ScheduleStore', () => {
   let store: ScheduleStore;
   let api: {
     listAppointments: ReturnType<typeof vi.fn>;
+    getAppointment: ReturnType<typeof vi.fn>;
     createAppointment: ReturnType<typeof vi.fn>;
     updateAppointment: ReturnType<typeof vi.fn>;
     changeStatus: ReturnType<typeof vi.fn>;
@@ -94,6 +98,7 @@ describe('ScheduleStore', () => {
   beforeEach(() => {
     api = {
       listAppointments: vi.fn(() => of([buildAppointment()])),
+      getAppointment: vi.fn(() => of(buildAppointment())),
       createAppointment: vi.fn((input) => of(buildAppointment({ id: 'created', ...input }))),
       updateAppointment: vi.fn(() => of(buildAppointment({ id: 'appointment-1' }))),
       changeStatus: vi.fn((_id, status) => of(buildAppointment({ status }))),

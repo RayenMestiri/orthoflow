@@ -4,7 +4,10 @@ import { ERROR_CODES } from '../../src/common/constants/error-codes.js';
 import type { AuditLogService } from '../../src/modules/audit-logs/audit-log.service.js';
 import type { AppointmentRepository } from '../../src/modules/appointments/appointment.repository.js';
 import type { AppointmentService } from '../../src/modules/appointments/appointment.service.js';
-import { APPOINTMENT_STATUSES, type AppointmentRecord } from '../../src/modules/appointments/appointment.types.js';
+import {
+  APPOINTMENT_STATUSES,
+  type AppointmentRecord,
+} from '../../src/modules/appointments/appointment.types.js';
 import type { ClinicalVisitRepository } from '../../src/modules/clinical-visits/clinical-visit.repository.js';
 import { ClinicalVisitService } from '../../src/modules/clinical-visits/clinical-visit.service.js';
 import {
@@ -13,7 +16,10 @@ import {
 } from '../../src/modules/clinical-visits/clinical-visit.types.js';
 import type { PatientRepository } from '../../src/modules/patients/patient.repository.js';
 import type { TreatmentRepository } from '../../src/modules/treatments/treatment.repository.js';
-import { TREATMENT_STATUSES, TREATMENT_TYPES } from '../../src/modules/treatments/treatment.types.js';
+import {
+  TREATMENT_STATUSES,
+  TREATMENT_TYPES,
+} from '../../src/modules/treatments/treatment.types.js';
 import type { UserRepository } from '../../src/modules/users/user.repository.js';
 
 const clinicId = new Types.ObjectId().toString();
@@ -27,6 +33,7 @@ const appointment: AppointmentRecord = {
   _id: appointmentId,
   clinicId: new Types.ObjectId(clinicId),
   patientId,
+  treatmentId: null,
   doctorId: new Types.ObjectId(actorId),
   appointmentTypeId: new Types.ObjectId(),
   startAt: now,
@@ -127,7 +134,11 @@ describe('ClinicalVisitService', () => {
 
   it('returns the same appointment-linked visit idempotently', async () => {
     const f = fixtures();
-    const result = await f.service.ensureForAppointment(clinicId, appointmentId.toString(), mutation);
+    const result = await f.service.ensureForAppointment(
+      clinicId,
+      appointmentId.toString(),
+      mutation,
+    );
     expect(result.id).toBe(visitId.toString());
     expect(f.visits.create).not.toHaveBeenCalled();
   });
@@ -184,7 +195,9 @@ describe('ClinicalVisitService', () => {
 
   it('requires a reason and meaningful clinical content before completion', async () => {
     const f = fixtures();
-    await expect(f.service.complete(clinicId, visitId.toString(), {}, clinical)).rejects.toMatchObject({
+    await expect(
+      f.service.complete(clinicId, visitId.toString(), {}, clinical),
+    ).rejects.toMatchObject({
       code: ERROR_CODES.CLINICAL_VISIT_INCOMPLETE_NOTE,
     });
     expect(f.appointmentLifecycle.changeStatus).not.toHaveBeenCalled();

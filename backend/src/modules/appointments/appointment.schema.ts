@@ -24,6 +24,7 @@ export const appointmentDtoSchema = z.object({
   id: objectIdSchema,
   clinicId: objectIdSchema,
   patientId: objectIdSchema,
+  treatmentId: objectIdSchema.nullable(),
   doctorId: objectIdSchema,
   appointmentTypeId: objectIdSchema,
 
@@ -52,6 +53,7 @@ export const appointmentDtoSchema = z.object({
   updatedAt: z.string(),
 
   patient: patientSummarySchema.nullable(),
+  treatment: z.object({ id: objectIdSchema, label: z.string(), status: z.string() }).nullable(),
   appointmentType: typeSummarySchema.nullable(),
   slotCapacity: z.object({
     state: z.enum(['AVAILABLE', 'BUSY', 'AT_CAPACITY', 'OVERBOOKED']),
@@ -68,6 +70,7 @@ export const appointmentDtoSchema = z.object({
  */
 export const createAppointmentBodySchema = z.object({
   patientId: objectIdSchema,
+  treatmentId: objectIdSchema.nullable().optional(),
   appointmentTypeId: objectIdSchema,
   startAt: isoDateTimeSchema,
   durationMinutes: durationMinutesSchema.optional(),
@@ -78,6 +81,7 @@ export const createAppointmentBodySchema = z.object({
 export const updateAppointmentBodySchema = z
   .object({
     patientId: objectIdSchema.optional(),
+    treatmentId: objectIdSchema.nullable().optional(),
     appointmentTypeId: objectIdSchema.optional(),
     startAt: isoDateTimeSchema.optional(),
     durationMinutes: durationMinutesSchema.optional(),

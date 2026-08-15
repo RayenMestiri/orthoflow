@@ -87,6 +87,7 @@ export interface Appointment {
   id: string;
   clinicId: string;
   patientId: string;
+  treatmentId: string | null;
   doctorId: string;
   appointmentTypeId: string;
   startAt: string;
@@ -98,6 +99,7 @@ export interface Appointment {
   cancelledAt: string | null;
   cancelledBy: string | null;
   arrivedAt: string | null;
+  waitingAt: string | null;
   treatmentStartedAt: string | null;
   completedAt: string | null;
   noShowAt: string | null;
@@ -109,6 +111,7 @@ export interface Appointment {
   createdAt: string;
   updatedAt: string;
   patient: AppointmentPatientSummary | null;
+  treatment: { id: string; label: string; status: string } | null;
   appointmentType: AppointmentTypeSummary | null;
   slotCapacity: SlotCapacityInfo;
 }
@@ -133,6 +136,7 @@ export interface ClinicScheduleConfiguration {
 
 export interface CreateAppointmentInput {
   patientId: string;
+  treatmentId?: string | null;
   appointmentTypeId: string;
   /** ISO UTC instant. */
   startAt: string;
@@ -143,6 +147,7 @@ export interface CreateAppointmentInput {
 
 export interface UpdateAppointmentInput {
   patientId?: string;
+  treatmentId?: string | null;
   appointmentTypeId?: string;
   startAt?: string;
   durationMinutes?: number;
@@ -191,4 +196,11 @@ export interface DraftSlot {
   startAt: string;
   /** Present when the user dragged a range instead of clicking one slot. */
   endAt: string | null;
+}
+
+export interface SchedulePrefill {
+  patientId: string;
+  treatmentId: string | null;
+  recommendedDate: string | null;
+  returnUrl: string | null;
 }

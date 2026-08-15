@@ -207,6 +207,24 @@
         </div>
 
         <div class="drawer__field">
+          <label for="appointment-treatment">Care context <span>Optional</span></label>
+          <div class="drawer__control">
+            <span class="material-icons" aria-hidden="true">dentistry</span>
+            <select id="appointment-treatment" formControlName="treatmentId">
+              <option value="">General consultation</option>
+              @for (treatment of treatmentOptions(); track treatment.id) {
+                <option [value]="treatment.id">
+                  {{ treatmentLabel(treatment) }} · {{ treatment.status.toLowerCase() }}
+                </option>
+              }
+            </select>
+          </div>
+          @if (store.prefill()?.treatmentId) {
+            <p class="drawer__hint">Preselected from the follow-up recommendation.</p>
+          }
+        </div>
+
+        <div class="drawer__field">
           <label for="appointment-type">Appointment type</label>
           <div class="drawer__control">
             <span class="material-icons" aria-hidden="true">category</span>

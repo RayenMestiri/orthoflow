@@ -1,0 +1,364 @@
+:host {
+  display: block;
+}
+.follow-ups {
+  max-width: 92rem;
+  margin: 0 auto;
+  color: #173f38;
+}
+.follow-ups__header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+.eyebrow {
+  color: #a45f40;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 0.25rem 0;
+  font-family: Georgia, serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 500;
+}
+.follow-ups__header p {
+  margin: 0;
+  color: #64736f;
+}
+.summary {
+  display: flex;
+  margin: 0;
+  border: 1px solid #d8dfdc;
+  border-radius: 1rem;
+  background: #fff;
+  overflow: hidden;
+}
+.summary div {
+  min-width: 8.5rem;
+  padding: 0.8rem 1rem;
+  border-left: 1px solid #e6ebe9;
+}
+.summary div:first-child {
+  border-left: 0;
+}
+.summary dt {
+  color: #6c7975;
+  font-size: 0.72rem;
+}
+.summary dd {
+  margin: 0.2rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+.summary--overdue dd {
+  color: #b55f52;
+}
+.worklist {
+  border: 1px solid #dbe2df;
+  border-radius: 1.25rem;
+  background: #fffdf9;
+  box-shadow: 0 12px 34px rgba(22, 62, 55, 0.06);
+  overflow: hidden;
+}
+.worklist__tools {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid #e5eae8;
+}
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+.tabs button {
+  border: 0;
+  border-radius: 0.65rem;
+  background: transparent;
+  color: #61706c;
+  padding: 0.65rem 0.8rem;
+  white-space: nowrap;
+  font-weight: 700;
+}
+.tabs button.active {
+  background: #e7f0ed;
+  color: #17483f;
+}
+.controls {
+  display: flex;
+  gap: 0.6rem;
+}
+.search {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid #d5ddda;
+  border-radius: 0.7rem;
+  padding: 0 0.7rem;
+  background: #fff;
+}
+.search .material-icons {
+  font-size: 1.15rem;
+  color: #73817d;
+}
+.search input,
+.sort select {
+  min-height: 2.65rem;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+}
+.sort {
+  border: 1px solid #d5ddda;
+  border-radius: 0.7rem;
+  padding: 0 0.5rem;
+  background: #fff;
+}
+.rows {
+  display: grid;
+}
+.follow-up-row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.4fr) 1fr 0.85fr 1fr auto;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 1.05rem 1.2rem;
+  border-bottom: 1px solid #e8ecea;
+}
+.follow-up-row[data-state='OVERDUE'] {
+  box-shadow: inset 3px 0 #c9796c;
+  background: #fffaf8;
+}
+.patient {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 0.7rem;
+}
+.avatar {
+  display: grid;
+  flex: 0 0 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #dceae6;
+  font-weight: 800;
+}
+.patient div,
+.context,
+.recommendation,
+.resolution {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.patient a {
+  overflow: hidden;
+  color: #173f38;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.patient span,
+.context span,
+.recommendation span,
+.resolution span {
+  color: #6b7975;
+  font-size: 0.78rem;
+}
+.recommendation small {
+  color: #ad594d;
+  font-weight: 700;
+}
+.status {
+  width: max-content;
+  border-radius: 999px;
+  background: #edf2f0;
+  padding: 0.25rem 0.5rem;
+  color: #3d5d56 !important;
+  font-size: 0.68rem !important;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-state='OVERDUE'] .status {
+  background: #f8e5e1;
+  color: #a24f44 !important;
+}
+[data-state='SCHEDULED'] .status {
+  background: #e0eee8;
+  color: #21624f !important;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+.button {
+  border-radius: 0.7rem;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.button--primary {
+  background: #1c574b;
+  color: #fff;
+}
+.button--secondary {
+  border: 1px solid #cbd7d3;
+  color: #1c574b;
+}
+.source {
+  color: #7c6b64;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.state {
+  display: flex;
+  min-height: 15rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  padding: 2rem;
+  color: #61706c;
+  text-align: left;
+}
+.state strong {
+  color: #254b44;
+  font-size: 1.05rem;
+}
+.state p {
+  margin: 0.2rem 0 0;
+}
+.state button,
+.pagination button {
+  border: 1px solid #cbd7d3;
+  border-radius: 0.65rem;
+  background: #fff;
+  padding: 0.55rem 0.75rem;
+  color: #245249;
+  font-weight: 700;
+}
+.state--error .material-icons {
+  color: #b55f52;
+}
+.state--empty .material-icons {
+  color: #4f8878;
+  font-size: 2rem;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+@media (max-width: 64rem) {
+  .follow-ups__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .summary {
+    width: fit-content;
+  }
+  .worklist__tools {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .controls {
+    justify-content: space-between;
+  }
+  .search {
+    flex: 1;
+  }
+  .search input {
+    width: 100%;
+  }
+  .follow-up-row {
+    grid-template-columns: 1.2fr 1fr 1fr;
+  }
+  .resolution {
+    grid-column: 2;
+  }
+  .actions {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+@media (max-width: 48rem) {
+  .follow-ups {
+    margin: -0.25rem;
+  }
+  .summary {
+    width: 100%;
+  }
+  .summary div {
+    min-width: 0;
+    flex: 1;
+    padding: 0.7rem;
+  }
+  .summary dt {
+    min-height: 2em;
+  }
+  .controls {
+    flex-direction: column;
+  }
+  .sort select {
+    width: 100%;
+  }
+  .follow-up-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem;
+    margin: 0.75rem;
+    border: 1px solid #dfe6e3;
+    border-radius: 1rem;
+  }
+  .patient {
+    grid-column: 1 / -1;
+  }
+  .context,
+  .recommendation,
+  .resolution {
+    grid-column: auto;
+  }
+  .actions {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 27rem) {
+  .follow-up-row {
+    grid-template-columns: 1fr;
+  }
+  .patient,
+  .context,
+  .recommendation,
+  .resolution,
+  .actions {
+    grid-column: 1;
+  }
+  .actions .button {
+    flex: 1;
+    text-align: center;
+  }
+}

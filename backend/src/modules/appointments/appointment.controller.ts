@@ -58,13 +58,12 @@ export async function createAppointmentHandler(request: FastifyRequest, reply: F
     requireTenant(request).clinicId,
     {
       patientId: body.patientId,
+      treatmentId: body.treatmentId ?? null,
       appointmentTypeId: body.appointmentTypeId,
       startAt: new Date(body.startAt),
       ...(body.durationMinutes === undefined ? {} : { durationMinutes: body.durationMinutes }),
       note: body.note ?? null,
-      ...(body.allowOverbooking === undefined
-        ? {}
-        : { allowOverbooking: body.allowOverbooking }),
+      ...(body.allowOverbooking === undefined ? {} : { allowOverbooking: body.allowOverbooking }),
     },
     mutationContext(request),
   );
@@ -80,15 +79,14 @@ export async function updateAppointmentHandler(request: FastifyRequest, reply: F
     validatedParams<AppointmentIdParam>(request).appointmentId,
     {
       ...(body.patientId === undefined ? {} : { patientId: body.patientId }),
+      ...(body.treatmentId === undefined ? {} : { treatmentId: body.treatmentId }),
       ...(body.appointmentTypeId === undefined
         ? {}
         : { appointmentTypeId: body.appointmentTypeId }),
       ...(body.startAt === undefined ? {} : { startAt: new Date(body.startAt) }),
       ...(body.durationMinutes === undefined ? {} : { durationMinutes: body.durationMinutes }),
       ...(body.note === undefined ? {} : { note: body.note }),
-      ...(body.allowOverbooking === undefined
-        ? {}
-        : { allowOverbooking: body.allowOverbooking }),
+      ...(body.allowOverbooking === undefined ? {} : { allowOverbooking: body.allowOverbooking }),
     },
     mutationContext(request),
   );

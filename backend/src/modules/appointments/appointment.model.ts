@@ -9,6 +9,7 @@ const appointmentSchema = new Schema<AppointmentAttributes>(
   {
     clinicId: { type: Schema.Types.ObjectId, ref: 'Clinic', required: true },
     patientId: { type: Schema.Types.ObjectId, ref: 'Patient', required: true },
+    treatmentId: { type: Schema.Types.ObjectId, ref: 'Treatment', default: null },
     /**
      * MVP: one clinic = one owner-doctor, resolved server-side. The field is
      * stored per appointment so multi-practitioner diaries can arrive later
@@ -60,5 +61,6 @@ appointmentSchema.index({ clinicId: 1, doctorId: 1, startAt: 1, endAt: 1 });
 
 /** The patient profile's future "appointments" section reads through this. */
 appointmentSchema.index({ clinicId: 1, patientId: 1, startAt: -1 });
+appointmentSchema.index({ clinicId: 1, treatmentId: 1, startAt: 1 });
 
 export const AppointmentModel = model<AppointmentAttributes>('Appointment', appointmentSchema);

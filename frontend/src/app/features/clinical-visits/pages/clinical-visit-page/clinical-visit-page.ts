@@ -13,6 +13,8 @@ import { firstValueFrom } from 'rxjs';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { getApiProblem } from '../../../../core/http/api-error';
 import { ClinicalVisitsApiService } from '../../data-access/clinical-visits-api.service';
+import { FollowUpsApiService } from '../../../follow-ups/data-access/follow-ups-api.service';
+import type { FollowUpRow } from '../../../follow-ups/models/follow-up.models';
 import {
   CLINICAL_PROCEDURES,
   CLINICAL_REASONS,
@@ -35,6 +37,7 @@ export class ClinicalVisitPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly permissions = inject(PermissionService);
+  private readonly followUpsApi = inject(FollowUpsApiService);
   protected readonly visit = signal<ClinicalVisit | null>(null);
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -42,6 +45,7 @@ export class ClinicalVisitPage {
   protected readonly notice = signal<string | null>(null);
   protected readonly amending = signal(false);
   protected readonly previousOpen = signal(false);
+  protected readonly followUp = signal<FollowUpRow | null>(null);
   protected readonly reasons = CLINICAL_REASONS;
   protected readonly procedureOptions = CLINICAL_PROCEDURES;
   protected readonly label = clinicalLabel;
@@ -160,6 +164,29 @@ export class ClinicalVisitPage {
       nextStepNote: visit.nextStepNote ?? '',
     });
     this.amending.set(false);
+    if (visit.status === 'COMPLETED' && visit.nextVisitRecommendedAt) {
+      void this.loadFollowUp(visit);
+    } else {
+      this.followUp.set(null);
+    }
+  }
+
+  private async loadFollowUp(visit: ClinicalVisit): Promise<void> {
+    try {
+      const result = await firstValueFrom(
+        this.followUpsApi.list({
+          page: 1,
+          limit: 10,
+          filter: 'ALL',
+          sort: 'RECENTLY_VISITED',
+          patientId: visit.patientId,
+          ...(visit.treatmentId ? { treatmentId: visit.treatmentId } : {}),
+        }),
+      );
+      this.followUp.set(result.rows.find((row) => row.sourceVisit.id === visit.id) ?? null);
+    } catch {
+      this.followUp.set(null);
+    }
   }
 
   private payload(): ClinicalVisitInput {

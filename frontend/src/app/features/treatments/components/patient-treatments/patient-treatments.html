@@ -184,6 +184,44 @@
           }
         </section>
 
+        @if (currentFollowUp(); as followUp) {
+          <section class="tx-follow-up" [attr.data-state]="followUp.state">
+            <div>
+              <span class="material-icons" aria-hidden="true">event_repeat</span>
+              <div>
+                <span class="treatments__eyebrow">Next follow-up</span>
+                @if (followUp.appointment) {
+                  <h4>{{ followUp.appointment.startAt | date: 'EEE, MMM d · HH:mm' }}</h4>
+                  <p>{{ followUp.appointment.appointmentType || 'Appointment scheduled' }}</p>
+                } @else {
+                  <h4>
+                    {{ followUp.state === 'OVERDUE' ? 'Scheduling overdue' : 'Appointment needed' }}
+                  </h4>
+                  <p>Recommended {{ followUp.recommendedAt | date: 'mediumDate' }}</p>
+                }
+              </div>
+            </div>
+            @if (followUp.appointment) {
+              <a
+                routerLink="/app/schedule"
+                [queryParams]="{ appointmentId: followUp.appointment.id }"
+                >View appointment</a
+              >
+            } @else {
+              <a
+                routerLink="/app/schedule"
+                [queryParams]="{
+                  patientId: patientId(),
+                  treatmentId: treatment.id,
+                  recommendedDate: followUp.recommendedAt.slice(0, 10),
+                  returnUrl: '/app/patients/' + patientId(),
+                }"
+                >Schedule</a
+              >
+            }
+          </section>
+        }
+
         <section class="tx-visits" aria-labelledby="tx-visits-title">
           <header>
             <div>
@@ -198,7 +236,9 @@
             <ol>
               @for (visit of currentClinicalVisits(); track visit.id) {
                 <li>
-                  <time [attr.datetime]="visit.startedAt">{{ visit.startedAt | date: 'mediumDate' }}</time>
+                  <time [attr.datetime]="visit.startedAt">{{
+                    visit.startedAt | date: 'mediumDate'
+                  }}</time>
                   <div>
                     <strong>{{ visit.reasonOther || clinicalLabel(visit.reasonCode) }}</strong>
                     <span>{{ clinicalLabel(visit.status) }} · {{ visit.clinicianName }}</span>

@@ -27,6 +27,7 @@ const WEEKDAYS: Record<string, number> = {
 };
 
 const formatterCache = new Map<string, Intl.DateTimeFormat>();
+const dateFormatterCache = new Map<string, Intl.DateTimeFormat>();
 
 function getFormatter(timezone: string): Intl.DateTimeFormat {
   let formatter = formatterCache.get(timezone);
@@ -65,4 +66,31 @@ export function toWallClock(instant: Date, timezone: string): WallClock {
 export function clockToMinutes(time: string): number {
   const [hours = '0', minutes = '0'] = time.split(':');
   return Number(hours) * 60 + Number(minutes);
+}
+
+/** Stable local calendar key used by due-date workflows. */
+export function clinicDateKey(instant: Date, timezone: string): string {
+  let formatter = dateFormatterCache.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    dateFormatterCache.set(timezone, formatter);
+  }
+  const parts = formatter.formatToParts(instant);
+  const read = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? '';
+  return `${read('year')}-${read('month')}-${read('day')}`;
+}
+
+/** Positive when `earlier` is overdue relative to `later`, by clinic calendar days. */
+export function clinicCalendarDayDifference(earlier: Date, later: Date, timezone: string): number {
+  const asUtcMidnight = (value: Date) => {
+    const [year = 0, month = 1, day = 1] = clinicDateKey(value, timezone).split('-').map(Number);
+    return Date.UTC(year, month - 1, day);
+  };
+  return Math.round((asUtcMidnight(later) - asUtcMidnight(earlier)) / 86_400_000);
 }

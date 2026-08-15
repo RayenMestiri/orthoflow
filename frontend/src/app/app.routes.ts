@@ -103,15 +103,25 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'follow-ups',
+        title: 'Follow-ups — OrthoFlow',
+        canActivate: [permissionGuard],
+        data: { permission: PERMISSIONS.FOLLOWUPS_VIEW },
+        loadComponent: () =>
+          import('./features/follow-ups/pages/follow-ups-page/follow-ups-page').then(
+            (component) => component.FollowUpsPage,
+          ),
+      },
+      {
         path: 'clinical-visits/appointments/:appointmentId',
         title: 'Clinical visit — OrthoFlow',
         canActivate: [permissionGuard],
         canDeactivate: [clinicalVisitPendingChangesGuard],
         data: { permission: PERMISSIONS.CLINICAL_VISITS_MANAGE },
         loadComponent: () =>
-          import(
-            './features/clinical-visits/pages/clinical-visit-page/clinical-visit-page'
-          ).then((component) => component.ClinicalVisitPage),
+          import('./features/clinical-visits/pages/clinical-visit-page/clinical-visit-page').then(
+            (component) => component.ClinicalVisitPage,
+          ),
       },
       {
         path: 'clinical-visits/:visitId',
@@ -120,9 +130,9 @@ export const routes: Routes = [
         canDeactivate: [clinicalVisitPendingChangesGuard],
         data: { permission: PERMISSIONS.CLINICAL_VISITS_VIEW },
         loadComponent: () =>
-          import(
-            './features/clinical-visits/pages/clinical-visit-page/clinical-visit-page'
-          ).then((component) => component.ClinicalVisitPage),
+          import('./features/clinical-visits/pages/clinical-visit-page/clinical-visit-page').then(
+            (component) => component.ClinicalVisitPage,
+          ),
       },
       {
         path: 'cash-records',

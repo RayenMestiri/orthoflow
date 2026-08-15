@@ -28,6 +28,7 @@ export const PERMISSIONS = {
   CLINICAL_VISITS_VIEW: 'clinical-visits.view',
   CLINICAL_VISITS_MANAGE: 'clinical-visits.manage',
   CLINICAL_VISITS_EDIT_COMPLETED: 'clinical-visits.edit-completed',
+  FOLLOWUPS_VIEW: 'follow-ups.view',
   CASH_RECORDS_VIEW: 'cash-records.view',
   /** Record money the clinic physically received. Not an online payment. */
   CASH_RECORDS_RECORD: 'cash-records.record',
@@ -58,6 +59,7 @@ const clinicalPermissions: Permission[] = [
   PERMISSIONS.TREATMENTS_MANAGE,
   PERMISSIONS.CLINICAL_VISITS_VIEW,
   PERMISSIONS.CLINICAL_VISITS_MANAGE,
+  PERMISSIONS.FOLLOWUPS_VIEW,
   PERMISSIONS.CASH_RECORDS_VIEW,
   // Practitioners take money at the chair; cancelling stays with the owner.
   PERMISSIONS.CASH_RECORDS_RECORD,
@@ -84,6 +86,7 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
     PERMISSIONS.APPOINTMENTS_UPDATE,
     PERMISSIONS.APPOINTMENTS_CANCEL,
     PERMISSIONS.TREATMENTS_VIEW,
+    PERMISSIONS.FOLLOWUPS_VIEW,
     // The front desk is who physically takes the money.
     PERMISSIONS.CASH_RECORDS_VIEW,
     PERMISSIONS.CASH_RECORDS_RECORD,

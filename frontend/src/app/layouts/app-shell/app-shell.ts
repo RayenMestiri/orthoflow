@@ -92,6 +92,12 @@ export class AppShell {
       visible: this.permissions.can(PERMISSIONS.APPOINTMENTS_VIEW),
     },
     {
+      label: 'Follow-ups',
+      icon: 'event_repeat',
+      route: '/app/follow-ups',
+      visible: this.permissions.can(PERMISSIONS.FOLLOWUPS_VIEW),
+    },
+    {
       label: 'Treatments',
       icon: 'dentistry',
       route: '/app/patients',
