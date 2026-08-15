@@ -8,6 +8,7 @@ import {
   FLOW_SECTIONS,
   STATUS_LABELS,
   actorLine,
+  activityCancellationReason,
   activityLabel,
   canMarkNoShow,
   formatDuration,
@@ -53,9 +54,17 @@ export class TodayPage {
   protected readonly canCompleteVisit = this.permissions.can(
     PERMISSIONS.APPOINTMENTS_COMPLETE_VISIT,
   );
-  protected readonly canCancel = this.permissions.can(PERMISSIONS.APPOINTMENTS_VIEW);
+  protected readonly canCancel = this.permissions.can(PERMISSIONS.APPOINTMENTS_CANCEL);
+  protected readonly canUpdate = this.permissions.can(PERMISSIONS.APPOINTMENTS_UPDATE);
 
-  protected readonly selected = signal<ReceptionRow | null>(null);
+  private readonly selectedAppointmentId = signal<string | null>(null);
+  /** Keeps the drawer open while polling replaces the row with fresher data. */
+  protected readonly selected = computed(() => {
+    const appointmentId = this.selectedAppointmentId();
+    return appointmentId
+      ? (this.store.rows().find((row) => row.appointmentId === appointmentId) ?? null)
+      : null;
+  });
   protected readonly cancelTarget = signal<ReceptionRow | null>(null);
   protected readonly cancelReason = new FormControl('', {
     nonNullable: true,
@@ -85,7 +94,14 @@ export class TodayPage {
 
   /** Live waiting time, recomputed whenever the store's clock ticks. */
   protected waitingFor(row: ReceptionRow): string {
-    return formatDuration(minutesSince(row.waitingSince, this.store.now()));
+    return formatDuration(minutesSince(row.waitingAt, this.store.now()));
+  }
+
+  /** Total time physically in clinic; completed visits stop at completion. */
+  protected clinicTimeFor(row: ReceptionRow): string {
+    if (!row.arrivedAt) return '—';
+    const end = row.completedAt ? new Date(row.completedAt).getTime() : this.store.now();
+    return formatDuration(minutesSince(row.arrivedAt, end));
   }
 
   protected inTreatmentFor(row: ReceptionRow): string {
@@ -105,13 +121,14 @@ export class TodayPage {
   protected action(row: ReceptionRow): RowAction | null {
     const next = primaryAction(row);
     if (!next) return null;
+    if (!this.canUpdate) return null;
     if (next.next === 'IN_TREATMENT' && !this.canStartVisit) return null;
     if (next.next === 'COMPLETED' && !this.canCompleteVisit) return null;
     return next;
   }
 
   protected showNoShow(row: ReceptionRow): boolean {
-    return canMarkNoShow(row);
+    return this.canUpdate && canMarkNoShow(row);
   }
 
   protected initials(name: string): string {
@@ -130,21 +147,25 @@ export class TodayPage {
     event?.stopPropagation();
     const next = this.action(row);
     if (!next) return;
-    await this.store.changeStatus(row.appointmentId, next.next);
+    if (await this.store.changeStatus(row.appointmentId, next.next)) {
+      await this.refreshOpenActivity(row.appointmentId);
+    }
   }
 
   protected async markNoShow(row: ReceptionRow, event?: Event): Promise<void> {
     event?.stopPropagation();
-    await this.store.changeStatus(row.appointmentId, 'NO_SHOW');
+    if (await this.store.changeStatus(row.appointmentId, 'NO_SHOW')) {
+      await this.refreshOpenActivity(row.appointmentId);
+    }
   }
 
   protected openDetail(row: ReceptionRow): void {
-    this.selected.set(row);
+    this.selectedAppointmentId.set(row.appointmentId);
     void this.store.loadActivity(row.appointmentId);
   }
 
   protected closeDetail(): void {
-    this.selected.set(null);
+    this.selectedAppointmentId.set(null);
     this.store.clearActivity();
   }
 
@@ -160,6 +181,10 @@ export class TodayPage {
 
   protected entryLabel(entry: AppointmentActivity): string {
     return activityLabel(entry);
+  }
+
+  protected entryReason(entry: AppointmentActivity): string | null {
+    return activityCancellationReason(entry);
   }
 
   protected openCancel(row: ReceptionRow): void {
@@ -179,8 +204,13 @@ export class TodayPage {
     }
     if (await this.store.cancel(row.appointmentId, this.cancelReason.value.trim())) {
       this.cancelTarget.set(null);
-      this.selected.set(null);
+      this.selectedAppointmentId.set(null);
     }
+  }
+
+  protected submitCancel(event: SubmitEvent): void {
+    event.preventDefault();
+    void this.confirmCancel();
   }
 
   /** The patient name is a door into the full record, not just a label. */
@@ -191,5 +221,11 @@ export class TodayPage {
 
   protected trackRow(_index: number, row: ReceptionRow): string {
     return row.appointmentId;
+  }
+
+  private async refreshOpenActivity(appointmentId: string): Promise<void> {
+    if (this.selectedAppointmentId() === appointmentId) {
+      await this.store.loadActivity(appointmentId);
+    }
   }
 }

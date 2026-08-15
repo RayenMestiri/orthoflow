@@ -67,8 +67,10 @@
           </p>
         </div>
         <p class="flow-next__eta">
-          @if (next.status === 'WAITING' || next.status === 'ARRIVED') {
+          @if (next.status === 'WAITING') {
             Waiting {{ waitingFor(next) }}
+          } @else if (next.status === 'ARRIVED') {
+            In clinic {{ clinicTimeFor(next) }}
           } @else if (nextInMinutes(); as minutes) {
             @if (minutes > 0) {
               in {{ minutes }} min
@@ -127,8 +129,10 @@
                 <span class="flow-chip" [attr.data-status]="row.status">
                   {{ statusLabels[row.status] }}
                 </span>
-                @if (row.flowGroup === 'WAITING' || row.flowGroup === 'ARRIVED') {
+                @if (row.flowGroup === 'WAITING') {
                   <span class="flow-row__timer">Waiting {{ waitingFor(row) }}</span>
+                } @else if (row.flowGroup === 'ARRIVED') {
+                  <span class="flow-row__timer">In clinic {{ clinicTimeFor(row) }}</span>
                 } @else if (row.flowGroup === 'IN_TREATMENT') {
                   <span class="flow-row__timer">In chair {{ inTreatmentFor(row) }}</span>
                 } @else if (row.flowGroup === 'LATE') {
@@ -215,6 +219,51 @@
           </div>
         </dl>
 
+        <dl class="flow-facts flow-facts--operations" aria-label="Operational times">
+          <div>
+            <dt>Arrived</dt>
+            <dd>{{ row.arrivedAt ? (row.arrivedAt | date: 'HH:mm') : '—' }}</dd>
+          </div>
+          <div>
+            <dt>Waiting since</dt>
+            <dd>{{ row.waitingAt ? (row.waitingAt | date: 'HH:mm') : '—' }}</dd>
+          </div>
+          <div>
+            <dt>Visit started</dt>
+            <dd>
+              {{ row.treatmentStartedAt ? (row.treatmentStartedAt | date: 'HH:mm') : '—' }}
+            </dd>
+          </div>
+          <div>
+            <dt>Completed</dt>
+            <dd>{{ row.completedAt ? (row.completedAt | date: 'HH:mm') : '—' }}</dd>
+          </div>
+          @if (row.noShowAt) {
+            <div>
+              <dt>Marked no-show</dt>
+              <dd>{{ row.noShowAt | date: 'HH:mm' }}</dd>
+            </div>
+          }
+          @if (row.arrivedAt) {
+            <div>
+              <dt>Time in clinic</dt>
+              <dd>{{ clinicTimeFor(row) }}</dd>
+            </div>
+          }
+          @if (row.status === 'WAITING' && row.waitingAt) {
+            <div>
+              <dt>Waiting duration</dt>
+              <dd>{{ waitingFor(row) }}</dd>
+            </div>
+          }
+          @if (row.status === 'IN_TREATMENT' && row.treatmentStartedAt) {
+            <div>
+              <dt>In treatment</dt>
+              <dd>{{ inTreatmentFor(row) }}</dd>
+            </div>
+          }
+        </dl>
+
         @if (row.note) {
           <div class="flow-note">
             <span>Note</span>
@@ -255,6 +304,9 @@
                   <span>
                     {{ entryLabel(entry) }}
                     <small class="flow-timeline__actor">{{ actor(entry) }}</small>
+                    @if (entryReason(entry); as reason) {
+                      <small class="flow-timeline__reason">Reason: {{ reason }}</small>
+                    }
                   </span>
                 </li>
               }
@@ -281,7 +333,22 @@
             {{ next.label }}
           </button>
         }
-        @if (row.status !== 'COMPLETED' && row.status !== 'CANCELLED' && row.status !== 'NO_SHOW') {
+        @if (showNoShow(row)) {
+          <button
+            type="button"
+            class="flow-btn flow-btn--quiet"
+            [disabled]="store.isPending(row.appointmentId)"
+            (click)="markNoShow(row)"
+          >
+            Mark no-show
+          </button>
+        }
+        @if (
+          canCancel &&
+          row.status !== 'COMPLETED' &&
+          row.status !== 'CANCELLED' &&
+          row.status !== 'NO_SHOW'
+        ) {
           <button type="button" class="flow-btn flow-btn--danger" (click)="openCancel(row)">
             Cancel appointment
           </button>
@@ -293,7 +360,7 @@
   <!-- Cancel confirmation -->
   @if (cancelTarget(); as row) {
     <div class="flow-modal" role="dialog" aria-modal="true" aria-labelledby="flow-cancel-title">
-      <form class="flow-modal__panel" (ngSubmit)="confirmCancel()" novalidate>
+      <form class="flow-modal__panel" (submit)="submitCancel($event)" novalidate>
         <h3 id="flow-cancel-title">Cancel {{ row.patientName }}’s appointment?</h3>
         <p>The appointment stays in the day’s record as cancelled. It is never deleted.</p>
 

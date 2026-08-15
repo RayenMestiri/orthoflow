@@ -19,6 +19,7 @@ export interface ReceptionAggregate {
   status: AppointmentStatus;
 
   arrivedAt: Date | null;
+  waitingAt: Date | null;
   treatmentStartedAt: Date | null;
   completedAt: Date | null;
   noShowAt: Date | null;
@@ -109,6 +110,7 @@ export class ReceptionRepository {
           durationMinutes: 1,
           status: 1,
           arrivedAt: 1,
+          waitingAt: 1,
           treatmentStartedAt: 1,
           completedAt: 1,
           noShowAt: 1,

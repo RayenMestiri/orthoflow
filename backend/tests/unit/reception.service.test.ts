@@ -28,6 +28,7 @@ function record(overrides: Record<string, unknown> = {}) {
     durationMinutes: 15,
     status: 'SCHEDULED',
     arrivedAt: null,
+    waitingAt: null,
     treatmentStartedAt: null,
     completedAt: null,
     noShowAt: null,
@@ -163,16 +164,17 @@ describe('ReceptionService', () => {
     expect(board.rows[0]?.lateByMinutes).toBeNull();
   });
 
-  it('sends timestamps and no durations, so the client can tick without polling', async () => {
+  it('keeps arrival and waiting as separate timestamps for distinct durations', async () => {
     reception.listDay.mockResolvedValueOnce([
-      record({ status: 'WAITING', arrivedAt: AT('09:48') }),
+      record({ status: 'WAITING', arrivedAt: AT('09:50'), waitingAt: AT('10:05') }),
     ]);
 
-    const board = await service.getToday(CLINIC_A, AT('10:00'));
+    const board = await service.getToday(CLINIC_A, AT('10:10'));
     const row = board.rows[0];
 
-    expect(row?.waitingSince).toBe(AT('09:48').toISOString());
-    // No "12 minutes" is persisted or returned anywhere.
+    expect(row?.arrivedAt).toBe(AT('09:50').toISOString());
+    expect(row?.waitingAt).toBe(AT('10:05').toISOString());
+    // Durations remain derived client-side from their authoritative timestamps.
     expect(Object.keys(row ?? {})).not.toContain('waitingMinutes');
   });
 
@@ -234,9 +236,7 @@ describe('ReceptionService', () => {
   });
 
   it('prefers a clinic custom treatment label', async () => {
-    reception.listDay.mockResolvedValueOnce([
-      record({ treatmentCustomLabel: 'Invisalign Full' }),
-    ]);
+    reception.listDay.mockResolvedValueOnce([record({ treatmentCustomLabel: 'Invisalign Full' })]);
 
     const board = await service.getToday(CLINIC_A, AT('10:00'));
     expect(board.rows[0]?.treatmentLabel).toBe('Invisalign Full');

@@ -24,7 +24,7 @@ function row(overrides: Partial<ReceptionRow> = {}): ReceptionRow {
     flowGroup: 'UPCOMING',
     lateByMinutes: null,
     arrivedAt: null,
-    waitingSince: null,
+    waitingAt: null,
     treatmentStartedAt: null,
     completedAt: null,
     noShowAt: null,
@@ -249,9 +249,7 @@ describe('ReceptionStore', () => {
 
     it('reports a timeline failure without touching the board', async () => {
       await store.load();
-      api.activity.mockReturnValueOnce(
-        throwError(() => apiError('UNEXPECTED_ERROR', 'Boom', 500)),
-      );
+      api.activity.mockReturnValueOnce(throwError(() => apiError('UNEXPECTED_ERROR', 'Boom', 500)));
 
       await store.loadActivity('appt-1');
 

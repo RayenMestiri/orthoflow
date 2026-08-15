@@ -28,7 +28,7 @@ export const receptionRowDtoSchema = z.object({
   lateByMinutes: z.number().int().nonnegative().nullable(),
 
   arrivedAt: z.string().nullable(),
-  waitingSince: z.string().nullable(),
+  waitingAt: z.string().nullable(),
   treatmentStartedAt: z.string().nullable(),
   completedAt: z.string().nullable(),
   noShowAt: z.string().nullable(),

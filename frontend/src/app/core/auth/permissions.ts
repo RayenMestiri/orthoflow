@@ -12,6 +12,8 @@ export const PERMISSIONS = {
   PATIENT_MEDIA_MANAGE_ADMIN: 'patient-media.manage-administrative',
   PATIENT_MEDIA_MANAGE_CLINICAL: 'patient-media.manage-clinical',
   APPOINTMENTS_VIEW: 'appointments.view',
+  APPOINTMENTS_UPDATE: 'appointments.update',
+  APPOINTMENTS_CANCEL: 'appointments.cancel',
   /**
    * Putting a patient in the chair and declaring the visit over are clinical
    * acts. The front desk still checks people in and moves the queue; it just
@@ -45,6 +47,8 @@ const clinicalPermissions: Permission[] = [
   PERMISSIONS.PATIENT_MEDIA_MANAGE_ADMIN,
   PERMISSIONS.PATIENT_MEDIA_MANAGE_CLINICAL,
   PERMISSIONS.APPOINTMENTS_VIEW,
+  PERMISSIONS.APPOINTMENTS_UPDATE,
+  PERMISSIONS.APPOINTMENTS_CANCEL,
   PERMISSIONS.APPOINTMENTS_START_VISIT,
   PERMISSIONS.APPOINTMENTS_COMPLETE_VISIT,
   PERMISSIONS.TREATMENTS_VIEW,
@@ -71,6 +75,8 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
     PERMISSIONS.PATIENT_MEDIA_VIEW,
     PERMISSIONS.PATIENT_MEDIA_MANAGE_ADMIN,
     PERMISSIONS.APPOINTMENTS_VIEW,
+    PERMISSIONS.APPOINTMENTS_UPDATE,
+    PERMISSIONS.APPOINTMENTS_CANCEL,
     PERMISSIONS.TREATMENTS_VIEW,
     // The front desk is who physically takes the money.
     PERMISSIONS.CASH_RECORDS_VIEW,

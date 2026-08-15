@@ -38,10 +38,7 @@ export class AppointmentRepository {
    * than "starts inside the window", so a long visit that began before the
    * visible week still renders on Monday morning.
    */
-  async listInRange(
-    clinicId: string,
-    query: AppointmentRangeQuery,
-  ): Promise<AppointmentRecord[]> {
+  async listInRange(clinicId: string, query: AppointmentRangeQuery): Promise<AppointmentRecord[]> {
     const filter: QueryFilter<AppointmentAttributes> = {
       clinicId: toObjectId(clinicId, 'clinicId'),
       startAt: { $lt: query.end },
@@ -90,7 +87,11 @@ export class AppointmentRepository {
       filter._id = { $ne: toObjectId(excludeId, 'appointmentId') };
     }
 
-    return AppointmentModel.find(filter).sort({ startAt: 1 }).limit(100).lean<AppointmentRecord[]>().exec();
+    return AppointmentModel.find(filter)
+      .sort({ startAt: 1 })
+      .limit(100)
+      .lean<AppointmentRecord[]>()
+      .exec();
   }
 
   async create(input: CreateAppointmentInput, session?: ClientSession): Promise<AppointmentRecord> {
@@ -181,6 +182,7 @@ export class AppointmentRepository {
     cancellation?: { reason: string | null },
     existingTimestamps?: {
       arrivedAt: Date | null;
+      waitingAt: Date | null;
       treatmentStartedAt: Date | null;
     },
   ): Promise<AppointmentRecord | null> {
@@ -195,17 +197,24 @@ export class AppointmentRepository {
     }
     const now = new Date();
     if (
-      ([
-        APPOINTMENT_STATUSES.ARRIVED,
-        APPOINTMENT_STATUSES.WAITING,
-        APPOINTMENT_STATUSES.IN_TREATMENT,
-        APPOINTMENT_STATUSES.COMPLETED,
-      ] as AppointmentStatus[]).includes(toStatus)
+      (
+        [
+          APPOINTMENT_STATUSES.ARRIVED,
+          APPOINTMENT_STATUSES.WAITING,
+          APPOINTMENT_STATUSES.IN_TREATMENT,
+          APPOINTMENT_STATUSES.COMPLETED,
+        ] as AppointmentStatus[]
+      ).includes(toStatus)
     ) {
       if (!existingTimestamps?.arrivedAt) set.arrivedAt = now;
     }
+    if (toStatus === APPOINTMENT_STATUSES.WAITING && !existingTimestamps?.waitingAt) {
+      set.waitingAt = now;
+    }
     if (
-      ([APPOINTMENT_STATUSES.IN_TREATMENT, APPOINTMENT_STATUSES.COMPLETED] as AppointmentStatus[]).includes(toStatus)
+      (
+        [APPOINTMENT_STATUSES.IN_TREATMENT, APPOINTMENT_STATUSES.COMPLETED] as AppointmentStatus[]
+      ).includes(toStatus)
     ) {
       if (!existingTimestamps?.treatmentStartedAt) set.treatmentStartedAt = now;
     }

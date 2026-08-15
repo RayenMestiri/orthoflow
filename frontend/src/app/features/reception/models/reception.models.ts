@@ -37,7 +37,7 @@ export interface ReceptionRow {
   lateByMinutes: number | null;
 
   arrivedAt: string | null;
-  waitingSince: string | null;
+  waitingAt: string | null;
   treatmentStartedAt: string | null;
   completedAt: string | null;
   noShowAt: string | null;
@@ -131,6 +131,12 @@ const STATUS_TRANSITION_LABELS: Record<AppointmentStatus, string> = {
 /** `Sarah Trabelsi · Secretary`, or just the name when the role is unknown. */
 export function actorLine(entry: AppointmentActivity): string {
   return entry.actorRole ? `${entry.actorName} · ${ROLE_LABELS[entry.actorRole]}` : entry.actorName;
+}
+
+/** Cancellation reason recorded by the server on the cancellation event. */
+export function activityCancellationReason(entry: AppointmentActivity): string | null {
+  const reason = entry.metadata['cancellationReason'];
+  return entry.action === 'appointment.cancelled' && typeof reason === 'string' ? reason : null;
 }
 
 /** Status wording. Never an enum shown raw to a clinician. */

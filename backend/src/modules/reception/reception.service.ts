@@ -75,13 +75,7 @@ export class ReceptionService {
       lateByMinutes: flowGroup === FLOW_GROUPS.LATE ? minutesSince(startAt, now) : null,
 
       arrivedAt: record.arrivedAt ? new Date(record.arrivedAt).toISOString() : null,
-      /**
-       * WAITING has no timestamp of its own in the appointment model, and
-       * adding one would mean migrating a live collection for a value we can
-       * already answer. `arrivedAt` is when the patient started waiting: the
-       * ARRIVED → WAITING move is a desk formality, not a new clinical fact.
-       */
-      waitingSince: record.arrivedAt ? new Date(record.arrivedAt).toISOString() : null,
+      waitingAt: record.waitingAt ? new Date(record.waitingAt).toISOString() : null,
       treatmentStartedAt: record.treatmentStartedAt
         ? new Date(record.treatmentStartedAt).toISOString()
         : null,

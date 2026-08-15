@@ -78,6 +78,7 @@ class FakeAppointmentRepository {
       cancelledAt: null,
       cancelledBy: null,
       arrivedAt: null,
+      waitingAt: null,
       treatmentStartedAt: null,
       completedAt: null,
       noShowAt: null,
@@ -153,6 +154,11 @@ class FakeAppointmentRepository {
     toStatus: AppointmentStatus,
     _updatedBy: string,
     cancellation?: { reason: string | null },
+    existingTimestamps?: {
+      arrivedAt: Date | null;
+      waitingAt: Date | null;
+      treatmentStartedAt: Date | null;
+    },
   ) {
     const record = await this.findByIdInClinic(appointmentId, clinicId);
     if (!record || record.status !== fromStatus) return null;
@@ -162,6 +168,18 @@ class FakeAppointmentRepository {
       record.cancelledAt = new Date();
       record.cancelledBy = new Types.ObjectId(DOCTOR_ID);
     }
+    const now = new Date();
+    if (['ARRIVED', 'WAITING', 'IN_TREATMENT', 'COMPLETED'].includes(toStatus)) {
+      record.arrivedAt = existingTimestamps?.arrivedAt ?? now;
+    }
+    if (toStatus === 'WAITING') {
+      record.waitingAt = existingTimestamps?.waitingAt ?? now;
+    }
+    if (['IN_TREATMENT', 'COMPLETED'].includes(toStatus)) {
+      record.treatmentStartedAt = existingTimestamps?.treatmentStartedAt ?? now;
+    }
+    if (toStatus === 'COMPLETED') record.completedAt = now;
+    if (toStatus === 'NO_SHOW') record.noShowAt = now;
     return record;
   }
 
@@ -604,6 +622,17 @@ describe('AppointmentService workflow', () => {
     }
   });
 
+  it('persists waitingAt separately and preserves the original arrivedAt', async () => {
+    const arrived = await fakes.service.changeStatus(CLINIC_A, appointmentId, 'ARRIVED', DESK);
+    const arrivedAt = arrived.arrivedAt;
+
+    const waiting = await fakes.service.changeStatus(CLINIC_A, appointmentId, 'WAITING', DESK);
+
+    expect(arrivedAt).not.toBeNull();
+    expect(waiting.arrivedAt).toBe(arrivedAt);
+    expect(waiting.waitingAt).not.toBeNull();
+  });
+
   it('rejects an invalid transition with a business error', async () => {
     await fakes.service.changeStatus(CLINIC_A, appointmentId, 'ARRIVED', CLINICAL);
     try {
@@ -622,7 +651,10 @@ describe('AppointmentService workflow', () => {
     expect(dto.cancelledAt).not.toBeNull();
     expect(fakes.store.records).toHaveLength(1);
     expect(fakes.audit.record).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'appointment.cancelled' }),
+      expect.objectContaining({
+        action: 'appointment.cancelled',
+        metadata: expect.objectContaining({ cancellationReason: 'Family emergency' }),
+      }),
     );
   });
 
@@ -630,6 +662,7 @@ describe('AppointmentService workflow', () => {
     const dto = await fakes.service.changeStatus(CLINIC_A, appointmentId, 'NO_SHOW', CLINICAL);
 
     expect(dto.status).toBe('NO_SHOW');
+    expect(dto.noShowAt).not.toBeNull();
     expect(fakes.store.records[0]?.status).toBe('NO_SHOW');
     expect(fakes.audit.record).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'appointment.no_show' }),
@@ -768,10 +801,7 @@ describe('AppointmentService workflow', () => {
       });
       // Batched, not one lookup per row.
       expect(fakes.users.findManyByIds).toHaveBeenCalledTimes(1);
-      expect(fakes.memberships.findManyByUsersInClinic).toHaveBeenCalledWith(
-        [DOCTOR_ID],
-        CLINIC_A,
-      );
+      expect(fakes.memberships.findManyByUsersInClinic).toHaveBeenCalledWith([DOCTOR_ID], CLINIC_A);
     });
 
     it('labels an actorless entry as System with no role', async () => {

@@ -436,6 +436,7 @@ export class AppointmentService {
       undefined,
       {
         arrivedAt: existing.arrivedAt,
+        waitingAt: existing.waitingAt,
         treatmentStartedAt: existing.treatmentStartedAt,
       },
     );
@@ -498,7 +499,11 @@ export class AppointmentService {
       action: AUDIT_ACTIONS.APPOINTMENT_CANCELLED,
       resourceType: AUDIT_RESOURCE_TYPES.APPOINTMENT,
       resourceId: appointmentId,
-      metadata: { from: existing.status, hasReason: reason !== null },
+      metadata: {
+        from: existing.status,
+        hasReason: reason !== null,
+        ...(reason === null ? {} : { cancellationReason: reason }),
+      },
       ip: context.ip,
       userAgent: context.userAgent,
     });
@@ -701,10 +706,7 @@ export class AppointmentService {
    * which keeps this service free of Fastify and free of `if (role === ...)`,
    * as AGENTS.md §7 requires.
    */
-  private assertMayPerform(
-    toStatus: AppointmentStatus,
-    context: AppointmentActorContext,
-  ): void {
+  private assertMayPerform(toStatus: AppointmentStatus, context: AppointmentActorContext): void {
     if (toStatus === APPOINTMENT_STATUSES.IN_TREATMENT && !context.canStartVisit) {
       throw new ForbiddenError('Only clinical staff may start a visit', {
         code: ERROR_CODES.INSUFFICIENT_PERMISSIONS,

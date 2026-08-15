@@ -33,6 +33,7 @@ const appointmentSchema = new Schema<AppointmentAttributes>(
     cancelledAt: { type: Date, default: null },
     cancelledBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     arrivedAt: { type: Date, default: null },
+    waitingAt: { type: Date, default: null },
     treatmentStartedAt: { type: Date, default: null },
     completedAt: { type: Date, default: null },
     noShowAt: { type: Date, default: null },

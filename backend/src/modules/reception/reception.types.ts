@@ -53,11 +53,7 @@ export const FLOW_GROUP_ORDER: readonly FlowGroup[] = [
  * Pure and total so the board, the counters and the frontend cannot disagree
  * about where a patient belongs.
  */
-export function resolveFlowGroup(
-  status: AppointmentStatus,
-  startAt: Date,
-  now: Date,
-): FlowGroup {
+export function resolveFlowGroup(status: AppointmentStatus, startAt: Date, now: Date): FlowGroup {
   switch (status) {
     case 'IN_TREATMENT':
       return FLOW_GROUPS.IN_TREATMENT;
@@ -108,7 +104,7 @@ export interface ReceptionRow {
   lateByMinutes: number | null;
 
   arrivedAt: string | null;
-  waitingSince: string | null;
+  waitingAt: string | null;
   treatmentStartedAt: string | null;
   completedAt: string | null;
   noShowAt: string | null;

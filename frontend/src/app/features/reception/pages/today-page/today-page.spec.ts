@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { of, Subject, throwError } from 'rxjs';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PermissionService, PERMISSIONS, type Permission } from '../../../../core/auth/permissions';
 import { ReceptionApiService } from '../../data-access/reception.api';
 import type {
@@ -25,7 +25,7 @@ function row(overrides: Partial<ReceptionRow> = {}): ReceptionRow {
     flowGroup: 'WAITING',
     lateByMinutes: null,
     arrivedAt: '2026-08-09T08:55:00.000Z',
-    waitingSince: '2026-08-09T08:56:00.000Z',
+    waitingAt: '2026-08-09T08:56:00.000Z',
     treatmentStartedAt: null,
     completedAt: null,
     noShowAt: null,
@@ -95,6 +95,8 @@ describe('TodayPage', () => {
   }
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-09T09:10:00.000Z'));
     granted = Object.values(PERMISSIONS);
     api = {
       today: vi.fn(() => of(board([row()]))),
@@ -115,6 +117,11 @@ describe('TodayPage', () => {
     });
   });
 
+  afterEach(() => {
+    fixture?.destroy();
+    vi.useRealTimers();
+  });
+
   describe('who may run the chair', () => {
     it('offers Start visit to clinical staff', async () => {
       const element = await render([row()]);
@@ -124,7 +131,11 @@ describe('TodayPage', () => {
 
     it('offers Complete visit to clinical staff', async () => {
       const element = await render([
-        row({ status: 'IN_TREATMENT', flowGroup: 'IN_TREATMENT', treatmentStartedAt: '2026-08-09T09:01:00.000Z' }),
+        row({
+          status: 'IN_TREATMENT',
+          flowGroup: 'IN_TREATMENT',
+          treatmentStartedAt: '2026-08-09T09:01:00.000Z',
+        }),
       ]);
 
       expect(element.textContent).toContain('Complete visit');
@@ -143,9 +154,7 @@ describe('TodayPage', () => {
     it('hides Complete visit from the front desk', async () => {
       granted = DESK_PERMISSIONS;
 
-      const element = await render([
-        row({ status: 'IN_TREATMENT', flowGroup: 'IN_TREATMENT' }),
-      ]);
+      const element = await render([row({ status: 'IN_TREATMENT', flowGroup: 'IN_TREATMENT' })]);
 
       expect(element.textContent).not.toContain('Complete visit');
     });
@@ -157,6 +166,41 @@ describe('TodayPage', () => {
 
       expect(element.textContent).toContain('Patient arrived');
     });
+
+    it('lets the front desk move an arrived patient to waiting', async () => {
+      granted = DESK_PERMISSIONS;
+
+      const element = await render([
+        row({ status: 'ARRIVED', flowGroup: 'ARRIVED', waitingAt: null }),
+      ]);
+
+      expect(element.textContent).toContain('Move to waiting');
+    });
+
+    it('offers no-show only for a derived late row', async () => {
+      granted = DESK_PERMISSIONS;
+
+      const late = await render([
+        row({ status: 'SCHEDULED', flowGroup: 'LATE', arrivedAt: null, waitingAt: null }),
+      ]);
+      expect(late.textContent).toContain('No-show');
+
+      fixture.destroy();
+      const upcoming = await render([
+        row({ status: 'SCHEDULED', flowGroup: 'UPCOMING', arrivedAt: null, waitingAt: null }),
+      ]);
+      expect(upcoming.textContent).not.toContain('No-show');
+    });
+
+    it.each(['COMPLETED', 'CANCELLED', 'NO_SHOW'] as const)(
+      'keeps %s appointments read-only',
+      async (status) => {
+        const element = await render([row({ status, flowGroup: 'CLOSED' })]);
+        await openDrawer(element);
+
+        expect(element.querySelector('.flow-drawer__actions')?.textContent?.trim()).toBe('');
+      },
+    );
   });
 
   describe('activity timeline', () => {
@@ -196,6 +240,38 @@ describe('TodayPage', () => {
       expect(element.querySelectorAll('.flow-row')).toHaveLength(1);
     });
 
+    it('renders the loading state while activity is in flight', async () => {
+      const response = new Subject<AppointmentActivity[]>();
+      api['activity']?.mockReturnValue(response);
+      const element = await render([row()]);
+
+      (element.querySelector('.flow-row') as HTMLElement).click();
+      fixture.detectChanges();
+
+      expect(element.querySelector('.flow-timeline')?.textContent).toContain('Loading activity…');
+      response.next([activity()]);
+      response.complete();
+      await fixture.whenStable();
+    });
+
+    it('shows the recorded cancellation reason on its actor entry', async () => {
+      api['activity']?.mockReturnValue(
+        of([
+          activity({
+            action: 'appointment.cancelled',
+            metadata: { from: 'SCHEDULED', cancellationReason: 'Patient is unwell' },
+          }),
+        ]),
+      );
+      const element = await render([row({ status: 'CANCELLED', flowGroup: 'CLOSED' })]);
+
+      await openDrawer(element);
+
+      expect(element.querySelector('.flow-timeline')?.textContent).toContain(
+        'Reason: Patient is unwell',
+      );
+    });
+
     it('shows the cancellation reason on a cancelled appointment', async () => {
       const element = await render([
         row({
@@ -210,6 +286,47 @@ describe('TodayPage', () => {
       expect(element.querySelector('.flow-note--cancelled')?.textContent).toContain(
         'Patient called to postpone',
       );
+    });
+  });
+
+  describe('operational durations', () => {
+    it('uses waitingAt for waiting and arrivedAt for total clinic time', async () => {
+      const element = await render([
+        row({
+          arrivedAt: '2026-08-09T08:50:00.000Z',
+          waitingAt: '2026-08-09T09:05:00.000Z',
+        }),
+      ]);
+
+      await openDrawer(element);
+
+      const facts = element.querySelector('.flow-facts--operations') as HTMLElement;
+      expect(facts.textContent).toContain('Time in clinic');
+      expect(facts.textContent).toContain('20 min');
+      expect(facts.textContent).toContain('Waiting duration');
+      expect(facts.textContent).toContain('5 min');
+    });
+
+    it('keeps the open drawer on the refreshed row after polling', async () => {
+      const element = await render([row({ status: 'WAITING', flowGroup: 'WAITING' })]);
+      await openDrawer(element);
+      api['today']?.mockReturnValue(
+        of(
+          board([
+            row({
+              status: 'IN_TREATMENT',
+              flowGroup: 'IN_TREATMENT',
+              treatmentStartedAt: '2026-08-09T09:08:00.000Z',
+            }),
+          ]),
+        ),
+      );
+
+      await vi.advanceTimersByTimeAsync(45_000);
+      fixture.detectChanges();
+
+      expect(element.querySelector('.flow-drawer')).not.toBeNull();
+      expect(element.querySelector('.flow-drawer')?.textContent).toContain('In treatment');
     });
   });
 });

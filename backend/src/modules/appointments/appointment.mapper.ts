@@ -71,6 +71,7 @@ export function toAppointmentDto(
     cancelledAt: record.cancelledAt?.toISOString() ?? null,
     cancelledBy: record.cancelledBy?.toString() ?? null,
     arrivedAt: record.arrivedAt?.toISOString() ?? null,
+    waitingAt: record.waitingAt?.toISOString() ?? null,
     treatmentStartedAt: record.treatmentStartedAt?.toISOString() ?? null,
     completedAt: record.completedAt?.toISOString() ?? null,
     noShowAt: record.noShowAt?.toISOString() ?? null,

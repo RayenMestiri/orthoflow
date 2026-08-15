@@ -145,6 +145,8 @@ export interface AppointmentAttributes {
   cancelledBy: Types.ObjectId | null;
 
   arrivedAt: Date | null;
+  /** When reception moved the checked-in patient into the waiting queue. */
+  waitingAt: Date | null;
   treatmentStartedAt: Date | null;
   completedAt: Date | null;
   noShowAt: Date | null;
@@ -255,6 +257,7 @@ export interface AppointmentDto {
   cancelledAt: string | null;
   cancelledBy: string | null;
   arrivedAt: string | null;
+  waitingAt: string | null;
   treatmentStartedAt: string | null;
   completedAt: string | null;
   noShowAt: string | null;

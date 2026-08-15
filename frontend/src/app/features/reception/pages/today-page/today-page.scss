@@ -509,6 +509,11 @@
   }
 }
 
+.flow-facts--operations {
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-line);
+}
+
 .flow-note {
   padding: 0.75rem 0.9rem;
   border-left: 2px solid var(--color-copper-600);
@@ -582,6 +587,12 @@
 .flow-timeline__actor {
   color: var(--color-slate);
   font-size: 0.74rem;
+}
+
+.flow-timeline__reason {
+  color: var(--color-copper-700);
+  font-size: 0.74rem;
+  line-height: 1.35;
 }
 
 .flow-timeline__status {

@@ -38,6 +38,7 @@ export const appointmentDtoSchema = z.object({
   cancelledAt: z.string().nullable(),
   cancelledBy: objectIdSchema.nullable(),
   arrivedAt: z.string().nullable(),
+  waitingAt: z.string().nullable(),
   treatmentStartedAt: z.string().nullable(),
   completedAt: z.string().nullable(),
   noShowAt: z.string().nullable(),
@@ -93,9 +94,10 @@ export const updateAppointmentBodySchema = z
  */
 export const changeStatusBodySchema = z.object({
   status: z.enum(
-    APPOINTMENT_STATUS_VALUES.filter(
-      (status) => status !== APPOINTMENT_STATUSES.CANCELLED,
-    ) as [Exclude<(typeof APPOINTMENT_STATUS_VALUES)[number], 'CANCELLED'>, ...Exclude<(typeof APPOINTMENT_STATUS_VALUES)[number], 'CANCELLED'>[]],
+    APPOINTMENT_STATUS_VALUES.filter((status) => status !== APPOINTMENT_STATUSES.CANCELLED) as [
+      Exclude<(typeof APPOINTMENT_STATUS_VALUES)[number], 'CANCELLED'>,
+      ...Exclude<(typeof APPOINTMENT_STATUS_VALUES)[number], 'CANCELLED'>[],
+    ],
   ),
 });
 

@@ -252,6 +252,7 @@ export function appointmentRecord(clinicId: string, appointmentId = APPOINTMENT_
     cancelledAt: null,
     cancelledBy: null,
     arrivedAt: null,
+    waitingAt: null,
     treatmentStartedAt: null,
     completedAt: null,
     noShowAt: null,
