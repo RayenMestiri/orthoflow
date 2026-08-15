@@ -239,6 +239,16 @@
           <span>Payments</span>
         </button>
       }
+      @if (canViewClinicalVisits) {
+        <button
+          type="button"
+          [class.active]="activeView() === 'visits'"
+          (click)="activeView.set('visits')"
+        >
+          <span class="material-icons" aria-hidden="true">clinical_notes</span>
+          <span>Visits</span>
+        </button>
+      }
       @if (canViewMedia) {
         <button type="button" [class.active]="activeView() === 'media'" (click)="openMedia()">
           <span class="material-icons" aria-hidden="true">folder_open</span>
@@ -461,6 +471,8 @@
         [patientName]="current.fullName"
         [guardians]="cashRecordGuardians()"
       />
+    } @else if (activeView() === 'visits') {
+      <app-patient-clinical-visits [patientId]="current.id" />
     } @else if (activeView() === 'media') {
       <app-patient-media-workspace
         [patientId]="current.id"

@@ -185,6 +185,7 @@ export class AppointmentRepository {
       waitingAt: Date | null;
       treatmentStartedAt: Date | null;
     },
+    session?: ClientSession,
   ): Promise<AppointmentRecord | null> {
     const set: Record<string, unknown> = {
       status: toStatus,
@@ -231,7 +232,7 @@ export class AppointmentRepository {
         status: fromStatus,
       },
       { $set: set },
-      { new: true, runValidators: true },
+      { new: true, runValidators: true, session },
     )
       .lean<AppointmentRecord | null>()
       .exec();

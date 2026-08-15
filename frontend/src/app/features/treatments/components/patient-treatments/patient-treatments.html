@@ -183,6 +183,34 @@
             </ol>
           }
         </section>
+
+        <section class="tx-visits" aria-labelledby="tx-visits-title">
+          <header>
+            <div>
+              <span class="treatments__eyebrow">Appointment-linked notes</span>
+              <h4 id="tx-visits-title">Recent clinical visits</h4>
+            </div>
+            <span>{{ currentClinicalVisits().length }}</span>
+          </header>
+          @if (currentClinicalVisits().length === 0) {
+            <p>No clinical visits linked to this treatment yet.</p>
+          } @else {
+            <ol>
+              @for (visit of currentClinicalVisits(); track visit.id) {
+                <li>
+                  <time [attr.datetime]="visit.startedAt">{{ visit.startedAt | date: 'mediumDate' }}</time>
+                  <div>
+                    <strong>{{ visit.reasonOther || clinicalLabel(visit.reasonCode) }}</strong>
+                    <span>{{ clinicalLabel(visit.status) }} · {{ visit.clinicianName }}</span>
+                  </div>
+                  <a [routerLink]="['/app/clinical-visits', visit.id]">
+                    View note <span class="material-icons" aria-hidden="true">arrow_forward</span>
+                  </a>
+                </li>
+              }
+            </ol>
+          }
+        </section>
       </article>
     } @else {
       <div class="tx-current-empty">

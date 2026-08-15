@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { getApiProblem } from '../../../../core/http/api-error';
 import { PatientCashRecords } from '../../../cash-records/components/patient-cash-records/patient-cash-records';
+import { PatientClinicalVisits } from '../../../clinical-visits/components/patient-clinical-visits/patient-clinical-visits';
 import { PatientMediaWorkspace } from '../../../patient-media/components/patient-media-workspace/patient-media-workspace';
 import {
   PATIENT_MEDIA_CATEGORIES,
@@ -32,6 +33,7 @@ import type {
     A11yModule,
     DatePipe,
     PatientCashRecords,
+    PatientClinicalVisits,
     PatientMediaWorkspace,
     PatientTreatments,
     ReactiveFormsModule,
@@ -59,7 +61,7 @@ export class PatientDetailPage {
         ? 'Patient information saved.'
         : null,
   );
-  readonly activeView = signal<'overview' | 'activity' | 'treatments' | 'payments' | 'media'>(
+  readonly activeView = signal<'overview' | 'activity' | 'treatments' | 'visits' | 'payments' | 'media'>(
     'overview',
   );
   readonly mediaTreatmentOptions = signal<TreatmentMediaOption[]>([]);
@@ -75,6 +77,7 @@ export class PatientDetailPage {
   /** The front desk sees the patient file but not the clinical treatment area. */
   readonly canViewTreatments = this.permissions.can(PERMISSIONS.TREATMENTS_VIEW);
   readonly canManageTreatments = this.permissions.can(PERMISSIONS.TREATMENTS_MANAGE);
+  readonly canViewClinicalVisits = this.permissions.can(PERMISSIONS.CLINICAL_VISITS_VIEW);
   /** Assistants follow the chair, not the till. */
   readonly canViewPayments = this.permissions.can(PERMISSIONS.CASH_RECORDS_VIEW);
   readonly canViewMedia = this.permissions.can(PERMISSIONS.PATIENT_MEDIA_VIEW);

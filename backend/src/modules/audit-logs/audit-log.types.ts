@@ -59,6 +59,10 @@ export const AUDIT_ACTIONS = {
   TREATMENT_MILESTONE_CREATED: 'treatment_milestone.created',
   TREATMENT_MILESTONE_UPDATED: 'treatment_milestone.updated',
 
+  CLINICAL_VISIT_CREATED: 'clinical_visit.created',
+  CLINICAL_VISIT_UPDATED: 'clinical_visit.updated',
+  CLINICAL_VISIT_COMPLETED: 'clinical_visit.completed',
+
   CASH_RECORD_CREATED: 'cash_record.created',
   CASH_RECORD_CANCELLED: 'cash_record.cancelled',
   /** A cancellation paired with a compensating record replacing it. */
@@ -86,6 +90,7 @@ export const AUDIT_RESOURCE_TYPES = {
   APPOINTMENT_TYPE: 'appointment_type',
   TREATMENT: 'treatment',
   TREATMENT_MILESTONE: 'treatment_milestone',
+  CLINICAL_VISIT: 'clinical_visit',
   CASH_RECORD: 'cash_record',
   RECEIPT: 'receipt',
   AUTH_SESSION: 'auth_session',

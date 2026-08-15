@@ -33,6 +33,7 @@ import { patientRepository, type PatientRepository } from '../patients/patient.r
 import { PATIENT_STATUSES } from '../patients/patient.types.js';
 import { userRepository, type UserRepository } from '../users/user.repository.js';
 import { toAppointmentDto } from './appointment.mapper.js';
+import type { ClientSession } from 'mongoose';
 import { appointmentRepository, type AppointmentRepository } from './appointment.repository.js';
 import {
   capacityInfoForRecord,
@@ -422,6 +423,7 @@ export class AppointmentService {
     appointmentId: string,
     toStatus: Exclude<AppointmentStatus, 'CANCELLED'>,
     context: AppointmentActorContext,
+    session?: ClientSession,
   ): Promise<AppointmentDto> {
     const existing = await this.requireAppointment(clinicId, appointmentId);
     this.assertTransition(existing.status, toStatus);
@@ -439,6 +441,7 @@ export class AppointmentService {
         waitingAt: existing.waitingAt,
         treatmentStartedAt: existing.treatmentStartedAt,
       },
+      session,
     );
 
     if (!updated) {
@@ -448,7 +451,7 @@ export class AppointmentService {
       });
     }
 
-    await this.audit.record({
+    const auditEvent = {
       clinicId,
       actorUserId: context.actorUserId,
       action:
@@ -460,7 +463,9 @@ export class AppointmentService {
       metadata: { from: existing.status, to: toStatus },
       ip: context.ip,
       userAgent: context.userAgent,
-    });
+    } as const;
+    if (session) await this.audit.record(auditEvent, session);
+    else await this.audit.record(auditEvent);
 
     return this.joinOneWithCapacity(clinicId, updated);
   }

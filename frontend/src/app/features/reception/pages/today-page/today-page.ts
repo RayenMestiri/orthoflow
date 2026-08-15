@@ -148,6 +148,10 @@ export class TodayPage {
     const next = this.action(row);
     if (!next) return;
     if (await this.store.changeStatus(row.appointmentId, next.next)) {
+      if (next.next === 'IN_TREATMENT') {
+        await this.router.navigate(['/app/clinical-visits/appointments', row.appointmentId]);
+        return;
+      }
       await this.refreshOpenActivity(row.appointmentId);
     }
   }

@@ -1,0 +1,30 @@
+:host { display: block; }
+.visits { background: #fffdfa; border: 1px solid #dedbd2; border-radius: 18px; overflow: hidden; }
+header { display: flex; justify-content: space-between; gap: 24px; padding: 24px 28px; border-bottom: 1px solid #e8e4dc; }
+header span { color: #9a5c36; font-size: .72rem; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; }
+h2 { margin: 4px 0 0; color: #183f38; font: 700 1.45rem/1.2 Georgia, serif; }
+header p { color: #66706c; margin: 6px 0 0; }
+.state { min-height: 220px; display: grid; place-items: center; align-content: center; gap: 8px; color: #66706c; text-align: center; padding: 32px; }
+.state > .material-icons { color: #9a5c36; font-size: 32px; }
+.state p { margin: 0; }
+.state--error { color: #8f3028; }
+.state button { min-height: 44px; padding: 0 18px; border: 1px solid #a7b7b0; border-radius: 10px; background: white; }
+.visit-list { list-style: none; margin: 0; padding: 0 28px; }
+.visit-list li { display: grid; grid-template-columns: 64px 1fr auto; align-items: center; gap: 18px; padding: 22px 0; border-bottom: 1px solid #ece8e0; }
+.visit-list li:last-child { border: 0; }
+.date { display: grid; justify-items: center; color: #183f38; border-right: 1px solid #ddd8ce; }
+.date strong { font: 700 1.5rem/1 Georgia, serif; }
+.date span { color: #79817e; font-size: .72rem; margin-top: 5px; }
+.summary > div { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.summary h3 { margin: 0; color: #213b36; font-size: 1rem; }
+.summary p, .summary small { margin: 5px 0 0; color: #69736f; }
+.status { padding: 4px 8px; border-radius: 99px; background: #eeeae2; color: #5f6864; font-size: .7rem; font-weight: 750; }
+.status[data-status='COMPLETED'] { background: #dcece5; color: #25634f; }
+li > a { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; color: #2c6658; font-weight: 700; text-decoration: none; }
+li > a .material-icons { font-size: 18px; }
+@media (max-width: 640px) {
+  header { display: block; padding: 20px; }
+  .visit-list { padding: 0 20px; }
+  .visit-list li { grid-template-columns: 52px 1fr; gap: 12px; }
+  li > a { grid-column: 2; justify-self: start; }
+}

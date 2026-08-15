@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PermissionService } from '../../../../core/auth/permissions';
+import { ClinicalVisitsApiService } from '../../../clinical-visits/data-access/clinical-visits-api.service';
 import { TreatmentsApiService } from '../../data-access/treatments-api.service';
 import type { TreatmentWithMilestones } from '../../models/treatment.models';
 import { PatientTreatments } from './patient-treatments';
@@ -49,6 +51,7 @@ function treatment(overrides: Partial<TreatmentWithMilestones> = {}): TreatmentW
 describe('PatientTreatments', () => {
   let fixture: ComponentFixture<PatientTreatments>;
   let api: Record<string, ReturnType<typeof vi.fn>>;
+  let clinicalApi: Record<string, ReturnType<typeof vi.fn>>;
 
   async function render(items: TreatmentWithMilestones[]): Promise<HTMLElement> {
     api['listForPatient']?.mockReturnValue(of(items));
@@ -73,10 +76,13 @@ describe('PatientTreatments', () => {
       addMilestone: vi.fn(() => of(treatment().milestones[0])),
       updateMilestone: vi.fn(() => of(treatment().milestones[0])),
     };
+    clinicalApi = { listForPatient: vi.fn(() => of([])) };
     TestBed.configureTestingModule({
       imports: [PatientTreatments],
       providers: [
+        provideRouter([]),
         { provide: TreatmentsApiService, useValue: api },
+        { provide: ClinicalVisitsApiService, useValue: clinicalApi },
         { provide: PermissionService, useValue: { can: () => true } },
       ],
     });
@@ -86,6 +92,32 @@ describe('PatientTreatments', () => {
     const element = await render([]);
     expect(element.textContent).toContain('No orthodontic treatment yet');
     expect(element.textContent).toContain('Create treatment');
+  });
+
+  it('surfaces appointment-linked clinical visits without copying them into treatment data', async () => {
+    clinicalApi['listForPatient']?.mockReturnValue(
+      of([
+        {
+          id: 'visit-1',
+          appointmentId: 'appointment-1',
+          treatmentId: 'treatment-1',
+          status: 'COMPLETED',
+          reasonCode: 'ROUTINE_ADJUSTMENT',
+          reasonOther: null,
+          procedures: ['EXAMINATION'],
+          patientInstructions: null,
+          nextVisitRecommendedAt: null,
+          nextStepNote: null,
+          startedAt: '2026-08-15T09:00:00.000Z',
+          completedAt: '2026-08-15T09:30:00.000Z',
+          clinicianName: 'Dr Amine',
+        },
+      ]),
+    );
+    const element = await render([treatment()]);
+    expect(element.textContent).toContain('Recent clinical visits');
+    expect(element.textContent).toContain('Routine adjustment');
+    expect(element.querySelector('a[href="/app/clinical-visits/visit-1"]')).not.toBeNull();
   });
 
   it('renders the active summary, persisted timeline and treatment history', async () => {

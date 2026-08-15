@@ -49,6 +49,11 @@ export const PERMISSIONS = {
   /** Starting, pausing, resuming and completing care is a clinical decision. */
   TREATMENT_MANAGE_LIFECYCLE: 'treatment:manage-lifecycle',
 
+  CLINICAL_VISIT_READ: 'clinical-visit:read',
+  CLINICAL_VISIT_MANAGE: 'clinical-visit:manage',
+  /** Amendments after sign-off are exceptional and owner-audited. */
+  CLINICAL_VISIT_EDIT_COMPLETED: 'clinical-visit:edit-completed',
+
   /**
    * Cash records acknowledge money the clinic physically received. They are
    * never deleted, so the permissions separate "record it" from "undo it".
@@ -93,6 +98,8 @@ const PRACTITIONER_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.TREATMENT_CREATE,
   PERMISSIONS.TREATMENT_UPDATE,
   PERMISSIONS.TREATMENT_MANAGE_LIFECYCLE,
+  PERMISSIONS.CLINICAL_VISIT_READ,
+  PERMISSIONS.CLINICAL_VISIT_MANAGE,
   // Practitioners take money at the chair, but undoing a record and waiving a
   // balance stay with the owner — see SECRETARY_PERMISSIONS for the same split.
   PERMISSIONS.CASH_RECORD_READ,

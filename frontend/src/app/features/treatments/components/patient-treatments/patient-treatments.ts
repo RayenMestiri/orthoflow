@@ -10,7 +10,14 @@ import {
   signal,
 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
+import { ClinicalVisitsApiService } from '../../../clinical-visits/data-access/clinical-visits-api.service';
+import {
+  clinicalLabel,
+  type ClinicalVisitSummary,
+} from '../../../clinical-visits/models/clinical-visit.models';
 import { TreatmentsStore } from '../../data-access/treatments.store';
 import {
   formatTreatmentDuration,
@@ -31,7 +38,7 @@ type DrawerMode = 'create' | 'edit-treatment' | 'add-milestone' | 'edit-mileston
 
 @Component({
   selector: 'app-patient-treatments',
-  imports: [A11yModule, DatePipe, ReactiveFormsModule],
+  imports: [A11yModule, DatePipe, ReactiveFormsModule, RouterLink],
   providers: [TreatmentsStore],
   templateUrl: './patient-treatments.html',
   styleUrl: './patient-treatments.scss',
@@ -39,6 +46,7 @@ type DrawerMode = 'create' | 'edit-treatment' | 'add-milestone' | 'edit-mileston
 })
 export class PatientTreatments {
   private readonly permissions = inject(PermissionService);
+  private readonly clinicalVisitsApi = inject(ClinicalVisitsApiService);
   protected readonly store = inject(TreatmentsStore);
 
   readonly patientId = input.required<string>();
@@ -50,6 +58,8 @@ export class PatientTreatments {
   protected readonly editingMilestone = signal<TreatmentMilestone | null>(null);
   protected readonly historyOpen = signal(false);
   protected readonly cancelling = signal<string | null>(null);
+  protected readonly clinicalVisits = signal<ClinicalVisitSummary[]>([]);
+  protected readonly clinicalLabel = clinicalLabel;
 
   protected readonly current = computed(
     () => this.store.selectedTreatment() ?? this.store.featuredTreatment(),
@@ -62,6 +72,12 @@ export class PatientTreatments {
   protected readonly paused = this.store.pausedTreatments;
   protected readonly past = this.store.pastTreatments;
   protected readonly timeline = computed(() => this.current()?.milestones ?? []);
+  protected readonly currentClinicalVisits = computed(() => {
+    const treatmentId = this.current()?.id;
+    return treatmentId
+      ? this.clinicalVisits().filter((visit) => visit.treatmentId === treatmentId).slice(0, 5)
+      : [];
+  });
 
   protected readonly treatmentForm = new FormGroup({
     type: new FormControl<TreatmentType>('METAL_BRACES', { nonNullable: true }),
@@ -100,7 +116,10 @@ export class PatientTreatments {
   constructor() {
     effect(() => {
       const patientId = this.patientId();
-      if (patientId) void this.store.load(patientId);
+      if (patientId) {
+        void this.store.load(patientId);
+        void this.loadClinicalVisits(patientId);
+      }
     });
   }
 
@@ -302,6 +321,16 @@ export class PatientTreatments {
 
   private todayIso(): string {
     return new Date().toISOString().slice(0, 10);
+  }
+
+  private async loadClinicalVisits(patientId: string): Promise<void> {
+    try {
+      this.clinicalVisits.set(await firstValueFrom(this.clinicalVisitsApi.listForPatient(patientId)));
+    } catch {
+      // Treatment management remains usable if the read-only clinical history
+      // is temporarily unavailable; the canonical Visits tab offers retry UX.
+      this.clinicalVisits.set([]);
+    }
   }
 
   private toInstant(day: string): string {

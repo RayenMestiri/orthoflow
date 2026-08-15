@@ -128,6 +128,24 @@ describe('permissions', () => {
     expect(hasPermission(tenant, PERMISSIONS.MEMBERSHIP_CREATE)).toBe(false);
   });
 
+  it('keeps clinical visit notes away from the front desk and owner-only after sign-off', () => {
+    const secretary = buildTenantContext(buildUser(), CLINIC_A);
+    expect(hasPermission(secretary, PERMISSIONS.CLINICAL_VISIT_READ)).toBe(false);
+    expect(hasPermission(secretary, PERMISSIONS.CLINICAL_VISIT_MANAGE)).toBe(false);
+
+    const dentist = buildTenantContext(
+      buildUser({
+        memberships: [
+          { clinicId: CLINIC_A, role: CLINIC_ROLES.DENTIST, status: MEMBERSHIP_STATUSES.ACTIVE },
+        ],
+      }),
+      CLINIC_A,
+    );
+    expect(hasPermission(dentist, PERMISSIONS.CLINICAL_VISIT_READ)).toBe(true);
+    expect(hasPermission(dentist, PERMISSIONS.CLINICAL_VISIT_MANAGE)).toBe(true);
+    expect(hasPermission(dentist, PERMISSIONS.CLINICAL_VISIT_EDIT_COMPLETED)).toBe(false);
+  });
+
   it('reports every missing permission in the error details', () => {
     const tenant = buildTenantContext(buildUser(), CLINIC_A);
 

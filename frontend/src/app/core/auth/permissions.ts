@@ -25,6 +25,9 @@ export const PERMISSIONS = {
   TREATMENTS_VIEW: 'treatments.view',
   /** Plan, edit and drive the lifecycle of a course of care — a clinical decision. */
   TREATMENTS_MANAGE: 'treatments.manage',
+  CLINICAL_VISITS_VIEW: 'clinical-visits.view',
+  CLINICAL_VISITS_MANAGE: 'clinical-visits.manage',
+  CLINICAL_VISITS_EDIT_COMPLETED: 'clinical-visits.edit-completed',
   CASH_RECORDS_VIEW: 'cash-records.view',
   /** Record money the clinic physically received. Not an online payment. */
   CASH_RECORDS_RECORD: 'cash-records.record',
@@ -53,6 +56,8 @@ const clinicalPermissions: Permission[] = [
   PERMISSIONS.APPOINTMENTS_COMPLETE_VISIT,
   PERMISSIONS.TREATMENTS_VIEW,
   PERMISSIONS.TREATMENTS_MANAGE,
+  PERMISSIONS.CLINICAL_VISITS_VIEW,
+  PERMISSIONS.CLINICAL_VISITS_MANAGE,
   PERMISSIONS.CASH_RECORDS_VIEW,
   // Practitioners take money at the chair; cancelling stays with the owner.
   PERMISSIONS.CASH_RECORDS_RECORD,
@@ -64,6 +69,7 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
     PERMISSIONS.STAFF_MANAGE,
     PERMISSIONS.CLINIC_SETTINGS_MANAGE,
     PERMISSIONS.CASH_RECORDS_CANCEL,
+    PERMISSIONS.CLINICAL_VISITS_EDIT_COMPLETED,
   ],
   [CLINIC_ROLES.ORTHODONTIST]: clinicalPermissions,
   [CLINIC_ROLES.DENTIST]: clinicalPermissions,

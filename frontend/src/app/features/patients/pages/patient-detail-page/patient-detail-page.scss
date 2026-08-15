@@ -994,6 +994,15 @@
 
 /* Responsive Grid Adjustments */
 @media (max-width: 68rem) {
+  .profile-tabs {
+    flex-wrap: wrap;
+  }
+
+  .profile-tabs > button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
   .profile-header {
     flex-direction: column;
     align-items: flex-start;
@@ -1299,4 +1308,3 @@
   align-items: center;
   gap: 0.85rem;
 }
-

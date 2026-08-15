@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard, guestGuard, permissionGuard, roleGuard } from './core/auth/auth.guards';
 import { CLINIC_ROLES } from './core/auth/auth.models';
 import { PERMISSIONS } from './core/auth/permissions';
+import { clinicalVisitPendingChangesGuard } from './features/clinical-visits/pages/clinical-visit-page/clinical-visit-page';
 
 export const routes: Routes = [
   {
@@ -100,6 +101,28 @@ export const routes: Routes = [
           import('./features/reception/pages/today-page/today-page').then(
             (component) => component.TodayPage,
           ),
+      },
+      {
+        path: 'clinical-visits/appointments/:appointmentId',
+        title: 'Clinical visit — OrthoFlow',
+        canActivate: [permissionGuard],
+        canDeactivate: [clinicalVisitPendingChangesGuard],
+        data: { permission: PERMISSIONS.CLINICAL_VISITS_MANAGE },
+        loadComponent: () =>
+          import(
+            './features/clinical-visits/pages/clinical-visit-page/clinical-visit-page'
+          ).then((component) => component.ClinicalVisitPage),
+      },
+      {
+        path: 'clinical-visits/:visitId',
+        title: 'Clinical visit — OrthoFlow',
+        canActivate: [permissionGuard],
+        canDeactivate: [clinicalVisitPendingChangesGuard],
+        data: { permission: PERMISSIONS.CLINICAL_VISITS_VIEW },
+        loadComponent: () =>
+          import(
+            './features/clinical-visits/pages/clinical-visit-page/clinical-visit-page'
+          ).then((component) => component.ClinicalVisitPage),
       },
       {
         path: 'cash-records',

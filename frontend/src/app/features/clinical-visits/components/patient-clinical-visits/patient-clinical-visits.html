@@ -1,0 +1,50 @@
+<section class="visits" aria-labelledby="visits-title">
+  <header>
+    <div>
+      <span>Clinical record</span>
+      <h2 id="visits-title">Visits</h2>
+    </div>
+    <p>Signed session notes and drafts linked to appointments.</p>
+  </header>
+
+  @if (loading()) {
+    <div class="state" aria-live="polite">Loading clinical history…</div>
+  } @else if (error()) {
+    <div class="state state--error" role="alert">
+      <span>{{ error() }}</span>
+      <button type="button" (click)="load()">Try again</button>
+    </div>
+  } @else if (visits().length === 0) {
+    <div class="state">
+      <span class="material-icons" aria-hidden="true">clinical_notes</span>
+      <strong>No clinical visits yet</strong>
+      <p>A visit note appears here after an appointment is started from Today.</p>
+    </div>
+  } @else {
+    <ol class="visit-list">
+      @for (visit of visits(); track visit.id) {
+        <li>
+          <div class="date">
+            <strong>{{ visit.startedAt | date: 'd' }}</strong>
+            <span>{{ visit.startedAt | date: 'MMM y' }}</span>
+          </div>
+          <div class="summary">
+            <div>
+              <h3>{{ visit.reasonOther || label(visit.reasonCode) }}</h3>
+              <span class="status" [attr.data-status]="visit.status">{{ label(visit.status) }}</span>
+            </div>
+            <p>
+              {{ visit.procedures.length ? visit.procedures.length + ' procedure(s)' : 'No procedures recorded' }}
+              · {{ visit.clinicianName }}
+            </p>
+            @if (visit.nextStepNote) { <small>Next: {{ visit.nextStepNote }}</small> }
+          </div>
+          <a [routerLink]="['/app/clinical-visits', visit.id]">
+            {{ visit.status === 'DRAFT' ? 'Resume note' : 'View note' }}
+            <span class="material-icons" aria-hidden="true">arrow_forward</span>
+          </a>
+        </li>
+      }
+    </ol>
+  }
+</section>
