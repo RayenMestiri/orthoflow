@@ -216,8 +216,7 @@
         (click)="activeView.set('activity')"
       >
         <span class="material-icons" aria-hidden="true">history</span>
-        <span>Activity Log</span>
-        <span class="tab-badge">{{ activity().length }}</span>
+        <span>Activity</span>
       </button>
       @if (canViewTreatments) {
         <button
@@ -469,14 +468,6 @@
             </div>
 
             <div class="def-item">
-              <span class="material-icons def-icon">badge</span>
-              <div>
-                <dt>Created By</dt>
-                <dd>{{ createdBy() }}</dd>
-              </div>
-            </div>
-
-            <div class="def-item">
               <span class="material-icons def-icon">update</span>
               <div>
                 <dt>Last Updated</dt>
@@ -510,6 +501,11 @@
           }
         </section>
       </div>
+    } @else if (activeView() === 'activity') {
+      <app-patient-activity
+        [patientId]="current.id"
+        (sectionRequested)="openActivityTarget($event)"
+      />
     } @else if (activeView() === 'treatments') {
       <!-- Orthodontic treatment — owned by the treatments feature module -->
       <app-patient-treatments [patientId]="current.id" />
@@ -529,42 +525,6 @@
         [manageableCategories]="manageableMediaCategories"
         [treatmentOptions]="mediaTreatmentOptions()"
       />
-    } @else {
-      <!-- Activity Log Panel -->
-      <section class="profile-panel activity-panel">
-        <header class="panel-header">
-          <div>
-            <span class="panel-eyebrow">Audit Trail</span>
-            <h2>Patient Activity History</h2>
-          </div>
-          <span class="sort-tag">Newest First</span>
-        </header>
-
-        @if (activity().length === 0) {
-          <div class="guardian-empty">
-            <span class="material-icons" aria-hidden="true">history</span>
-            <strong>No activity recorded yet</strong>
-            <small
-              >Auditable changes and profile edits will appear here in chronological order.</small
-            >
-          </div>
-        }
-
-        <ol class="activity-list">
-          @for (item of activity(); track item.id) {
-            <li class="activity-item">
-              <span class="activity-dot" aria-hidden="true"></span>
-              <div class="activity-content">
-                <strong class="activity-title">{{ actionLabel(item.action) }}</strong>
-                <p class="activity-actor">By {{ item.actorName }}</p>
-              </div>
-              <time class="activity-time" [attr.datetime]="item.createdAt">{{
-                item.createdAt | date: 'medium'
-              }}</time>
-            </li>
-          }
-        </ol>
-      </section>
     }
 
     <!-- Guardian Modal Editor -->

@@ -8,8 +8,10 @@ import {
 } from '../../common/utils/request-context.js';
 import { ok, paginated } from '../../common/utils/response.js';
 import { patientService } from './patient.service.js';
+import { patientActivityService } from './patient-activity.service.js';
 import type {
   CreatePatientBody,
+  PatientActivityQuery,
   PatientIdParam,
   PatientListQuery,
   UpdatePatientBody,
@@ -40,10 +42,11 @@ export async function listPatientsHandler(request: FastifyRequest, reply: Fastif
 }
 
 export async function getPatientActivityHandler(request: FastifyRequest, reply: FastifyReply) {
-  const { page, limit } = validatedQuery<PatientListQuery>(request);
-  const { result, pagination } = await patientService.getActivity(
-    requireTenant(request).clinicId,
+  const { page, limit, filter } = validatedQuery<PatientActivityQuery>(request);
+  const { result, pagination } = await patientActivityService.list(
+    requireTenant(request),
     validatedParams<PatientIdParam>(request).patientId,
+    filter,
     { page, limit },
   );
   return reply.send(paginated(result, pagination));

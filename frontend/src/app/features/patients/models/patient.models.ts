@@ -47,13 +47,33 @@ export interface Guardian {
   updatedAt: string;
 }
 
+export type PatientActivityFilter = 'ALL' | 'CLINICAL' | 'APPOINTMENTS' | 'PAYMENTS' | 'DOCUMENTS';
+
+export type PatientActivityTargetType =
+  'APPOINTMENT' | 'TREATMENT' | 'CLINICAL_VISIT' | 'CASH_RECORD' | 'MEDIA';
+
 export interface PatientActivity {
   id: string;
-  action: string;
-  actorUserId: string | null;
-  actorName: string;
-  metadata: Record<string, unknown>;
-  createdAt: string;
+  type: string;
+  occurredAt: string;
+  title: string;
+  subtitle: string | null;
+  detail: string | null;
+  actor: { displayName: string; role: string | null } | null;
+  treatment: { id: string; label: string } | null;
+  appointmentId: string | null;
+  clinicalVisitId: string | null;
+  cashRecordId: string | null;
+  receiptId: string | null;
+  mediaId: string | null;
+  amountMinor: number | null;
+  currency: string | null;
+  receiptNumber: string | null;
+  scheduledAt: string | null;
+  recommendedAt: string | null;
+  cancellationReason: string | null;
+  targetType: PatientActivityTargetType | null;
+  targetId: string | null;
 }
 
 export interface PatientInput {

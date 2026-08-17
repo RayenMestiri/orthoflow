@@ -5,7 +5,6 @@ import { toPaginationParams } from '../../common/utils/pagination.js';
 import type { MutationContext } from '../../common/utils/request-context.js';
 import { auditLogService, type AuditLogService } from '../audit-logs/audit-log.service.js';
 import { AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '../audit-logs/audit-log.types.js';
-import { userRepository, type UserRepository } from '../users/user.repository.js';
 import { guardianRepository, type GuardianRepository } from '../guardians/guardian.repository.js';
 import {
   patientGuardianRepository,
@@ -16,7 +15,6 @@ import { patientRepository, type PatientRepository } from './patient.repository.
 import type {
   CreatePatientInput,
   PatientDto,
-  PatientActivityDto,
   PatientListFilters,
   UpdatePatientInput,
 } from './patient.types.js';
@@ -33,7 +31,6 @@ export class PatientService {
   constructor(
     private readonly patients: PatientRepository = patientRepository,
     private readonly audit: AuditLogService = auditLogService,
-    private readonly users: UserRepository = userRepository,
     private readonly guardians: GuardianRepository = guardianRepository,
     private readonly patientGuardians: PatientGuardianRepository = patientGuardianRepository,
   ) {}
@@ -89,42 +86,6 @@ export class PatientService {
       throw new NotFoundError('Patient not found', { code: ERROR_CODES.PATIENT_NOT_FOUND });
     }
     return toPatientDto(patient);
-  }
-
-  async getActivity(
-    clinicId: string,
-    patientId: string,
-    page: { page?: number; limit?: number },
-  ): Promise<{ result: PaginatedResult<PatientActivityDto>; pagination: PaginationParams }> {
-    await this.getById(clinicId, patientId);
-    const { result, pagination } = await this.audit.listForClinic(
-      clinicId,
-      { resourceType: AUDIT_RESOURCE_TYPES.PATIENT, resourceId: patientId },
-      page,
-    );
-    const actorIds = [
-      ...new Set(result.items.flatMap((item) => (item.actorUserId ? [item.actorUserId] : []))),
-    ];
-    const actors = await this.users.findManyByIds(actorIds);
-    const actorNames = new Map(
-      actors.map((actor) => [actor._id.toString(), `${actor.firstName} ${actor.lastName}`.trim()]),
-    );
-    return {
-      result: {
-        total: result.total,
-        items: result.items.map((item) => ({
-          id: item.id,
-          action: item.action,
-          actorUserId: item.actorUserId,
-          actorName: item.actorUserId
-            ? (actorNames.get(item.actorUserId) ?? 'Clinic team member')
-            : 'System',
-          metadata: item.metadata,
-          createdAt: item.createdAt,
-        })),
-      },
-      pagination,
-    };
   }
 
   async create(

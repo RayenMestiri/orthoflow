@@ -352,6 +352,7 @@ export const auditLogRepositoryMock = {
 };
 
 export const TREATMENT_ID = '652f1c9b8a1e4f0012abffff';
+export const VISIT_ID = '652f1c9b8a1e4f0012abeeee';
 
 export function treatmentRecord(clinicId: string, treatmentId = TREATMENT_ID) {
   return {
@@ -420,6 +421,64 @@ export const treatmentRepositoryMock = {
   listMilestonesByTreatmentIds: vi.fn(async () => []),
 };
 
+export function clinicalVisitRecord(clinicId: string, visitId = VISIT_ID) {
+  return {
+    _id: new Types.ObjectId(visitId),
+    clinicId: new Types.ObjectId(clinicId),
+    patientId: new Types.ObjectId(PATIENT_ID),
+    appointmentId: new Types.ObjectId(APPOINTMENT_ID),
+    treatmentId: null,
+    status: 'DRAFT' as const,
+    reasonCode: null,
+    reasonOther: null,
+    observations: null,
+    procedures: [] as never[],
+    procedureDetails: null,
+    patientInstructions: null,
+    doctorNote: null,
+    nextVisitRecommendedAt: null,
+    nextStepNote: null,
+    startedAt: FIXED_DATE,
+    completedAt: null,
+    createdBy: new Types.ObjectId(USER_ID),
+    updatedBy: null,
+    createdAt: FIXED_DATE,
+    updatedAt: FIXED_DATE,
+  };
+}
+
+export const clinicalVisitRepositoryMock = {
+  findByIdInClinic: vi.fn(async (visitId: string, clinicId: string) =>
+    clinicalVisitRecord(clinicId, visitId),
+  ),
+  findByAppointment: vi.fn(async () => null),
+  findPreviousCompleted: vi.fn(async () => null),
+  listByPatient: vi.fn(async () => ({ items: [], total: 0 })),
+  create: vi.fn(async (input: { clinicId: string }) => clinicalVisitRecord(input.clinicId)),
+  update: vi.fn(async (visitId: string, clinicId: string) =>
+    clinicalVisitRecord(clinicId, visitId),
+  ),
+  complete: vi.fn(async (visitId: string, clinicId: string) =>
+    ({ ...clinicalVisitRecord(clinicId, visitId), status: 'COMPLETED' as const })
+  ),
+};
+
+export const patientActivityRepositoryMock = {
+  listAudits: vi.fn(async () => ({ items: [], total: 0 })),
+  listFollowUps: vi.fn(async () => ({ items: [], total: 0 })),
+  loadContext: vi.fn(async () => ({
+    appointments: new Map(),
+    appointmentTypes: new Map(),
+    treatments: new Map(),
+    visits: new Map(),
+    cashRecords: new Map(),
+    receipts: new Map(),
+    media: new Map(),
+    users: new Map(),
+    memberships: new Map(),
+  })),
+};
+
 export function resetRepositoryMocks(): void {
   const repositories = [
     userRepositoryMock,
@@ -432,6 +491,8 @@ export function resetRepositoryMocks(): void {
     appointmentRepositoryMock,
     appointmentTypeRepositoryMock,
     treatmentRepositoryMock,
+    clinicalVisitRepositoryMock,
+    patientActivityRepositoryMock,
     auditLogRepositoryMock,
   ];
 
@@ -443,3 +504,4 @@ export function resetRepositoryMocks(): void {
     }
   }
 }
+

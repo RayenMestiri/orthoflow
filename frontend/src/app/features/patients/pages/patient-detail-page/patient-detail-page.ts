@@ -19,6 +19,7 @@ import {
 import { PatientTreatments } from '../../../treatments/components/patient-treatments/patient-treatments';
 import { TreatmentsApiService } from '../../../treatments/data-access/treatments-api.service';
 import { treatmentTypeLabel } from '../../../treatments/models/treatment.models';
+import { PatientActivityTimeline } from '../../components/patient-activity/patient-activity';
 import { PatientsApiService } from '../../data-access/patients-api.service';
 import type {
   ContactPreference,
@@ -26,7 +27,7 @@ import type {
   GuardianInput,
   GuardianRelationship,
   Patient,
-  PatientActivity,
+  PatientActivityTargetType,
 } from '../../models/patient.models';
 
 @Component({
@@ -38,6 +39,7 @@ import type {
     PatientClinicalVisits,
     PatientMediaWorkspace,
     PatientTreatments,
+    PatientActivityTimeline,
     ReactiveFormsModule,
     RouterLink,
   ],
@@ -54,7 +56,6 @@ export class PatientDetailPage {
   readonly patientId = this.route.snapshot.paramMap.get('patientId') ?? '';
   readonly patient = signal<Patient | null>(null);
   readonly guardians = signal<Guardian[]>([]);
-  readonly activity = signal<PatientActivity[]>([]);
   readonly nextFollowUp = signal<FollowUpRow | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -98,11 +99,6 @@ export class PatientDetailPage {
   );
   readonly primaryGuardian = computed(
     () => this.guardians().find((guardian) => guardian.isPrimary) ?? null,
-  );
-  readonly createdBy = computed(
-    () =>
-      this.activity().find((item) => item.action === 'patient.created')?.actorName ??
-      'Clinic team member',
   );
 
   readonly guardianForm = new FormGroup({
@@ -152,14 +148,12 @@ export class PatientDetailPage {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [patient, guardians, activity] = await Promise.all([
+      const [patient, guardians] = await Promise.all([
         firstValueFrom(this.api.get(this.patientId)),
         firstValueFrom(this.api.listGuardians(this.patientId)),
-        firstValueFrom(this.api.activity(this.patientId)),
       ]);
       this.patient.set(patient);
       this.guardians.set(guardians);
-      this.activity.set(activity.items);
       if (this.canViewFollowUps) {
         try {
           const followUps = await firstValueFrom(
@@ -249,8 +243,6 @@ export class PatientDetailPage {
       this.notice.set(
         editing ? 'Guardian information updated.' : 'Guardian added to this patient.',
       );
-      const activity = await firstValueFrom(this.api.activity(this.patientId));
-      this.activity.set(activity.items);
     } catch (error) {
       this.guardianError.set(getApiProblem(error).message);
     } finally {
@@ -264,8 +256,6 @@ export class PatientDetailPage {
       this.patient.set(await firstValueFrom(this.api.archive(this.patientId)));
       this.archiveOpen.set(false);
       this.notice.set('Patient archived. The record remains available in the archived filter.');
-      const activity = await firstValueFrom(this.api.activity(this.patientId));
-      this.activity.set(activity.items);
     } catch (error) {
       this.error.set(getApiProblem(error).message);
       this.archiveOpen.set(false);
@@ -278,16 +268,10 @@ export class PatientDetailPage {
     return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase();
   }
 
-  actionLabel(action: string): string {
-    const labels: Record<string, string> = {
-      'patient.created': 'Patient created',
-      'patient.updated': 'Patient information updated',
-      'patient.archived': 'Patient archived',
-      'patient.restored': 'Patient restored',
-      'guardian.linked': 'Guardian added',
-      'guardian.updated': 'Guardian information updated',
-    };
-    return labels[action] ?? action.replaceAll('.', ' ');
+  openActivityTarget(target: PatientActivityTargetType): void {
+    if (target === 'TREATMENT' && this.canViewTreatments) this.activeView.set('treatments');
+    if (target === 'CASH_RECORD' && this.canViewPayments) this.activeView.set('payments');
+    if (target === 'MEDIA' && this.canViewMedia) void this.openMedia();
   }
 
   relationshipLabel(value: string): string {

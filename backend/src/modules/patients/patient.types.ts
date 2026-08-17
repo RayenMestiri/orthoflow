@@ -132,12 +132,3 @@ export interface PatientDto {
     relationship: string;
   } | null;
 }
-
-export interface PatientActivityDto {
-  id: string;
-  action: string;
-  actorUserId: string | null;
-  actorName: string;
-  metadata: Record<string, unknown>;
-  createdAt: string;
-}

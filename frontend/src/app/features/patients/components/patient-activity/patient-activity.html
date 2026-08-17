@@ -1,0 +1,149 @@
+<section class="patient-activity" aria-labelledby="patient-activity-title">
+  <header class="patient-activity__header">
+    <div>
+      <span class="patient-activity__eyebrow">Care history</span>
+      <h2 id="patient-activity-title">Activity</h2>
+      <p>Appointments, care, payments and documents in one chronology.</p>
+    </div>
+    @if (!loading() && total() > 0) {
+      <span class="patient-activity__count">{{ total() }} events</span>
+    }
+  </header>
+
+  <div class="patient-activity__filters" role="group" aria-label="Filter patient activity">
+    @for (option of filters; track option.value) {
+      <button
+        type="button"
+        [class.active]="filter() === option.value"
+        [attr.aria-pressed]="filter() === option.value"
+        (click)="chooseFilter(option.value)"
+      >
+        {{ option.label }}
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="activity-skeleton" role="status" aria-label="Loading patient activity">
+      @for (row of [1, 2, 3, 4]; track row) {
+        <div class="activity-skeleton__row">
+          <span></span>
+          <div><i></i><i></i><i></i></div>
+        </div>
+      }
+    </div>
+  } @else if (error() && items().length === 0) {
+    <div class="activity-state" role="alert">
+      <span class="material-icons" aria-hidden="true">cloud_off</span>
+      <strong>Activity couldn't be loaded</strong>
+      <p>{{ error() }}</p>
+      <button type="button" (click)="reload()">Try again</button>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="activity-state">
+      <span class="material-icons" aria-hidden="true">history</span>
+      <strong>No activity yet</strong>
+      <p>
+        Patient activity will appear here as appointments, visits, payments and documents are
+        recorded.
+      </p>
+    </div>
+  } @else {
+    <div class="activity-groups">
+      @for (group of groups(); track group.key) {
+        <section class="activity-day" [attr.aria-labelledby]="'activity-day-' + group.key">
+          <h3 [id]="'activity-day-' + group.key">{{ group.label }}</h3>
+          <ol class="activity-list">
+            @for (item of group.items; track item.id) {
+              <li class="activity-item">
+                <time [attr.datetime]="item.occurredAt">{{ time(item.occurredAt) }}</time>
+                <span class="activity-item__marker" aria-hidden="true">
+                  <span class="material-icons">{{ iconFor(item) }}</span>
+                </span>
+                <div class="activity-item__body">
+                  @if (amount(item); as paymentAmount) {
+                    <strong
+                      class="activity-item__amount"
+                      [class.cancelled]="item.type === 'PAYMENT_CANCELLED'"
+                    >
+                      {{ paymentAmount }}
+                    </strong>
+                  }
+                  @if (item.targetType === 'APPOINTMENT' && item.targetId) {
+                    <a
+                      class="activity-item__title activity-item__title--link"
+                      routerLink="/app/schedule"
+                      [queryParams]="{ appointmentId: item.targetId }"
+                      >{{ item.title }}</a
+                    >
+                  } @else if (item.targetType === 'CLINICAL_VISIT' && item.targetId) {
+                    <a
+                      class="activity-item__title activity-item__title--link"
+                      [routerLink]="['/app/clinical-visits', item.targetId]"
+                      >{{ item.title }}</a
+                    >
+                  } @else if (isSectionTarget(item)) {
+                    <button
+                      class="activity-item__title activity-item__title--link"
+                      type="button"
+                      (click)="requestSection(item)"
+                    >
+                      {{ item.title }}
+                    </button>
+                  } @else {
+                    <strong class="activity-item__title">{{ item.title }}</strong>
+                  }
+
+                  @if (item.subtitle) {
+                    <span class="activity-item__subtitle">{{ item.subtitle }}</span>
+                  }
+                  @if (item.detail) {
+                    <span class="activity-item__detail">{{ item.detail }}</span>
+                  }
+                  @if (item.scheduledAt) {
+                    <span class="activity-item__detail"
+                      >Scheduled for {{ dateTime(item.scheduledAt) }}</span
+                    >
+                  }
+                  @if (item.recommendedAt) {
+                    <span class="activity-item__detail"
+                      >Recommended {{ date(item.recommendedAt) }}</span
+                    >
+                  }
+                  @if (item.receiptNumber) {
+                    <span class="activity-item__detail">Receipt {{ item.receiptNumber }}</span>
+                  }
+                  @if (item.cancellationReason) {
+                    <span class="activity-item__reason">Reason: {{ item.cancellationReason }}</span>
+                  }
+                  @if (item.actor; as actor) {
+                    <span class="activity-item__actor">
+                      {{ actor.displayName }}
+                      @if (actorRole(actor.role); as role) {
+                        · {{ role }}
+                      }
+                    </span>
+                  }
+                </div>
+              </li>
+            }
+          </ol>
+        </section>
+      }
+    </div>
+
+    @if (error()) {
+      <p class="activity-load-error" role="alert">{{ error() }}</p>
+    }
+    @if (hasMore()) {
+      <button
+        class="activity-load-more"
+        type="button"
+        [disabled]="loadingMore()"
+        (click)="loadMore()"
+      >
+        {{ loadingMore() ? 'Loading…' : 'Load earlier activity' }}
+      </button>
+    }
+  }
+</section>

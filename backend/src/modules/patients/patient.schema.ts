@@ -9,6 +9,12 @@ import {
   searchQuerySchema,
 } from '../../common/validation/common.schemas.js';
 import { PATIENT_GENDER_VALUES, PATIENT_STATUS_VALUES } from './patient.types.js';
+import {
+  PATIENT_ACTIVITY_FILTER_VALUES,
+  PATIENT_ACTIVITY_TARGET_VALUES,
+  PATIENT_ACTIVITY_TYPE_VALUES,
+} from './patient-activity.types.js';
+import { CLINIC_ROLE_VALUES } from '../../common/constants/roles.js';
 
 const patientAddressSchema = z.object({
   line1: z.string().trim().max(160).nullable().optional(),
@@ -91,12 +97,33 @@ export const patientListQuerySchema = paginationQuerySchema.extend({
 });
 
 export const patientActivityDtoSchema = z.object({
-  id: objectIdSchema,
-  action: z.string(),
-  actorUserId: objectIdSchema.nullable(),
-  actorName: z.string(),
-  metadata: z.record(z.string(), z.unknown()),
-  createdAt: z.string(),
+  id: z.string().min(1),
+  type: z.enum(PATIENT_ACTIVITY_TYPE_VALUES),
+  occurredAt: z.string(),
+  title: z.string(),
+  subtitle: z.string().nullable(),
+  detail: z.string().nullable(),
+  actor: z
+    .object({ displayName: z.string(), role: z.enum(CLINIC_ROLE_VALUES).nullable() })
+    .nullable(),
+  treatment: z.object({ id: objectIdSchema, label: z.string() }).nullable(),
+  appointmentId: objectIdSchema.nullable(),
+  clinicalVisitId: objectIdSchema.nullable(),
+  cashRecordId: objectIdSchema.nullable(),
+  receiptId: objectIdSchema.nullable(),
+  mediaId: objectIdSchema.nullable(),
+  amountMinor: z.number().int().nullable(),
+  currency: z.string().nullable(),
+  receiptNumber: z.string().nullable(),
+  scheduledAt: z.string().nullable(),
+  recommendedAt: z.string().nullable(),
+  cancellationReason: z.string().nullable(),
+  targetType: z.enum(PATIENT_ACTIVITY_TARGET_VALUES).nullable(),
+  targetId: objectIdSchema.nullable(),
+});
+
+export const patientActivityQuerySchema = paginationQuerySchema.extend({
+  filter: z.enum(PATIENT_ACTIVITY_FILTER_VALUES).default('ALL'),
 });
 
 export const patientIdParamSchema = z.object({
@@ -106,4 +133,5 @@ export const patientIdParamSchema = z.object({
 export type CreatePatientBody = z.infer<typeof createPatientBodySchema>;
 export type UpdatePatientBody = z.infer<typeof updatePatientBodySchema>;
 export type PatientListQuery = z.infer<typeof patientListQuerySchema>;
+export type PatientActivityQuery = z.infer<typeof patientActivityQuerySchema>;
 export type PatientIdParam = z.infer<typeof patientIdParamSchema>;

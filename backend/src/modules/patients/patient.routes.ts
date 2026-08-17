@@ -16,6 +16,7 @@ import {
 } from './patient.controller.js';
 import {
   createPatientBodySchema,
+  patientActivityQuerySchema,
   patientDtoSchema,
   patientActivityDtoSchema,
   patientIdParamSchema,
@@ -43,7 +44,7 @@ export const patientRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: 'Read patient activity',
         security: [{ bearerAuth: [] }],
         params: patientIdParamSchema,
-        querystring: patientListQuerySchema.pick({ page: true, limit: true }),
+        querystring: patientActivityQuerySchema,
         response: {
           200: paginatedSchema(patientActivityDtoSchema),
           ...errorResponses(400, 401, 403, 404),

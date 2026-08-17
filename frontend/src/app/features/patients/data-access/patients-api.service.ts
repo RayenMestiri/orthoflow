@@ -9,6 +9,7 @@ import type {
   PaginatedData,
   Patient,
   PatientActivity,
+  PatientActivityFilter,
   PatientInput,
   PatientListQuery,
 } from '../models/patient.models';
@@ -82,8 +83,13 @@ export class PatientsApiService {
       .pipe(map((response) => response.data));
   }
 
-  activity(patientId: string, page = 1, limit = 20): Observable<PaginatedData<PatientActivity>> {
-    const params = new HttpParams().set('page', page).set('limit', limit);
+  activity(
+    patientId: string,
+    page = 1,
+    limit = 20,
+    filter: PatientActivityFilter = 'ALL',
+  ): Observable<PaginatedData<PatientActivity>> {
+    const params = new HttpParams().set('page', page).set('limit', limit).set('filter', filter);
     return this.http
       .get<PaginatedEnvelope<PatientActivity>>(`${this.patientsUrl}/${patientId}/activity`, {
         params,

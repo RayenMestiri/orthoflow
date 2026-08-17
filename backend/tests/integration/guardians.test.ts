@@ -130,20 +130,6 @@ describe('patient guardians', () => {
     expect(guardianRepositoryMock.create).not.toHaveBeenCalled();
   });
 
-  it('reads patient activity from tenant-scoped audit records', async () => {
-    const response = await app.inject({
-      method: 'GET',
-      url: `/api/v1/patients/${PATIENT_ID}/activity`,
-      headers: authHeader(),
-    });
-
-    expect(response.statusCode).toBe(200);
-    expect(auditLogRepositoryMock.listByClinic).toHaveBeenCalledWith(
-      CLINIC_A,
-      expect.objectContaining({ resourceType: 'patient', resourceId: PATIENT_ID }),
-      expect.anything(),
-    );
-  });
 
   it('rejects an unsupported relationship before persistence', async () => {
     const response = await app.inject({
