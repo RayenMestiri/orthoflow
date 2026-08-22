@@ -16,6 +16,17 @@ export const PATIENT_ACTIVITY_FILTER_VALUES = Object.values(PATIENT_ACTIVITY_FIL
   ...PatientActivityFilter[],
 ];
 
+export const PATIENT_ACTIVITY_CATEGORIES = {
+  CLINICAL: 'CLINICAL',
+  APPOINTMENT: 'APPOINTMENT',
+  PAYMENT: 'PAYMENT',
+  DOCUMENT: 'DOCUMENT',
+  TREATMENT: 'TREATMENT',
+} as const;
+
+export type PatientActivityCategory =
+  (typeof PATIENT_ACTIVITY_CATEGORIES)[keyof typeof PATIENT_ACTIVITY_CATEGORIES];
+
 export const PATIENT_ACTIVITY_TYPES = {
   APPOINTMENT_SCHEDULED: 'APPOINTMENT_SCHEDULED',
   APPOINTMENT_RESCHEDULED: 'APPOINTMENT_RESCHEDULED',
@@ -68,12 +79,13 @@ export const PATIENT_ACTIVITY_TARGET_VALUES = Object.values(PATIENT_ACTIVITY_TAR
 
 export interface PatientActivityDto {
   id: string;
+  category: PatientActivityCategory;
   type: PatientActivityType;
   occurredAt: string;
   title: string;
   subtitle: string | null;
   detail: string | null;
-  actor: { displayName: string; role: ClinicRole | null } | null;
+  actor: { id?: string; displayName: string; role: ClinicRole | null } | null;
   treatment: { id: string; label: string } | null;
   appointmentId: string | null;
   clinicalVisitId: string | null;

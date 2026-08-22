@@ -191,6 +191,7 @@ export const membershipRepositoryMock = {
 
 export const clinicRepositoryMock = {
   findById: vi.fn(async (clinicId: string) => clinicRecord(clinicId)),
+  isActiveClinic: vi.fn(async () => testState.clinicStatus === CLINIC_STATUSES.ACTIVE),
   findManyByIds: vi.fn(async (clinicIds: string[]) => clinicIds.map(clinicRecord)),
   existsBySlug: vi.fn(async () => false),
   create: vi.fn(),
@@ -314,6 +315,10 @@ export const guardianRepositoryMock = {
   findManyByIdsInClinic: vi.fn(async (_guardianIds: string[], clinicId: string) => [
     guardianRecord(clinicId),
   ]),
+  findByIdInClinic: vi.fn(async (guardianId: string, clinicId: string) =>
+    guardianRecord(clinicId, guardianId),
+  ),
+  searchInClinic: vi.fn(async (clinicId: string) => [guardianRecord(clinicId)]),
   updateInClinic: vi.fn(async (_guardianId: string, clinicId: string) => guardianRecord(clinicId)),
 };
 
@@ -333,6 +338,11 @@ export const patientGuardianRepositoryMock = {
   update: vi.fn(async (_patientId: string, _guardianId: string, clinicId: string) =>
     patientGuardianRecord(clinicId),
   ),
+  unlink: vi.fn(async () => true),
+  listSiblingsByGuardian: vi.fn(async (_guardianId: string, clinicId: string) => [
+    patientGuardianRecord(clinicId),
+  ]),
+  countByGuardianInClinic: vi.fn(async () => 1),
 };
 
 export const auditLogRepositoryMock = {
@@ -464,16 +474,17 @@ export const clinicalVisitRepositoryMock = {
 };
 
 export const patientActivityRepositoryMock = {
-  listAudits: vi.fn(async () => ({ items: [], total: 0 })),
-  listFollowUps: vi.fn(async () => ({ items: [], total: 0 })),
+  fetchDomainRecords: vi.fn(async () => ({
+    appointments: [],
+    visits: [],
+    treatments: [],
+    cashRecords: [],
+    media: [],
+  })),
   loadContext: vi.fn(async () => ({
-    appointments: new Map(),
     appointmentTypes: new Map(),
     treatments: new Map(),
-    visits: new Map(),
-    cashRecords: new Map(),
     receipts: new Map(),
-    media: new Map(),
     users: new Map(),
     memberships: new Map(),
   })),

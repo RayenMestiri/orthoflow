@@ -2,15 +2,16 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
+  DestroyRef,
   inject,
   input,
+  OnInit,
   output,
   signal,
-  untracked,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { Router } from '@angular/router';
+import { Subject, switchMap, tap, catchError, of } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { getApiProblem } from '../../../../core/http/api-error';
 import { formatMoney } from '../../../cash-records/utils/money-format.util';
 import { ClinicSettingsStore } from '../../../settings/data-access/clinic-settings.store';
@@ -21,24 +22,32 @@ import type {
   PatientActivityTargetType,
 } from '../../models/patient.models';
 
-interface ActivityGroup {
+export interface ActivityGroup {
   key: string;
   label: string;
   items: PatientActivity[];
 }
 
+export interface ActivityNavigationEvent {
+  targetType: PatientActivityTargetType;
+  targetId: string | null;
+  activity: PatientActivity;
+}
+
 @Component({
   selector: 'app-patient-activity',
-  imports: [RouterLink],
   templateUrl: './patient-activity.html',
   styleUrl: './patient-activity.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PatientActivityTimeline {
+export class PatientActivityTimeline implements OnInit {
   private readonly api = inject(PatientsApiService);
+  private readonly router = inject(Router);
   private readonly clinicSettings = inject(ClinicSettingsStore);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly patientId = input.required<string>();
+  readonly itemSelected = output<ActivityNavigationEvent>();
   readonly sectionRequested = output<PatientActivityTargetType>();
 
   protected readonly items = signal<PatientActivity[]>([]);
@@ -48,128 +57,161 @@ export class PatientActivityTimeline {
   protected readonly loading = signal(true);
   protected readonly loadingMore = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly loadMoreError = signal<string | null>(null);
+
   protected readonly hasMore = computed(() => this.items().length < this.total());
   protected readonly timezone = computed(
-    () => this.clinicSettings.settings()?.general.timezone ?? 'UTC',
+    () => this.clinicSettings.settings()?.general.timezone ?? 'Africa/Tunis',
   );
   protected readonly groups = computed(() => this.groupItems(this.items()));
 
   protected readonly filters: readonly { value: PatientActivityFilter; label: string }[] = [
-    { value: 'ALL', label: 'All' },
-    { value: 'CLINICAL', label: 'Clinical' },
-    { value: 'APPOINTMENTS', label: 'Appointments' },
-    { value: 'PAYMENTS', label: 'Payments' },
+    { value: 'ALL', label: 'Tous' },
+    { value: 'CLINICAL', label: 'Clinique' },
+    { value: 'APPOINTMENTS', label: 'Rendez-vous' },
+    { value: 'PAYMENTS', label: 'Paiements' },
     { value: 'DOCUMENTS', label: 'Documents' },
   ];
 
-  constructor() {
+  private readonly filterChange$ = new Subject<{
+    patientId: string;
+    filter: PatientActivityFilter;
+  }>();
+
+  ngOnInit(): void {
     void this.clinicSettings.load();
-    effect(() => {
-      this.patientId();
-      untracked(() => void this.reload());
-    });
+
+    // Stream-based filter switching with switchMap to prevent stale race conditions
+    this.filterChange$
+      .pipe(
+        tap(() => {
+          this.loading.set(true);
+          this.error.set(null);
+          this.loadMoreError.set(null);
+        }),
+        switchMap(({ patientId, filter }) =>
+          this.api.activity(patientId, 1, 20, filter).pipe(
+            catchError((err) => {
+              this.error.set(getApiProblem(err).message);
+              return of(null);
+            }),
+          ),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((result) => {
+        this.loading.set(false);
+        if (result) {
+          this.items.set(result.items);
+          this.total.set(result.total);
+          this.page.set(1);
+        } else {
+          this.items.set([]);
+          this.total.set(0);
+        }
+      });
+
+    // Trigger initial load
+    this.triggerLoad();
   }
 
-  protected async chooseFilter(filter: PatientActivityFilter): Promise<void> {
+  protected chooseFilter(filter: PatientActivityFilter): void {
     if (filter === this.filter()) return;
     this.filter.set(filter);
-    await this.reload();
+    this.triggerLoad();
   }
 
-  protected async reload(): Promise<void> {
-    this.loading.set(true);
-    this.error.set(null);
-    try {
-      const result = await firstValueFrom(
-        this.api.activity(this.patientId(), 1, 20, this.filter()),
-      );
-      this.items.set(result.items);
-      this.total.set(result.total);
-      this.page.set(1);
-    } catch (error) {
-      this.items.set([]);
-      this.total.set(0);
-      this.error.set(getApiProblem(error).message);
-    } finally {
-      this.loading.set(false);
+  protected retry(): void {
+    this.triggerLoad();
+  }
+
+  private triggerLoad(): void {
+    const pId = this.patientId();
+    if (pId) {
+      this.filterChange$.next({ patientId: pId, filter: this.filter() });
     }
   }
 
-  protected async loadMore(): Promise<void> {
+  protected loadMore(): void {
     if (this.loadingMore() || !this.hasMore()) return;
     this.loadingMore.set(true);
-    this.error.set(null);
+    this.loadMoreError.set(null);
     const nextPage = this.page() + 1;
-    try {
-      const result = await firstValueFrom(
-        this.api.activity(this.patientId(), nextPage, 20, this.filter()),
-      );
-      this.items.update((items) => [...items, ...result.items]);
-      this.total.set(result.total);
-      this.page.set(nextPage);
-    } catch (error) {
-      this.error.set(getApiProblem(error).message);
-    } finally {
-      this.loadingMore.set(false);
+
+    this.api
+      .activity(this.patientId(), nextPage, 20, this.filter())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (result) => {
+          this.items.update((current) => [...current, ...result.items]);
+          this.total.set(result.total);
+          this.page.set(nextPage);
+          this.loadingMore.set(false);
+        },
+        error: (err) => {
+          this.loadMoreError.set(getApiProblem(err).message);
+          this.loadingMore.set(false);
+        },
+      });
+  }
+
+  protected onEventClick(item: PatientActivity): void {
+    if (item.targetType) {
+      this.itemSelected.emit({
+        targetType: item.targetType,
+        targetId: item.targetId,
+        activity: item,
+      });
+      this.sectionRequested.emit(item.targetType);
+    }
+
+    if (item.targetType === 'APPOINTMENT' && item.targetId) {
+      void this.router.navigate(['/app/schedule'], {
+        queryParams: { appointmentId: item.targetId },
+      });
     }
   }
 
   protected iconFor(item: PatientActivity): string {
-    if (item.type.startsWith('PAYMENT')) return 'receipt_long';
-    if (item.type.startsWith('DOCUMENT')) return 'description';
-    if (item.type.startsWith('APPOINTMENT') || item.type.startsWith('PATIENT_')) return 'event';
-    if (item.type === 'VISIT_STARTED' || item.type.startsWith('CLINICAL')) return 'clinical_notes';
-    if (item.type.startsWith('FOLLOW_UP')) return 'event_repeat';
-    return 'medical_services';
+    switch (item.category) {
+      case 'PAYMENT':
+        return 'receipt_long';
+      case 'DOCUMENT':
+        return item.type === 'DOCUMENT_ARCHIVED' ? 'archive' : 'description';
+      case 'APPOINTMENT':
+        if (item.type === 'APPOINTMENT_CANCELLED') return 'event_busy';
+        if (item.type === 'APPOINTMENT_NO_SHOW') return 'person_off';
+        if (item.type === 'APPOINTMENT_COMPLETED') return 'event_available';
+        return 'event';
+      case 'CLINICAL':
+        if (item.type === 'FOLLOW_UP_RECOMMENDED') return 'event_repeat';
+        return 'clinical_notes';
+      case 'TREATMENT':
+        if (item.type === 'TREATMENT_CANCELLED') return 'cancel';
+        if (item.type === 'TREATMENT_COMPLETED') return 'check_circle';
+        return 'healing';
+      default:
+        return 'fiber_manual_record';
+    }
   }
 
   protected time(iso: string): string {
-    return new Intl.DateTimeFormat('en', {
-      timeZone: this.timezone(),
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).format(new Date(iso));
-  }
-
-  protected dateTime(iso: string): string {
-    return new Intl.DateTimeFormat('en', {
-      timeZone: this.timezone(),
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).format(new Date(iso));
-  }
-
-  protected date(iso: string): string {
-    return new Intl.DateTimeFormat('en', {
-      timeZone: this.timezone(),
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }).format(new Date(iso));
+    try {
+      return new Intl.DateTimeFormat('fr-FR', {
+        timeZone: this.timezone(),
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).format(new Date(iso));
+    } catch {
+      return '';
+    }
   }
 
   protected amount(item: PatientActivity): string | null {
-    return item.amountMinor === null || !item.currency
-      ? null
-      : `${item.type === 'PAYMENT_CANCELLED' ? '' : '+'}${formatMoney(item.amountMinor, item.currency)}`;
-  }
-
-  protected actorRole(role: string | null): string | null {
-    if (!role) return null;
-    const label = role.toLowerCase().replaceAll('_', ' ');
-    return label.charAt(0).toUpperCase() + label.slice(1);
-  }
-
-  protected requestSection(item: PatientActivity): void {
-    if (item.targetType) this.sectionRequested.emit(item.targetType);
-  }
-
-  protected isSectionTarget(item: PatientActivity): boolean {
-    return ['TREATMENT', 'CASH_RECORD', 'MEDIA'].includes(item.targetType ?? '');
+    if (item.amountMinor === null || !item.currency) return null;
+    const formatted = formatMoney(item.amountMinor, item.currency);
+    return item.type === 'PAYMENT_CANCELLED' ? formatted : `+${formatted}`;
   }
 
   private groupItems(items: PatientActivity[]): ActivityGroup[] {
@@ -186,26 +228,43 @@ export class PatientActivityTimeline {
   }
 
   private dayKey(iso: string): string {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: this.timezone(),
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).formatToParts(new Date(iso));
-    const part = (type: Intl.DateTimeFormatPartTypes): string =>
-      parts.find((candidate) => candidate.type === type)?.value ?? '';
-    return `${part('year')}-${part('month')}-${part('day')}`;
+    try {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: this.timezone(),
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(new Date(iso));
+      const part = (type: Intl.DateTimeFormatPartTypes): string =>
+        parts.find((candidate) => candidate.type === type)?.value ?? '';
+      return `${part('year')}-${part('month')}-${part('day')}`;
+    } catch {
+      return 'unknown';
+    }
   }
 
   private dayLabel(key: string, iso: string): string {
-    const now = new Date();
-    if (key === this.dayKey(now.toISOString())) return 'Today';
-    if (key === this.dayKey(new Date(now.getTime() - 86_400_000).toISOString())) return 'Yesterday';
-    return new Intl.DateTimeFormat('en', {
-      timeZone: this.timezone(),
-      day: 'numeric',
-      month: 'short',
-      year: new Date(iso).getUTCFullYear() === now.getUTCFullYear() ? undefined : 'numeric',
-    }).format(new Date(iso));
+    try {
+      const now = new Date();
+      const todayKey = this.dayKey(now.toISOString());
+      const yesterdayKey = this.dayKey(new Date(now.getTime() - 86_400_000).toISOString());
+
+      if (key === todayKey) return 'AUJOURD’HUI';
+      if (key === yesterdayKey) return 'HIER';
+
+      const itemDate = new Date(iso);
+      const isCurrentYear = itemDate.getFullYear() === now.getFullYear();
+
+      const formatted = new Intl.DateTimeFormat('fr-FR', {
+        timeZone: this.timezone(),
+        day: 'numeric',
+        month: 'long',
+        year: isCurrentYear ? undefined : 'numeric',
+      }).format(itemDate);
+
+      return formatted.toUpperCase();
+    } catch {
+      return key;
+    }
   }
 }

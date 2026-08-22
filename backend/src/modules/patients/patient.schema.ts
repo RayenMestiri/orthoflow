@@ -98,20 +98,25 @@ export const patientListQuerySchema = paginationQuerySchema.extend({
 
 export const patientActivityDtoSchema = z.object({
   id: z.string().min(1),
+  category: z.enum(['CLINICAL', 'APPOINTMENT', 'PAYMENT', 'DOCUMENT', 'TREATMENT']),
   type: z.enum(PATIENT_ACTIVITY_TYPE_VALUES),
   occurredAt: z.string(),
   title: z.string(),
   subtitle: z.string().nullable(),
   detail: z.string().nullable(),
   actor: z
-    .object({ displayName: z.string(), role: z.enum(CLINIC_ROLE_VALUES).nullable() })
+    .object({
+      id: z.string().optional(),
+      displayName: z.string(),
+      role: z.enum(CLINIC_ROLE_VALUES).nullable(),
+    })
     .nullable(),
-  treatment: z.object({ id: objectIdSchema, label: z.string() }).nullable(),
-  appointmentId: objectIdSchema.nullable(),
-  clinicalVisitId: objectIdSchema.nullable(),
-  cashRecordId: objectIdSchema.nullable(),
-  receiptId: objectIdSchema.nullable(),
-  mediaId: objectIdSchema.nullable(),
+  treatment: z.object({ id: z.string(), label: z.string() }).nullable(),
+  appointmentId: z.string().nullable(),
+  clinicalVisitId: z.string().nullable(),
+  cashRecordId: z.string().nullable(),
+  receiptId: z.string().nullable(),
+  mediaId: z.string().nullable(),
   amountMinor: z.number().int().nullable(),
   currency: z.string().nullable(),
   receiptNumber: z.string().nullable(),
@@ -119,7 +124,7 @@ export const patientActivityDtoSchema = z.object({
   recommendedAt: z.string().nullable(),
   cancellationReason: z.string().nullable(),
   targetType: z.enum(PATIENT_ACTIVITY_TARGET_VALUES).nullable(),
-  targetId: objectIdSchema.nullable(),
+  targetId: z.string().nullable(),
 });
 
 export const patientActivityQuerySchema = paginationQuerySchema.extend({

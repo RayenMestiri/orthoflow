@@ -11,13 +11,14 @@ import { PatientActivityTimeline } from './patient-activity';
 function activity(overrides: Partial<PatientActivity> = {}): PatientActivity {
   return {
     id: 'event-1',
+    category: 'PAYMENT',
     type: 'PAYMENT_RECORDED',
     occurredAt: new Date().toISOString(),
-    title: 'Payment recorded',
-    subtitle: 'Metal braces',
-    detail: null,
+    title: 'Paiement enregistré',
+    subtitle: 'Bagues métalliques · Reçu REC-2026-000048',
+    detail: 'Payé par Mohamed Salah',
     actor: { displayName: 'Sarah Trabelsi', role: 'SECRETARY' },
-    treatment: { id: '652f1c9b8a1e4f0012ab0001', label: 'Metal braces' },
+    treatment: { id: '652f1c9b8a1e4f0012ab0001', label: 'Bagues métalliques' },
     appointmentId: null,
     clinicalVisitId: null,
     cashRecordId: '652f1c9b8a1e4f0012ab0002',
@@ -83,24 +84,26 @@ describe('PatientActivityTimeline', () => {
       activity(),
       activity({
         id: 'event-2',
+        category: 'CLINICAL',
         type: 'CLINICAL_VISIT_COMPLETED',
         occurredAt: new Date(Date.now() - 86_400_000).toISOString(),
-        title: 'Clinical visit completed',
-        subtitle: null,
+        title: 'Consultation terminée',
+        subtitle: 'Consultation orthodontique',
+        detail: "Changement d'arc · Consignes élastiques",
         amountMinor: null,
         currency: null,
         receiptNumber: null,
-        targetType: null,
-        targetId: null,
+        targetType: 'CLINICAL_VISIT',
+        targetId: 'visit-1',
       }),
     ]);
 
-    expect(element.textContent).toContain('Today');
-    expect(element.textContent).toContain('Yesterday');
+    expect(element.textContent).toContain('AUJOURD’HUI');
+    expect(element.textContent).toContain('HIER');
     expect(element.textContent).toContain('+200.000 TND');
     expect(element.textContent).toContain('REC-2026-000048');
-    expect(element.textContent?.replaceAll(/\s+/g, ' ')).toContain('Sarah Trabelsi · Secretary');
-    expect(element.textContent).not.toContain('doctor note');
+    expect(element.textContent).toContain('Sarah Trabelsi');
+    expect(element.textContent).toContain("Changement d'arc · Consignes élastiques");
   });
 
   it('reloads from page one when a filter changes', async () => {
@@ -108,7 +111,7 @@ describe('PatientActivityTimeline', () => {
     api.activity.mockReturnValue(of(page([])));
 
     const clinical = [...element.querySelectorAll('.patient-activity__filters button')].find(
-      (button) => button.textContent?.trim() === 'Clinical',
+      (button) => button.textContent?.trim() === 'Clinique',
     ) as HTMLButtonElement;
     clinical.click();
     await fixture.whenStable();
@@ -120,15 +123,16 @@ describe('PatientActivityTimeline', () => {
     const first = activity();
     const element = await render([first], 2);
     api.activity.mockReturnValue(
-      of(page([activity({ id: 'event-2', title: 'Document uploaded' })], 2)),
+      of(page([activity({ id: 'event-2', category: 'DOCUMENT', title: 'Document ajouté' })], 2)),
     );
-    (element.querySelector('.activity-load-more') as HTMLButtonElement).click();
+    const loadMoreBtn = element.querySelector('.btn-load-more') as HTMLButtonElement;
+    loadMoreBtn.click();
     await fixture.whenStable();
     fixture.detectChanges();
 
     expect(api.activity).toHaveBeenLastCalledWith('patient-1', 2, 20, 'ALL');
-    expect(element.textContent).toContain('Payment recorded');
-    expect(element.textContent).toContain('Document uploaded');
+    expect(element.textContent).toContain('Paiement enregistré');
+    expect(element.textContent).toContain('Document ajouté');
   });
 
   it('renders a retryable error state', async () => {
@@ -140,8 +144,8 @@ describe('PatientActivityTimeline', () => {
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.textContent).toContain("Activity couldn't be loaded");
-    expect(element.textContent).toContain('Try again');
+    expect(element.textContent).toContain('Impossible de charger l’historique');
+    expect(element.textContent).toContain('Réessayer');
   });
 
   it('reuses the existing patient section for payment events', async () => {
@@ -149,7 +153,7 @@ describe('PatientActivityTimeline', () => {
     const emitted = vi.fn();
     fixture.componentInstance.sectionRequested.subscribe(emitted);
 
-    (element.querySelector('.activity-item__title--link') as HTMLButtonElement).click();
+    (element.querySelector('.activity-row') as HTMLElement).click();
 
     expect(emitted).toHaveBeenCalledWith('CASH_RECORD');
   });

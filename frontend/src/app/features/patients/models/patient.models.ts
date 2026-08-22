@@ -54,6 +54,7 @@ export type PatientActivityTargetType =
 
 export interface PatientActivity {
   id: string;
+  category: 'CLINICAL' | 'APPOINTMENT' | 'PAYMENT' | 'DOCUMENT' | 'TREATMENT';
   type: string;
   occurredAt: string;
   title: string;
@@ -116,3 +117,31 @@ export interface PaginatedData<T> {
   limit: number;
   pages: number;
 }
+
+export interface GuardianChild {
+  patientId: string;
+  fullName: string;
+  referenceNumber: string | null;
+  birthDate: string | null;
+  relationship: GuardianRelationship;
+  isPrimary: boolean;
+}
+
+export interface GuardianSearchResult {
+  id: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+  linkedPatientsCount: number;
+}
+
+export interface LinkExistingGuardianInput {
+  guardianId: string;
+  relationship: GuardianRelationship;
+  isPrimary?: boolean;
+  financiallyResponsible?: boolean;
+  contactPreference?: ContactPreference;
+}
+

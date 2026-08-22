@@ -1,19 +1,27 @@
 <section class="patient-activity" aria-labelledby="patient-activity-title">
+  <!-- Header with Eyebrow & Live Count -->
   <header class="patient-activity__header">
-    <div>
-      <span class="patient-activity__eyebrow">Care history</span>
-      <h2 id="patient-activity-title">Activity</h2>
-      <p>Appointments, care, payments and documents in one chronology.</p>
+    <div class="patient-activity__header-titles">
+      <span class="patient-activity__eyebrow">Parcours de soins</span>
+      <h2 id="patient-activity-title">Historique d’activité</h2>
+      <p class="patient-activity__description">
+        Rendez-vous, consultations cliniques, paiements et documents dans une chronologie unifiée.
+      </p>
     </div>
     @if (!loading() && total() > 0) {
-      <span class="patient-activity__count">{{ total() }} events</span>
+      <div class="patient-activity__badge">
+        <span class="patient-activity__badge-count">{{ total() }}</span>
+        <span class="patient-activity__badge-label">événements</span>
+      </div>
     }
   </header>
 
-  <div class="patient-activity__filters" role="group" aria-label="Filter patient activity">
+  <!-- Filter Pills -->
+  <div class="patient-activity__filters" role="group" aria-label="Filtrer l'historique">
     @for (option of filters; track option.value) {
       <button
         type="button"
+        class="activity-filter-pill"
         [class.active]="filter() === option.value"
         [attr.aria-pressed]="filter() === option.value"
         (click)="chooseFilter(option.value)"
@@ -23,106 +31,108 @@
     }
   </div>
 
+  <!-- Loading Skeletons -->
   @if (loading()) {
-    <div class="activity-skeleton" role="status" aria-label="Loading patient activity">
-      @for (row of [1, 2, 3, 4]; track row) {
-        <div class="activity-skeleton__row">
-          <span></span>
-          <div><i></i><i></i><i></i></div>
+    <div class="activity-skeleton" role="status" aria-label="Chargement de l'historique">
+      @for (row of [1, 2, 3, 4, 5]; track row) {
+        <div class="activity-skeleton__item">
+          <div class="activity-skeleton__time"></div>
+          <div class="activity-skeleton__marker"></div>
+          <div class="activity-skeleton__card">
+            <div class="activity-skeleton__bar activity-skeleton__bar--title"></div>
+            <div class="activity-skeleton__bar activity-skeleton__bar--subtitle"></div>
+          </div>
         </div>
       }
     </div>
   } @else if (error() && items().length === 0) {
-    <div class="activity-state" role="alert">
-      <span class="material-icons" aria-hidden="true">cloud_off</span>
-      <strong>Activity couldn't be loaded</strong>
+    <!-- Full Error State -->
+    <div class="activity-error-state" role="alert">
+      <div class="activity-error-icon">
+        <span class="material-icons" aria-hidden="true">cloud_off</span>
+      </div>
+      <h3>Impossible de charger l’historique</h3>
       <p>{{ error() }}</p>
-      <button type="button" (click)="reload()">Try again</button>
+      <button type="button" class="btn-retry" (click)="retry()">
+        <span class="material-icons" aria-hidden="true">refresh</span>
+        <span>Réessayer</span>
+      </button>
     </div>
   } @else if (items().length === 0) {
-    <div class="activity-state">
-      <span class="material-icons" aria-hidden="true">history</span>
-      <strong>No activity yet</strong>
+    <!-- Clean Empty State -->
+    <div class="activity-empty-state">
+      <div class="activity-empty-icon">
+        <span class="material-icons" aria-hidden="true">history</span>
+      </div>
+      <h3>Aucun historique pour le moment</h3>
       <p>
-        Patient activity will appear here as appointments, visits, payments and documents are
-        recorded.
+        Les rendez-vous, consultations, paiements et documents apparaîtront ici au fil du suivi du patient.
       </p>
     </div>
   } @else {
-    <div class="activity-groups">
+    <!-- Chronological Grouped Feed -->
+    <div class="activity-timeline">
       @for (group of groups(); track group.key) {
-        <section class="activity-day" [attr.aria-labelledby]="'activity-day-' + group.key">
-          <h3 [id]="'activity-day-' + group.key">{{ group.label }}</h3>
+        <section class="activity-day-group" [attr.aria-labelledby]="'activity-day-' + group.key">
+          <div class="activity-day-header">
+            <span class="activity-day-dot"></span>
+            <h3 class="activity-day-title" [id]="'activity-day-' + group.key">{{ group.label }}</h3>
+          </div>
+
           <ol class="activity-list">
             @for (item of group.items; track item.id) {
-              <li class="activity-item">
-                <time [attr.datetime]="item.occurredAt">{{ time(item.occurredAt) }}</time>
-                <span class="activity-item__marker" aria-hidden="true">
+              <li
+                class="activity-row"
+                [class.activity-row--cancelled]="item.type === 'APPOINTMENT_CANCELLED' || item.type === 'PAYMENT_CANCELLED' || item.type === 'TREATMENT_CANCELLED'"
+                [class.activity-row--clickable]="!!item.targetType"
+                (click)="onEventClick(item)"
+              >
+                <!-- Time Column -->
+                <div class="activity-row__time">
+                  <time [attr.datetime]="item.occurredAt">{{ time(item.occurredAt) }}</time>
+                </div>
+
+                <!-- Vertical Marker Node -->
+                <div class="activity-row__marker" [attr.data-category]="item.category" aria-hidden="true">
                   <span class="material-icons">{{ iconFor(item) }}</span>
-                </span>
-                <div class="activity-item__body">
-                  @if (amount(item); as paymentAmount) {
-                    <strong
-                      class="activity-item__amount"
-                      [class.cancelled]="item.type === 'PAYMENT_CANCELLED'"
-                    >
-                      {{ paymentAmount }}
-                    </strong>
-                  }
-                  @if (item.targetType === 'APPOINTMENT' && item.targetId) {
-                    <a
-                      class="activity-item__title activity-item__title--link"
-                      routerLink="/app/schedule"
-                      [queryParams]="{ appointmentId: item.targetId }"
-                      >{{ item.title }}</a
-                    >
-                  } @else if (item.targetType === 'CLINICAL_VISIT' && item.targetId) {
-                    <a
-                      class="activity-item__title activity-item__title--link"
-                      [routerLink]="['/app/clinical-visits', item.targetId]"
-                      >{{ item.title }}</a
-                    >
-                  } @else if (isSectionTarget(item)) {
-                    <button
-                      class="activity-item__title activity-item__title--link"
-                      type="button"
-                      (click)="requestSection(item)"
-                    >
-                      {{ item.title }}
-                    </button>
-                  } @else {
-                    <strong class="activity-item__title">{{ item.title }}</strong>
-                  }
+                </div>
+
+                <!-- Main Card Content -->
+                <div class="activity-row__card">
+                  <div class="activity-row__header">
+                    <div class="activity-row__title-wrap">
+                      <strong class="activity-row__title">{{ item.title }}</strong>
+                      @if (item.treatment) {
+                        <span class="activity-row__tag">{{ item.treatment.label }}</span>
+                      }
+                    </div>
+
+                    @if (amount(item); as paymentAmount) {
+                      <div
+                        class="activity-row__amount"
+                        [class.activity-row__amount--cancelled]="item.type === 'PAYMENT_CANCELLED'"
+                      >
+                        {{ paymentAmount }}
+                      </div>
+                    }
+                  </div>
 
                   @if (item.subtitle) {
-                    <span class="activity-item__subtitle">{{ item.subtitle }}</span>
+                    <p class="activity-row__subtitle">{{ item.subtitle }}</p>
                   }
+
                   @if (item.detail) {
-                    <span class="activity-item__detail">{{ item.detail }}</span>
+                    <div class="activity-row__detail">{{ item.detail }}</div>
                   }
-                  @if (item.scheduledAt) {
-                    <span class="activity-item__detail"
-                      >Scheduled for {{ dateTime(item.scheduledAt) }}</span
-                    >
-                  }
-                  @if (item.recommendedAt) {
-                    <span class="activity-item__detail"
-                      >Recommended {{ date(item.recommendedAt) }}</span
-                    >
-                  }
-                  @if (item.receiptNumber) {
-                    <span class="activity-item__detail">Receipt {{ item.receiptNumber }}</span>
-                  }
-                  @if (item.cancellationReason) {
-                    <span class="activity-item__reason">Reason: {{ item.cancellationReason }}</span>
-                  }
-                  @if (item.actor; as actor) {
-                    <span class="activity-item__actor">
-                      {{ actor.displayName }}
-                      @if (actorRole(actor.role); as role) {
-                        · {{ role }}
+
+                  @if (item.actor) {
+                    <footer class="activity-row__footer">
+                      <span class="material-icons activity-row__actor-icon" aria-hidden="true">person</span>
+                      <span class="activity-row__actor-name">{{ item.actor.displayName }}</span>
+                      @if (item.actor.role) {
+                        <span class="activity-row__actor-role">({{ item.actor.role }})</span>
                       }
-                    </span>
+                    </footer>
                   }
                 </div>
               </li>
@@ -130,20 +140,33 @@
           </ol>
         </section>
       }
-    </div>
 
-    @if (error()) {
-      <p class="activity-load-error" role="alert">{{ error() }}</p>
-    }
-    @if (hasMore()) {
-      <button
-        class="activity-load-more"
-        type="button"
-        [disabled]="loadingMore()"
-        (click)="loadMore()"
-      >
-        {{ loadingMore() ? 'Loading…' : 'Load earlier activity' }}
-      </button>
-    }
+      <!-- Pagination / Load More -->
+      @if (hasMore()) {
+        <div class="activity-load-more">
+          <button
+            type="button"
+            class="btn-load-more"
+            [disabled]="loadingMore()"
+            (click)="loadMore()"
+          >
+            @if (loadingMore()) {
+              <span class="spinner" aria-hidden="true"></span>
+              <span>Chargement des événements précédents…</span>
+            } @else {
+              <span class="material-icons" aria-hidden="true">expand_more</span>
+              <span>Charger les événements précédents</span>
+            }
+          </button>
+
+          @if (loadMoreError()) {
+            <div class="activity-load-more-error" role="alert">
+              <span>{{ loadMoreError() }}</span>
+              <button type="button" class="btn-retry-inline" (click)="loadMore()">Réessayer</button>
+            </div>
+          }
+        </div>
+      }
+    </div>
   }
 </section>

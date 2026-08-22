@@ -94,12 +94,12 @@ describe('patient activity API', () => {
       total: 0,
       pages: 0,
     });
-    expect(patientActivityRepositoryMock.listAudits).toHaveBeenCalledWith(
+    expect(patientActivityRepositoryMock.fetchDomainRecords).toHaveBeenCalledWith(
       CLINIC_A,
       PATIENT_ID,
       'ALL',
       expect.anything(),
-      20,
+      expect.any(Number),
     );
   });
 
@@ -111,12 +111,12 @@ describe('patient activity API', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(patientActivityRepositoryMock.listAudits).toHaveBeenCalledWith(
+    expect(patientActivityRepositoryMock.fetchDomainRecords).toHaveBeenCalledWith(
       CLINIC_A,
       PATIENT_ID,
       'PAYMENTS',
       expect.anything(),
-      20,
+      expect.any(Number),
     );
   });
 

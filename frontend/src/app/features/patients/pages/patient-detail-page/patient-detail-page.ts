@@ -24,8 +24,10 @@ import { PatientsApiService } from '../../data-access/patients-api.service';
 import type {
   ContactPreference,
   Guardian,
+  GuardianChild,
   GuardianInput,
   GuardianRelationship,
+  GuardianSearchResult,
   Patient,
   PatientActivityTargetType,
 } from '../../models/patient.models';
@@ -66,9 +68,35 @@ export class PatientDetailPage {
         ? 'Patient information saved.'
         : null,
   );
+  readonly selectedTreatmentId = signal<string | null>(
+    this.route.snapshot.queryParamMap.get('treatmentId'),
+  );
+  readonly selectedTreatmentLabel = signal<string | null>(
+    this.route.snapshot.queryParamMap.get('treatmentLabel'),
+  );
+  readonly selectedRecordId = signal<string | null>(
+    this.route.snapshot.queryParamMap.get('recordId') ??
+      this.route.snapshot.queryParamMap.get('cashRecordId'),
+  );
+  readonly selectedReceiptNumber = signal<string | null>(
+    this.route.snapshot.queryParamMap.get('receiptNumber'),
+  );
+  readonly selectedReceiptId = signal<string | null>(
+    this.route.snapshot.queryParamMap.get('receiptId'),
+  );
   readonly activeView = signal<
     'overview' | 'activity' | 'treatments' | 'visits' | 'payments' | 'media'
-  >('overview');
+  >(
+    (this.route.snapshot.queryParamMap.get('tab') as
+      | 'overview'
+      | 'activity'
+      | 'treatments'
+      | 'visits'
+      | 'payments'
+      | 'media'
+      | null) ?? 'overview',
+  );
+
   readonly mediaTreatmentOptions = signal<TreatmentMediaOption[]>([]);
   private readonly mediaTreatmentsLoaded = signal(false);
   readonly guardianPanelOpen = signal(false);
@@ -93,9 +121,47 @@ export class PatientDetailPage {
   )
     ? PATIENT_MEDIA_CATEGORIES
     : ['ADMINISTRATIVE'];
+  readonly isMinor = computed(() => {
+    const patient = this.patient();
+    if (!patient) return false;
+    if (patient.age !== null && patient.age !== undefined) return patient.age < 18;
+    if (patient.birthDate) {
+      const birth = new Date(patient.birthDate);
+      const now = new Date();
+      const ageDiff = now.getFullYear() - birth.getFullYear();
+      return ageDiff < 18;
+    }
+    return false;
+  });
+
+  readonly guardianDrawerView = signal<'VIEW' | 'CREATE' | 'EDIT'>('VIEW');
+  readonly viewingGuardian = signal<Guardian | null>(null);
+  readonly guardianChildren = signal<GuardianChild[]>([]);
+  readonly guardianChildrenLoading = signal(false);
+  readonly unlinkConfirmOpen = signal(false);
+  readonly unlinkTargetGuardian = signal<Guardian | null>(null);
+  readonly unlinking = signal(false);
+  readonly makingPrimary = signal(false);
+
+  readonly addMode = signal<'NEW' | 'EXISTING'>('NEW');
+  readonly guardianSearchQuery = signal('');
+  readonly guardianSearchResults = signal<GuardianSearchResult[]>([]);
+  readonly guardianSearching = signal(false);
+  readonly selectedExistingGuardian = signal<GuardianSearchResult | null>(null);
+  readonly existingRelationship = signal<GuardianRelationship>('MOTHER');
+  readonly existingIsPrimary = signal(false);
+  readonly existingFinanciallyResponsible = signal(false);
+  readonly existingContactPreference = signal<ContactPreference>('NO_PREFERENCE');
+  readonly existingLinking = signal(false);
+
   /** Guardians the payment drawer may offer as the payer. */
   readonly cashRecordGuardians = computed(() =>
-    this.guardians().map((guardian) => ({ id: guardian.id, fullName: guardian.fullName })),
+    this.guardians().map((guardian) => ({
+      id: guardian.id,
+      fullName: guardian.fullName,
+      relationship: guardian.relationship,
+      isPrimary: guardian.isPrimary,
+    })),
   );
   readonly primaryGuardian = computed(
     () => this.guardians().find((guardian) => guardian.isPrimary) ?? null,
@@ -123,13 +189,29 @@ export class PatientDetailPage {
 
   constructor() {
     void this.load();
+    this.route.queryParamMap?.subscribe((params) => {
+      const tab = params.get('tab');
+      if (
+        tab &&
+        ['overview', 'activity', 'treatments', 'visits', 'payments', 'media'].includes(tab)
+      ) {
+        this.activeView.set(
+          tab as 'overview' | 'activity' | 'treatments' | 'visits' | 'payments' | 'media',
+        );
+      }
+      this.selectedTreatmentId.set(params.get('treatmentId'));
+      this.selectedTreatmentLabel.set(params.get('treatmentLabel'));
+      this.selectedRecordId.set(params.get('recordId') ?? params.get('cashRecordId'));
+      this.selectedReceiptNumber.set(params.get('receiptNumber'));
+      this.selectedReceiptId.set(params.get('receiptId'));
+    });
   }
 
   formatBirthDate(value: string | null): string {
     if (!value) return '—';
     const [year, month, day] = value.split('-').map(Number);
     if (!year || !month || !day) return '—';
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat('fr-FR', {
       dateStyle: 'long',
       timeZone: 'UTC',
     }).format(new Date(Date.UTC(year, month - 1, day)));
@@ -142,6 +224,34 @@ export class PatientDetailPage {
   formatEnumLabel(value: string): string {
     const normalized = value.toLowerCase().replaceAll('_', ' ');
     return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
+
+  relationshipLabel(value: string): string {
+    switch (value) {
+      case 'FATHER':
+        return 'Père';
+      case 'MOTHER':
+        return 'Mère';
+      case 'LEGAL_GUARDIAN':
+        return 'Responsable légal';
+      case 'OTHER':
+        return 'Autre';
+      default:
+        return value.toLowerCase().replaceAll('_', ' ');
+    }
+  }
+
+  contactPreferenceLabel(value: string): string {
+    switch (value) {
+      case 'PHONE':
+        return 'Appel / SMS';
+      case 'EMAIL':
+        return 'Email';
+      case 'NO_PREFERENCE':
+        return 'Sans préférence';
+      default:
+        return value;
+    }
   }
 
   async load(): Promise<void> {
@@ -191,30 +301,183 @@ export class PatientDetailPage {
         })),
       );
     } catch {
-      // Treatment association is optional; media remains fully usable when the
-      // treatment list cannot be loaded.
       this.mediaTreatmentOptions.set([]);
     }
   }
 
-  openGuardian(guardian: Guardian | null = null): void {
-    this.editingGuardian.set(guardian);
+  openGuardianView(guardian: Guardian): void {
+    this.viewingGuardian.set(guardian);
+    this.guardianDrawerView.set('VIEW');
+    this.guardianError.set(null);
+    this.guardianPanelOpen.set(true);
+    void this.loadGuardianChildren(guardian.id);
+  }
+
+  openAddGuardian(): void {
+    this.editingGuardian.set(null);
+    this.viewingGuardian.set(null);
+    this.guardianDrawerView.set('CREATE');
+    this.addMode.set('NEW');
+    this.selectedExistingGuardian.set(null);
+    this.guardianSearchQuery.set('');
+    this.guardianSearchResults.set([]);
+    this.existingRelationship.set('MOTHER');
+    this.existingIsPrimary.set(this.guardians().length === 0);
+    this.existingFinanciallyResponsible.set(false);
+    this.existingContactPreference.set('NO_PREFERENCE');
     this.guardianError.set(null);
     this.guardianForm.reset({
-      firstName: guardian?.firstName ?? '',
-      lastName: guardian?.lastName ?? '',
-      relationship: guardian?.relationship ?? 'MOTHER',
-      phone: guardian?.phone ?? '',
-      email: guardian?.email ?? '',
-      isPrimary: guardian?.isPrimary ?? this.guardians().length === 0,
-      financiallyResponsible: guardian?.financiallyResponsible ?? false,
-      contactPreference: guardian?.contactPreference ?? 'NO_PREFERENCE',
+      firstName: '',
+      lastName: '',
+      relationship: 'MOTHER',
+      phone: '',
+      email: '',
+      isPrimary: this.guardians().length === 0,
+      financiallyResponsible: false,
+      contactPreference: 'NO_PREFERENCE',
     });
     this.guardianPanelOpen.set(true);
   }
 
+  switchToEditGuardian(guardian: Guardian): void {
+    this.editingGuardian.set(guardian);
+    this.viewingGuardian.set(guardian);
+    this.guardianDrawerView.set('EDIT');
+    this.guardianError.set(null);
+    this.guardianForm.reset({
+      firstName: guardian.firstName,
+      lastName: guardian.lastName,
+      relationship: guardian.relationship,
+      phone: guardian.phone ?? '',
+      email: guardian.email ?? '',
+      isPrimary: guardian.isPrimary,
+      financiallyResponsible: guardian.financiallyResponsible,
+      contactPreference: guardian.contactPreference,
+    });
+  }
+
+  switchBackToView(): void {
+    if (this.viewingGuardian()) {
+      this.guardianDrawerView.set('VIEW');
+    } else {
+      this.closeGuardian();
+    }
+  }
+
   closeGuardian(): void {
-    if (!this.guardianSaving()) this.guardianPanelOpen.set(false);
+    if (!this.guardianSaving() && !this.unlinking() && !this.makingPrimary() && !this.existingLinking()) {
+      this.guardianPanelOpen.set(false);
+      this.viewingGuardian.set(null);
+      this.editingGuardian.set(null);
+      this.guardianChildren.set([]);
+    }
+  }
+
+  async loadGuardianChildren(guardianId: string): Promise<void> {
+    this.guardianChildrenLoading.set(true);
+    try {
+      const children = await firstValueFrom(this.api.getGuardianChildren(this.patientId, guardianId));
+      this.guardianChildren.set(children.filter((c) => c.patientId !== this.patientId));
+    } catch {
+      this.guardianChildren.set([]);
+    } finally {
+      this.guardianChildrenLoading.set(false);
+    }
+  }
+
+  async makePrimary(guardian: Guardian): Promise<void> {
+    this.makingPrimary.set(true);
+    this.guardianError.set(null);
+    try {
+      const updated = await firstValueFrom(
+        this.api.makePrimaryGuardian(this.patientId, guardian.id),
+      );
+      this.guardians.update((items) =>
+        items.map((item) => ({ ...item, isPrimary: item.id === updated.id })),
+      );
+      this.viewingGuardian.set(updated);
+      this.notice.set(`${updated.fullName} est désormais le contact principal.`);
+    } catch (error) {
+      this.guardianError.set(getApiProblem(error).message);
+    } finally {
+      this.makingPrimary.set(false);
+    }
+  }
+
+  promptUnlinkGuardian(guardian: Guardian): void {
+    this.unlinkTargetGuardian.set(guardian);
+    this.unlinkConfirmOpen.set(true);
+  }
+
+  async confirmUnlink(): Promise<void> {
+    const target = this.unlinkTargetGuardian();
+    if (!target) return;
+    this.unlinking.set(true);
+    try {
+      await firstValueFrom(this.api.unlinkGuardian(this.patientId, target.id));
+      this.guardians.update((items) => items.filter((item) => item.id !== target.id));
+      this.unlinkConfirmOpen.set(false);
+      this.unlinkTargetGuardian.set(null);
+      this.closeGuardian();
+      this.notice.set(`${target.fullName} a été dissocié(e) de ce dossier.`);
+    } catch (error) {
+      this.guardianError.set(getApiProblem(error).message);
+    } finally {
+      this.unlinking.set(false);
+    }
+  }
+
+  async onSearchGuardians(query: string): Promise<void> {
+    this.guardianSearchQuery.set(query);
+    if (!query.trim()) {
+      this.guardianSearchResults.set([]);
+      return;
+    }
+    this.guardianSearching.set(true);
+    try {
+      const results = await firstValueFrom(this.api.searchGuardians(query));
+      // Filter out guardians already linked to this patient
+      const linkedIds = new Set(this.guardians().map((g) => g.id));
+      this.guardianSearchResults.set(results.filter((r) => !linkedIds.has(r.id)));
+    } catch {
+      this.guardianSearchResults.set([]);
+    } finally {
+      this.guardianSearching.set(false);
+    }
+  }
+
+  selectExistingGuardian(guardian: GuardianSearchResult): void {
+    this.selectedExistingGuardian.set(guardian);
+  }
+
+  async linkExistingGuardianSubmit(): Promise<void> {
+    const selected = this.selectedExistingGuardian();
+    if (!selected) return;
+    this.existingLinking.set(true);
+    this.guardianError.set(null);
+    try {
+      const linked = await firstValueFrom(
+        this.api.linkExistingGuardian(this.patientId, {
+          guardianId: selected.id,
+          relationship: this.existingRelationship(),
+          isPrimary: this.existingIsPrimary(),
+          financiallyResponsible: this.existingFinanciallyResponsible(),
+          contactPreference: this.existingContactPreference(),
+        }),
+      );
+      this.guardians.update((items) => {
+        const normalized = linked.isPrimary
+          ? items.map((item) => ({ ...item, isPrimary: false }))
+          : items;
+        return [...normalized, linked];
+      });
+      this.closeGuardian();
+      this.notice.set(`${linked.fullName} a été associé(e) comme responsable.`);
+    } catch (error) {
+      this.guardianError.set(getApiProblem(error).message);
+    } finally {
+      this.existingLinking.set(false);
+    }
   }
 
   async saveGuardian(): Promise<void> {
@@ -239,9 +502,10 @@ export class PatientDetailPage {
           ? normalized.map((item) => (item.id === saved.id ? saved : item))
           : [...normalized, saved];
       });
-      this.guardianPanelOpen.set(false);
+      this.viewingGuardian.set(saved);
+      this.guardianDrawerView.set('VIEW');
       this.notice.set(
-        editing ? 'Guardian information updated.' : 'Guardian added to this patient.',
+        editing ? 'Informations du responsable mises à jour.' : 'Responsable ajouté au patient.',
       );
     } catch (error) {
       this.guardianError.set(getApiProblem(error).message);
@@ -255,7 +519,7 @@ export class PatientDetailPage {
     try {
       this.patient.set(await firstValueFrom(this.api.archive(this.patientId)));
       this.archiveOpen.set(false);
-      this.notice.set('Patient archived. The record remains available in the archived filter.');
+      this.notice.set('Patient archivé. Le dossier reste accessible dans les filtres d\'archives.');
     } catch (error) {
       this.error.set(getApiProblem(error).message);
       this.archiveOpen.set(false);
@@ -269,13 +533,35 @@ export class PatientDetailPage {
   }
 
   openActivityTarget(target: PatientActivityTargetType): void {
+    if (target === 'CLINICAL_VISIT' && this.canViewClinicalVisits) this.activeView.set('visits');
     if (target === 'TREATMENT' && this.canViewTreatments) this.activeView.set('treatments');
     if (target === 'CASH_RECORD' && this.canViewPayments) this.activeView.set('payments');
     if (target === 'MEDIA' && this.canViewMedia) void this.openMedia();
   }
 
-  relationshipLabel(value: string): string {
-    return value.toLowerCase().replaceAll('_', ' ');
+  onActivityItemSelected(event: import('../../components/patient-activity/patient-activity').ActivityNavigationEvent): void {
+    if (event.targetType === 'CLINICAL_VISIT' && this.canViewClinicalVisits) {
+      this.activeView.set('visits');
+    } else if (event.targetType === 'CASH_RECORD' && this.canViewPayments) {
+      if (event.activity.cashRecordId) {
+        this.selectedRecordId.set(event.activity.cashRecordId);
+      }
+      if (event.activity.receiptNumber) {
+        this.selectedReceiptNumber.set(event.activity.receiptNumber);
+      }
+      if (event.activity.receiptId) {
+        this.selectedReceiptId.set(event.activity.receiptId);
+      }
+      this.activeView.set('payments');
+    } else if (event.targetType === 'MEDIA' && this.canViewMedia) {
+      void this.openMedia();
+    } else if (event.targetType === 'TREATMENT' && this.canViewTreatments) {
+      if (event.activity.treatment?.id) {
+        this.selectedTreatmentId.set(event.activity.treatment.id);
+        this.selectedTreatmentLabel.set(event.activity.treatment.label);
+      }
+      this.activeView.set('treatments');
+    }
   }
 
   private guardianPayload(): GuardianInput {
@@ -293,3 +579,4 @@ export class PatientDetailPage {
     };
   }
 }
+
