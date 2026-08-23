@@ -354,7 +354,11 @@ export class AuthService {
    * 15-minute window. Redis will cache this later — the shape will not change.
    */
   async loadAuthenticatedUser(userId: string, sessionId: string): Promise<AuthenticatedUser> {
-    const user = await this.users.findById(userId);
+    const [user, isSessionValid, memberships] = await Promise.all([
+      this.users.findById(userId),
+      this.sessions.isSessionUsable(sessionId),
+      this.memberships.findActiveByUser(userId),
+    ]);
 
     if (!user) {
       throw new UnauthorizedError('Account no longer exists', {
@@ -374,13 +378,11 @@ export class AuthService {
       });
     }
 
-    if (!(await this.sessions.isSessionUsable(sessionId))) {
+    if (!isSessionValid) {
       throw new UnauthorizedError('Session is no longer valid', {
         code: ERROR_CODES.SESSION_REVOKED,
       });
     }
-
-    const memberships = await this.memberships.findActiveByUser(userId);
 
     return {
       id: userId,

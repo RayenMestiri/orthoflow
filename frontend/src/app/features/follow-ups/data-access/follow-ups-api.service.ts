@@ -3,7 +3,13 @@ import { inject, Injectable } from '@angular/core';
 import { map, type Observable } from 'rxjs';
 import type { ApiEnvelope } from '../../../core/auth/auth.models';
 import { API_BASE_URL } from '../../../core/config/api.config';
-import type { FollowUpFilter, FollowUpResult, FollowUpSort } from '../models/follow-up.models';
+import type {
+  CareContinuityResult,
+  CareContinuityState,
+  FollowUpFilter,
+  FollowUpResult,
+  FollowUpSort,
+} from '../models/follow-up.models';
 
 @Injectable({ providedIn: 'root' })
 export class FollowUpsApiService {
@@ -29,6 +35,20 @@ export class FollowUpsApiService {
     if (query.treatmentId) params = params.set('treatmentId', query.treatmentId);
     return this.http
       .get<ApiEnvelope<FollowUpResult>>(this.url, { params })
+      .pipe(map((response) => response.data));
+  }
+
+  listAttention(query: {
+    page: number;
+    limit: number;
+    state?: CareContinuityState;
+    search?: string;
+  }): Observable<CareContinuityResult> {
+    let params = new HttpParams().set('page', query.page).set('limit', query.limit);
+    if (query.state) params = params.set('state', query.state);
+    if (query.search) params = params.set('search', query.search);
+    return this.http
+      .get<ApiEnvelope<CareContinuityResult>>(`${this.url}/attention`, { params })
       .pipe(map((response) => response.data));
   }
 }

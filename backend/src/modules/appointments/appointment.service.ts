@@ -36,6 +36,7 @@ import {
   treatmentRepository,
   type TreatmentRepository,
 } from '../treatments/treatment.repository.js';
+import { retentionRepository, type RetentionRepository } from '../retention/retention.repository.js';
 import { toAppointmentDto } from './appointment.mapper.js';
 import type { ClientSession } from 'mongoose';
 import { appointmentRepository, type AppointmentRepository } from './appointment.repository.js';
@@ -57,6 +58,7 @@ import {
 export interface CreateAppointmentCommand {
   patientId: string;
   treatmentId?: string | null;
+  retentionPlanId?: string | null;
   appointmentTypeId: string;
   /** UTC instant. */
   startAt: Date;
@@ -69,6 +71,7 @@ export interface CreateAppointmentCommand {
 export interface UpdateAppointmentCommand {
   patientId?: string;
   treatmentId?: string | null;
+  retentionPlanId?: string | null;
   appointmentTypeId?: string;
   startAt?: Date;
   durationMinutes?: number;
@@ -126,6 +129,7 @@ export class AppointmentService {
     private readonly audit: AuditLogService = auditLogService,
     private readonly users: UserRepository = userRepository,
     private readonly treatments: TreatmentRepository = treatmentRepository,
+    private readonly retention: RetentionRepository = retentionRepository,
   ) {}
 
   // --- reads ---------------------------------------------------------------
@@ -220,8 +224,19 @@ export class AppointmentService {
     const clinic = await this.requireClinic(clinicId);
     const doctorId = await this.resolveDoctorId(clinicId);
     const patient = await this.requireBookablePatient(clinicId, command.patientId);
-    const treatment = command.treatmentId
-      ? await this.requireTreatmentForPatient(clinicId, command.treatmentId, command.patientId)
+    const retentionPlan = command.retentionPlanId
+      ? await this.requireRetentionForPatient(clinicId, command.retentionPlanId, command.patientId)
+      : null;
+    const resolvedTreatmentId = command.treatmentId ?? retentionPlan?.treatmentId.toString() ?? null;
+    if (
+      retentionPlan &&
+      command.treatmentId &&
+      command.treatmentId !== retentionPlan.treatmentId.toString()
+    ) {
+      throw new BusinessRuleError('Retention and treatment context do not match');
+    }
+    const treatment = resolvedTreatmentId
+      ? await this.requireTreatmentForPatient(clinicId, resolvedTreatmentId, command.patientId)
       : null;
     const appointmentType = await this.typeService.requireBookable(
       clinicId,
@@ -251,6 +266,7 @@ export class AppointmentService {
       clinicId,
       patientId: patient._id.toString(),
       treatmentId: treatment?._id.toString() ?? null,
+      retentionPlanId: retentionPlan?._id.toString() ?? null,
       doctorId,
       appointmentTypeId: appointmentType._id.toString(),
       startAt,
@@ -275,6 +291,7 @@ export class AppointmentService {
       metadata: {
         patientId: patient._id.toString(),
         treatmentId: treatment?._id.toString() ?? null,
+        retentionPlanId: retentionPlan?._id.toString() ?? null,
         appointmentTypeId: appointmentType._id.toString(),
         startAt: startAt.toISOString(),
         endAt: endAt.toISOString(),
@@ -318,10 +335,25 @@ export class AppointmentService {
     }
 
     const resolvedPatientId = command.patientId ?? existing.patientId.toString();
-    const resolvedTreatmentId =
+    let resolvedTreatmentId =
       command.treatmentId === undefined
         ? (existing.treatmentId?.toString() ?? null)
         : command.treatmentId;
+    const resolvedRetentionPlanId =
+      command.retentionPlanId === undefined
+        ? (existing.retentionPlanId?.toString() ?? null)
+        : command.retentionPlanId;
+    if (resolvedRetentionPlanId) {
+      const plan = await this.requireRetentionForPatient(
+        clinicId,
+        resolvedRetentionPlanId,
+        resolvedPatientId,
+      );
+      if (!resolvedTreatmentId) resolvedTreatmentId = plan.treatmentId.toString();
+      if (resolvedTreatmentId && plan.treatmentId.toString() !== resolvedTreatmentId) {
+        throw new BusinessRuleError('Retention and treatment context do not match');
+      }
+    }
     if (resolvedTreatmentId) {
       await this.requireTreatmentForPatient(clinicId, resolvedTreatmentId, resolvedPatientId);
     }
@@ -364,7 +396,12 @@ export class AppointmentService {
 
     const updated = await this.appointments.updateFields(appointmentId, clinicId, {
       ...(command.patientId === undefined ? {} : { patientId: command.patientId }),
-      ...(command.treatmentId === undefined ? {} : { treatmentId: command.treatmentId }),
+      ...(command.treatmentId === undefined && command.retentionPlanId === undefined
+        ? {}
+        : { treatmentId: resolvedTreatmentId }),
+      ...(command.retentionPlanId === undefined
+        ? {}
+        : { retentionPlanId: command.retentionPlanId }),
       ...(command.appointmentTypeId === undefined
         ? {}
         : { appointmentTypeId: command.appointmentTypeId }),
@@ -598,6 +635,18 @@ export class AppointmentService {
       });
     }
     return treatment;
+  }
+
+  private async requireRetentionForPatient(
+    clinicId: string,
+    retentionPlanId: string,
+    patientId: string,
+  ) {
+    const plan = await this.retention.findPlanById(clinicId, retentionPlanId);
+    if (!plan || plan.patientId.toString() !== patientId) {
+      throw new NotFoundError('Retention plan not found for this patient');
+    }
+    return plan;
   }
 
   /**

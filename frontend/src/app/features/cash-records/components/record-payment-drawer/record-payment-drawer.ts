@@ -27,6 +27,8 @@ import { createIdempotencyKey, formatMoney, parseAmount } from '../../utils/mone
 export interface DrawerGuardian {
   id: string;
   fullName: string;
+  relationship?: string;
+  isPrimary?: boolean;
 }
 
 /**
@@ -173,6 +175,36 @@ export class RecordPaymentDrawer {
         void this.loadTreatments(patientId);
       }
     });
+    // Auto-select primary guardian when payerType is set to GUARDIAN
+    this.form.controls.payerType.valueChanges.subscribe((type) => {
+      if (type === 'GUARDIAN' && !this.form.controls.guardianId.value) {
+        const primary = this.guardians().find((g) => g.isPrimary) ?? this.guardians()[0];
+        if (primary) {
+          this.form.controls.guardianId.setValue(primary.id);
+        }
+      }
+    });
+  }
+
+  protected guardianOptionLabel(guardian: DrawerGuardian): string {
+    const rel = guardian.relationship ? ` · ${this.formatRelationship(guardian.relationship)}` : '';
+    const primary = guardian.isPrimary ? ' (Contact principal)' : '';
+    return `${guardian.fullName}${rel}${primary}`;
+  }
+
+  private formatRelationship(relationship?: string): string {
+    switch (relationship) {
+      case 'MOTHER':
+        return 'Mère';
+      case 'FATHER':
+        return 'Père';
+      case 'LEGAL_GUARDIAN':
+        return 'Responsable légal';
+      case 'OTHER':
+        return 'Autre';
+      default:
+        return relationship ?? '';
+    }
   }
 
   private async loadTreatments(patientId: string): Promise<void> {

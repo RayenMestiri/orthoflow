@@ -56,6 +56,9 @@ export class PatientCashRecords {
   readonly treatmentId = input<string | null>(null);
   readonly treatmentLabel = input<string | null>(null);
   readonly guardians = input<DrawerGuardian[]>([]);
+  readonly initialRecordId = input<string | null>(null);
+  readonly initialReceiptNumber = input<string | null>(null);
+  readonly initialReceiptId = input<string | null>(null);
 
   protected readonly methodLabels = PAYMENT_METHOD_LABELS;
   protected readonly payerLabels = PAYER_TYPE_LABELS;
@@ -167,15 +170,27 @@ export class PatientCashRecords {
       });
     }
 
+    if (this.treatmentId() && this.onlyCurrentTreatment()) {
+      const tid = this.treatmentId();
+      records = records.filter((r) => r.treatmentId === tid);
+    }
+
     return records;
   });
+
+  readonly onlyCurrentTreatment = signal<boolean>(true);
+
+  protected toggleTreatmentFilter(): void {
+    this.onlyCurrentTreatment.update((v) => !v);
+  }
 
   protected readonly hasActiveFilters = computed(
     () =>
       this.search.value.trim().length > 0 ||
       this.monthFilter.value !== 'ALL' ||
       this.methodFilter.value !== 'ALL' ||
-      this.store.filter() !== 'ALL',
+      this.store.filter() !== 'ALL' ||
+      (this.treatmentId() !== null && this.onlyCurrentTreatment()),
   );
 
   protected clearFilters(): void {
@@ -194,11 +209,48 @@ export class PatientCashRecords {
       this.summary()?.agreedAmountMinor !== null && this.summary()?.agreedAmountMinor !== undefined,
   );
 
+  private openedInitialTarget: string | null = null;
+
   constructor() {
     effect(() => {
       const patientId = this.patientId();
       if (patientId) {
         void this.store.load(patientId, this.treatmentId());
+      }
+    });
+
+    effect(() => {
+      const records = this.store.records();
+      if (records.length === 0) return;
+
+      const recordId = this.initialRecordId();
+      const receiptNumber = this.initialReceiptNumber();
+      const receiptId = this.initialReceiptId();
+
+      if (!recordId && !receiptNumber && !receiptId) return;
+
+      const targetKey = `${recordId ?? ''}_${receiptNumber ?? ''}_${receiptId ?? ''}`;
+      if (this.openedInitialTarget === targetKey) return;
+
+      if (receiptNumber || receiptId) {
+        const found = records.find(
+          (r) =>
+            (receiptNumber && r.receiptNumber === receiptNumber) ||
+            (receiptId && r.id === receiptId),
+        );
+        if (found) {
+          this.openedInitialTarget = targetKey;
+          void this.store.openReceipt(found.id);
+          return;
+        }
+      }
+
+      if (recordId) {
+        const found = records.find((r) => r.id === recordId);
+        if (found) {
+          this.openedInitialTarget = targetKey;
+          this.openDetails(found);
+        }
       }
     });
   }

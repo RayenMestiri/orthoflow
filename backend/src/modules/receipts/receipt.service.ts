@@ -5,6 +5,10 @@ import { clinicRepository, type ClinicRepository } from '../clinics/clinic.repos
 import { guardianRepository, type GuardianRepository } from '../guardians/guardian.repository.js';
 import { patientRepository, type PatientRepository } from '../patients/patient.repository.js';
 import {
+  patientGuardianRepository,
+  type PatientGuardianRepository,
+} from '../guardians/patient-guardian.repository.js';
+import {
   treatmentRepository,
   type TreatmentRepository,
 } from '../treatments/treatment.repository.js';
@@ -33,6 +37,7 @@ export class ReceiptService {
     private readonly users: UserRepository = userRepository,
     private readonly patients: PatientRepository = patientRepository,
     private readonly guardians: GuardianRepository = guardianRepository,
+    private readonly patientGuardians: PatientGuardianRepository = patientGuardianRepository,
     private readonly treatments: TreatmentRepository = treatmentRepository,
     private readonly clinics: ClinicRepository = clinicRepository,
   ) {}
@@ -134,7 +139,7 @@ export class ReceiptService {
     receipt: ReceiptRecord,
     record: CashRecordRecord,
   ): Promise<ReceiptDocumentDto> {
-    const [issuer, clinic, patient, guardians, treatment] = await Promise.all([
+    const [issuer, clinic, patient, guardians, treatment, patientGuardian] = await Promise.all([
       this.users.findById(receipt.issuedBy.toString()),
       this.clinics.findById(clinicId),
       this.patients.findByIdInClinic(receipt.patientId.toString(), clinicId),
@@ -144,9 +149,29 @@ export class ReceiptService {
       record.treatmentId
         ? this.treatments.findByIdInClinic(record.treatmentId.toString(), clinicId)
         : Promise.resolve(null),
+      record.guardianId
+        ? this.patientGuardians.findByPatientAndGuardian(
+            receipt.patientId.toString(),
+            record.guardianId.toString(),
+            clinicId,
+          )
+        : Promise.resolve(null),
     ]);
 
     const guardian = guardians[0];
+    let payerName: string | null = record.payerLabel ?? null;
+    if (guardian) {
+      const relMap: Record<string, string> = {
+        FATHER: 'Père',
+        MOTHER: 'Mère',
+        LEGAL_GUARDIAN: 'Responsable légal',
+        OTHER: 'Responsable',
+      };
+      const relLabel = patientGuardian?.relationship ? relMap[patientGuardian.relationship] || patientGuardian.relationship : null;
+      payerName = relLabel
+        ? `${guardian.firstName} ${guardian.lastName} (${relLabel})`.trim()
+        : `${guardian.firstName} ${guardian.lastName}`.trim();
+    }
 
     return toReceiptDocumentDto(receipt, {
       issuedByName: issuer ? `${issuer.firstName} ${issuer.lastName}`.trim() : 'Clinic team member',
@@ -162,9 +187,7 @@ export class ReceiptService {
       treatmentLabel: treatment
         ? (treatment.customTypeLabel ?? formatTreatmentType(treatment.type))
         : null,
-      payerName: guardian
-        ? `${guardian.firstName} ${guardian.lastName}`.trim()
-        : (record.payerLabel ?? null),
+      payerName,
       cancellationReason: record.cancellationReason ?? null,
     });
   }

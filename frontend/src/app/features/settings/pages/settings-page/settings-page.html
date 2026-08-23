@@ -32,6 +32,7 @@
     <!-- Sub Navigation Tabs Sidebar -->
     <nav class="settings-nav" aria-label="Settings sections">
       @for (tab of tabs; track tab.id) {
+        @if (tab.id !== 'consents' || canViewConsentTemplates) {
         <button
           type="button"
           class="settings-nav__item"
@@ -47,6 +48,7 @@
             <small>{{ tab.description }}</small>
           </div>
         </button>
+        }
       }
     </nav>
 
@@ -70,6 +72,14 @@
           }
           @case ('scheduling') {
             <app-settings-scheduling [scheduling]="settings.scheduling" [canEdit]="canEdit()" />
+          }
+          @case ('care-continuity') {
+            <app-settings-care-continuity [settings]="settings.careContinuity ?? careContinuityDefaults" [canEdit]="canEdit()" />
+          }
+          @case ('consents') {
+            @if (canViewConsentTemplates) {
+              <app-settings-consent-templates [canEdit]="canEdit()" />
+            }
           }
         }
       } @else if (!store.isLoading()) {

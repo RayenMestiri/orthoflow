@@ -116,6 +116,19 @@
         </div>
       </div>
 
+      <div class="app-shell__topbar-center">
+        <button
+          type="button"
+          class="app-shell__search-trigger"
+          (click)="openCommandCenter()"
+          aria-label="Rechercher dans OrthoFlow (Ctrl + K)"
+        >
+          <span class="material-icons" aria-hidden="true">search</span>
+          <span class="app-shell__search-copy">Rechercher...</span>
+          <kbd class="app-shell__search-kbd"><abbr title="Control">Ctrl</abbr> K</kbd>
+        </button>
+      </div>
+
       <div class="app-shell__topbar-actions">
         <button class="app-shell__utility" type="button" aria-label="Notifications" disabled>
           <span class="material-icons" aria-hidden="true">notifications_none</span>
@@ -126,24 +139,65 @@
             class="app-shell__account-trigger"
             (click)="toggleAccount()"
             [attr.aria-expanded]="accountOpen()"
+            aria-haspopup="true"
+            aria-label="User account menu"
           >
-            <span class="app-shell__account-avatar">{{ initials() }}</span>
+            <div class="app-shell__account-avatar-wrap">
+              <span class="app-shell__account-avatar">{{ initials() }}</span>
+              <span class="app-shell__account-status-dot" aria-hidden="true"></span>
+            </div>
             <span class="app-shell__account-copy">
               <strong>{{ auth.user()?.fullName }}</strong>
               <small>{{ roleLabel() }}</small>
             </span>
-            <span class="material-icons" aria-hidden="true">expand_more</span>
+            <span class="material-icons app-shell__account-chevron" aria-hidden="true">expand_more</span>
           </button>
           @if (accountOpen()) {
-            <div class="app-shell__account-menu">
-              <div>
-                <strong>{{ auth.user()?.fullName }}</strong>
-                <small>{{ auth.user()?.email }}</small>
+            <div class="app-shell__account-menu" role="menu">
+              <div class="app-shell__account-menu-header">
+                <div class="app-shell__account-menu-user">
+                  <div class="app-shell__account-avatar-wrap">
+                    <span class="app-shell__account-avatar app-shell__account-avatar--large">{{ initials() }}</span>
+                    <span class="app-shell__account-status-dot" aria-hidden="true"></span>
+                  </div>
+                  <div class="app-shell__account-menu-identity">
+                    <strong class="app-shell__account-menu-name">{{ auth.user()?.fullName }}</strong>
+                    <small class="app-shell__account-menu-email">{{ auth.user()?.email }}</small>
+                    <span class="app-shell__account-role-badge">
+                      <span class="material-icons" aria-hidden="true">verified_user</span>
+                      <span>{{ roleLabel() }}</span>
+                    </span>
+                  </div>
+                </div>
+                @if (auth.activeMembership()?.clinicName) {
+                  <div class="app-shell__account-menu-clinic">
+                    <span class="material-icons" aria-hidden="true">domain</span>
+                    <span>{{ auth.activeMembership()?.clinicName }}</span>
+                  </div>
+                }
               </div>
-              <button type="button" (click)="logout()">
-                <span class="material-icons" aria-hidden="true">logout</span>
-                <span>Sign out</span>
-              </button>
+              <div class="app-shell__account-menu-body">
+                @if (canManageSettings()) {
+                  <a
+                    routerLink="/app/settings"
+                    class="app-shell__account-menu-item"
+                    (click)="closeAccountMenu()"
+                    role="menuitem"
+                  >
+                    <span class="material-icons" aria-hidden="true">tune</span>
+                    <span>Clinic settings</span>
+                  </a>
+                }
+                <button
+                  type="button"
+                  class="app-shell__account-menu-item app-shell__account-menu-item--danger"
+                  (click)="logout()"
+                  role="menuitem"
+                >
+                  <span class="material-icons" aria-hidden="true">logout</span>
+                  <span>Sign out</span>
+                </button>
+              </div>
             </div>
           }
         </div>
@@ -154,4 +208,6 @@
       <router-outlet />
     </main>
   </section>
+
+  <app-global-search [(isOpen)]="commandCenterOpen" />
 </div>

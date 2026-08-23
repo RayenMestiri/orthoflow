@@ -132,6 +132,7 @@ export interface AppointmentAttributes {
   patientId: Types.ObjectId;
   /** Optional care context. Null means a general consultation. */
   treatmentId: Types.ObjectId | null;
+  retentionPlanId?: Types.ObjectId | null;
   doctorId: Types.ObjectId;
   appointmentTypeId: Types.ObjectId;
 
@@ -168,6 +169,7 @@ export interface CreateAppointmentInput {
   clinicId: string;
   patientId: string;
   treatmentId?: string | null;
+  retentionPlanId?: string | null;
   doctorId: string;
   appointmentTypeId: string;
   startAt: Date;
@@ -183,6 +185,7 @@ export interface CreateAppointmentInput {
 export interface UpdateAppointmentFields {
   patientId?: string;
   treatmentId?: string | null;
+  retentionPlanId?: string | null;
   appointmentTypeId?: string;
   startAt?: Date;
   endAt?: Date;
@@ -254,6 +257,7 @@ export interface AppointmentDto {
   clinicId: string;
   patientId: string;
   treatmentId: string | null;
+  retentionPlanId: string | null;
   doctorId: string;
   appointmentTypeId: string;
 

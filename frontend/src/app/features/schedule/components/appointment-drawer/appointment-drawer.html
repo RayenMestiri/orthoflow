@@ -206,6 +206,24 @@
           }
         </div>
 
+        @if (retentionOptions().length > 0) {
+          <div class="drawer__field">
+            <label for="appointment-retention">Retention context <span>Optional</span></label>
+            <div class="drawer__control">
+              <span class="material-icons" aria-hidden="true">health_and_safety</span>
+              <select id="appointment-retention" formControlName="retentionPlanId">
+                <option value="">Not a retention visit</option>
+                @for (plan of retentionOptions(); track plan.id) {
+                  <option [value]="plan.id">
+                    Retention · {{ plan.status.toLowerCase() }}
+                  </option>
+                }
+              </select>
+            </div>
+            <p class="drawer__hint">Links the visit and future recommendations to this retention phase.</p>
+          </div>
+        }
+
         <div class="drawer__field">
           <label for="appointment-treatment">Care context <span>Optional</span></label>
           <div class="drawer__control">

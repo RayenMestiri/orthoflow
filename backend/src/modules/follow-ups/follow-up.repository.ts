@@ -16,6 +16,8 @@ export interface FollowUpAggregateRow {
   treatmentType: string | null;
   treatmentCustomLabel: string | null;
   treatmentStatus: string | null;
+  retentionPlanId: Types.ObjectId | null;
+  sourceType: 'CLINICAL_VISIT' | 'RETENTION_PLAN';
   visitId: Types.ObjectId;
   visitStartedAt: Date;
   visitCompletedAt: Date;
@@ -55,7 +57,6 @@ export class FollowUpRepository {
     const initialMatch: Record<string, unknown> = {
       clinicId: clinicObjectId,
       status: CLINICAL_VISIT_STATUSES.COMPLETED,
-      nextVisitRecommendedAt: { $ne: null },
     };
     if (query.patientId) initialMatch.patientId = toObjectId(query.patientId, 'patientId');
     if (query.treatmentId) initialMatch.treatmentId = toObjectId(query.treatmentId, 'treatmentId');
@@ -92,14 +93,76 @@ export class FollowUpRepository {
 
     const [result] = await ClinicalVisitModel.aggregate<FollowUpFacetResult>([
       { $match: initialMatch },
+      { $set: { sourceType: { $literal: 'CLINICAL_VISIT' } } },
+      {
+        $unionWith: {
+          coll: 'retentionPlans',
+          pipeline: [
+            {
+              $match: {
+                clinicId: clinicObjectId,
+                initialControlRecommendedAt: { $ne: null },
+                status: { $in: ['PLANNED', 'ACTIVE'] },
+                ...(query.patientId
+                  ? { patientId: toObjectId(query.patientId, 'patientId') }
+                  : {}),
+                ...(query.treatmentId
+                  ? { treatmentId: toObjectId(query.treatmentId, 'treatmentId') }
+                  : {}),
+              },
+            },
+            {
+              $lookup: {
+                from: 'clinicalVisits',
+                let: { retentionPlanId: '$_id' },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $and: [
+                          { $eq: ['$clinicId', clinicObjectId] },
+                          { $eq: ['$retentionPlanId', '$$retentionPlanId'] },
+                          { $eq: ['$status', CLINICAL_VISIT_STATUSES.COMPLETED] },
+                        ],
+                      },
+                    },
+                  },
+                  { $limit: 1 },
+                ],
+                as: 'completedRetentionVisits',
+              },
+            },
+            { $match: { 'completedRetentionVisits.0': { $exists: false } } },
+            {
+              $project: {
+                _id: 1,
+                clinicId: 1,
+                patientId: 1,
+                treatmentId: 1,
+                retentionPlanId: '$_id',
+                startedAt: '$createdAt',
+                completedAt: '$createdAt',
+                createdAt: 1,
+                nextVisitRecommendedAt: '$initialControlRecommendedAt',
+                sourceType: { $literal: 'RETENTION_PLAN' },
+              },
+            },
+          ],
+        },
+      },
       { $sort: { completedAt: -1, createdAt: -1 } },
       {
         $group: {
-          _id: { patientId: '$patientId', treatmentId: { $ifNull: ['$treatmentId', null] } },
+          _id: {
+            patientId: '$patientId',
+            treatmentId: { $ifNull: ['$treatmentId', null] },
+            retentionPlanId: { $ifNull: ['$retentionPlanId', null] },
+          },
           visit: { $first: '$$ROOT' },
         },
       },
       { $replaceRoot: { newRoot: '$visit' } },
+      { $match: { nextVisitRecommendedAt: { $ne: null } } },
       {
         $lookup: {
           from: 'patients',
@@ -144,7 +207,11 @@ export class FollowUpRepository {
       {
         $lookup: {
           from: 'appointments',
-          let: { patientId: '$patientId', treatmentId: '$treatmentId' },
+          let: {
+            patientId: '$patientId',
+            treatmentId: '$treatmentId',
+            retentionPlanId: '$retentionPlanId',
+          },
           pipeline: [
             {
               $match: {
@@ -160,9 +227,15 @@ export class FollowUpRepository {
                     },
                     {
                       $cond: [
-                        { $ne: ['$$treatmentId', null] },
-                        { $eq: ['$treatmentId', '$$treatmentId'] },
-                        { $eq: [{ $ifNull: ['$treatmentId', null] }, null] },
+                        { $ne: [{ $ifNull: ['$$retentionPlanId', null] }, null] },
+                        { $eq: ['$retentionPlanId', '$$retentionPlanId'] },
+                        {
+                          $cond: [
+                            { $ne: ['$$treatmentId', null] },
+                            { $eq: ['$treatmentId', '$$treatmentId'] },
+                            { $eq: [{ $ifNull: ['$treatmentId', null] }, null] },
+                          ],
+                        },
                       ],
                     },
                   ],
@@ -224,6 +297,8 @@ export class FollowUpRepository {
           treatmentType: { $ifNull: ['$treatment.type', null] },
           treatmentCustomLabel: { $ifNull: ['$treatment.customTypeLabel', null] },
           treatmentStatus: { $ifNull: ['$treatment.status', null] },
+          retentionPlanId: { $ifNull: ['$retentionPlanId', null] },
+          sourceType: 1,
           visitId: '$_id',
           visitStartedAt: '$startedAt',
           visitCompletedAt: '$completedAt',

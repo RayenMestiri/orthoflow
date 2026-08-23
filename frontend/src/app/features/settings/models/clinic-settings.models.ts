@@ -56,6 +56,11 @@ export const LANGUAGE_LABELS: Readonly<Record<SupportedLanguage, string>> = {
 
 export const SLOT_INTERVAL_OPTIONS = [5, 10, 15, 20, 30] as const;
 export const MAX_CONCURRENT_CAPACITY = 10;
+export const DEFAULT_CARE_CONTINUITY_SETTINGS: ClinicCareContinuitySettings = {
+  treatmentInactivityDays: 60,
+  retentionInactivityDays: 120,
+  missedAppointmentRebookGraceDays: 14,
+};
 
 export interface ClinicGeneralSettings {
   clinicName: string;
@@ -78,16 +83,29 @@ export interface ClinicSchedulingSettings {
   allowOwnerOverbooking: boolean;
 }
 
+export interface ClinicCareContinuitySettings {
+  treatmentInactivityDays: number;
+  retentionInactivityDays: number;
+  missedAppointmentRebookGraceDays: number;
+}
+
 export interface ClinicSettings {
   clinicId: string;
   general: ClinicGeneralSettings;
   workingHours: WeeklyWorkingHours;
   scheduling: ClinicSchedulingSettings;
+  careContinuity?: ClinicCareContinuitySettings;
   updatedAt: string;
 }
 
 export type UpdateGeneralSettingsInput = Partial<ClinicGeneralSettings>;
 
 /** The settings sections the page navigates between. */
-export const SETTINGS_SECTIONS = ['general', 'working-hours', 'scheduling'] as const;
+export const SETTINGS_SECTIONS = [
+  'general',
+  'working-hours',
+  'scheduling',
+  'care-continuity',
+  'consents',
+] as const;
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];

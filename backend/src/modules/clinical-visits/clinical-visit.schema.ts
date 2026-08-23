@@ -13,6 +13,7 @@ import {
 const nullableText = (max: number) => z.string().trim().max(max).nullable();
 const writeFields = {
   treatmentId: objectIdSchema.nullable().optional(),
+  retentionPlanId: objectIdSchema.nullable().optional(),
   reasonCode: z.enum(CLINICAL_REASON_CODE_VALUES).nullable().optional(),
   reasonOther: nullableText(160).optional(),
   observations: nullableText(5000).optional(),
@@ -33,6 +34,7 @@ const summarySchema = z.object({
   id: objectIdSchema,
   appointmentId: objectIdSchema,
   treatmentId: objectIdSchema.nullable(),
+  retentionPlanId: objectIdSchema.nullable(),
   status: z.enum(CLINICAL_VISIT_STATUS_VALUES),
   reasonCode: z.enum(CLINICAL_REASON_CODE_VALUES).nullable(),
   reasonOther: z.string().nullable(),
@@ -51,6 +53,7 @@ export const clinicalVisitDtoSchema = z.object({
   patientId: objectIdSchema,
   appointmentId: objectIdSchema,
   treatmentId: objectIdSchema.nullable(),
+  retentionPlanId: objectIdSchema.nullable(),
   status: z.enum(CLINICAL_VISIT_STATUS_VALUES),
   reasonCode: z.enum(CLINICAL_REASON_CODE_VALUES).nullable(),
   reasonOther: z.string().nullable(),
@@ -78,6 +81,7 @@ export const clinicalVisitDtoSchema = z.object({
     treatment: z
       .object({ id: objectIdSchema, label: z.string(), status: z.string() })
       .nullable(),
+    retention: z.object({ id: objectIdSchema, status: z.string() }).nullable(),
     previousVisit: summarySchema.nullable(),
   }),
 });

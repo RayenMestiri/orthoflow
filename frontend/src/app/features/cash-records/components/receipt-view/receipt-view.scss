@@ -66,6 +66,17 @@
     background: var(--color-sage);
   }
 
+  &--primary {
+    border-color: transparent;
+    color: var(--color-white);
+    background: var(--color-pine-700);
+
+    &:hover {
+      border-color: transparent;
+      background: var(--color-pine-800);
+    }
+  }
+
   .material-icons {
     font-size: 1rem;
   }

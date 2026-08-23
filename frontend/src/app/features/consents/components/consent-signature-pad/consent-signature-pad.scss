@@ -1,0 +1,45 @@
+.signature-field {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.signature-field__canvas {
+  height: 210px;
+  overflow: hidden;
+  border: 1px solid #cbd9e4;
+  border-radius: 14px;
+  background:
+    linear-gradient(to bottom, transparent calc(100% - 42px), #d9e5ed calc(100% - 41px), transparent calc(100% - 40px)),
+    #fff;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.signature-field__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #607484;
+  font-size: 0.78rem;
+}
+
+button {
+  border: 0;
+  background: transparent;
+  color: #126b65;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  color: #9aabb6;
+  cursor: default;
+}

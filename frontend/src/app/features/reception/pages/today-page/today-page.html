@@ -333,6 +333,16 @@
             {{ next.label }}
           </button>
         }
+        @if (canDirectComplete(row)) {
+          <button
+            type="button"
+            class="flow-btn flow-btn--quiet"
+            [disabled]="store.isPending(row.appointmentId)"
+            (click)="directComplete(row)"
+          >
+            Complete visit
+          </button>
+        }
         @if (showNoShow(row)) {
           <button
             type="button"

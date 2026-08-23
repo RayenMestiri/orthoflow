@@ -3,6 +3,7 @@ import { ClinicModel } from './clinic.model.js';
 import type { ClinicRecord } from './clinic.types.js';
 import type {
   ClinicSchedulingSettings,
+  ClinicCareContinuitySettings,
   UpdateGeneralSettingsInput,
   WeeklyWorkingHours,
 } from './clinic-settings.types.js';
@@ -71,6 +72,13 @@ export class ClinicSettingsRepository {
     scheduling: ClinicSchedulingSettings,
   ): Promise<ClinicRecord | null> {
     return this.applyUpdate(clinicId, { 'settings.scheduling': scheduling });
+  }
+
+  async updateCareContinuity(
+    clinicId: string,
+    careContinuity: ClinicCareContinuitySettings,
+  ): Promise<ClinicRecord | null> {
+    return this.applyUpdate(clinicId, { 'settings.careContinuity': careContinuity });
   }
 
   private async applyUpdate(

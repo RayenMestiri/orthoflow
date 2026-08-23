@@ -76,6 +76,7 @@ export class ClinicalVisitRepository {
     patientId: string;
     appointmentId: string;
     treatmentId: string | null;
+    retentionPlanId: string | null;
     startedAt: Date;
     createdBy: string;
   }): Promise<ClinicalVisitRecord> {
@@ -86,6 +87,10 @@ export class ClinicalVisitRepository {
         appointmentId: toObjectId(input.appointmentId, 'appointmentId'),
         treatmentId:
           input.treatmentId === null ? null : toObjectId(input.treatmentId, 'treatmentId'),
+        retentionPlanId:
+          input.retentionPlanId === null
+            ? null
+            : toObjectId(input.retentionPlanId, 'retentionPlanId'),
         startedAt: input.startedAt,
         createdBy: toObjectId(input.createdBy, 'createdBy'),
       },
@@ -104,8 +109,8 @@ export class ClinicalVisitRepository {
     const set: Record<string, unknown> = { updatedBy: toObjectId(updatedBy, 'updatedBy') };
     for (const [key, value] of Object.entries(changes)) {
       set[key] =
-        key === 'treatmentId' && typeof value === 'string'
-          ? toObjectId(value, 'treatmentId')
+        (key === 'treatmentId' || key === 'retentionPlanId') && typeof value === 'string'
+          ? toObjectId(value, key)
           : value;
     }
     return ClinicalVisitModel.findOneAndUpdate(

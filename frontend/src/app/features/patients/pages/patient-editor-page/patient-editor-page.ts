@@ -1,5 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, HostListener, inject, signal } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -15,6 +21,18 @@ import type {
 } from '../../models/patient.models';
 
 const optionalEmail = Validators.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+const optionalPhone = Validators.pattern(/^[+]?[0-9\s().-]{6,32}$/);
+
+function plausiblePastBirthDate(control: AbstractControl): Record<string, boolean> | null {
+  if (!control.value) return null;
+  const date = new Date(control.value);
+  if (isNaN(date.getTime())) return { invalidDate: true };
+  const now = Date.now();
+  const oldest = now - 120 * 365.25 * 24 * 60 * 60 * 1000;
+  if (date.getTime() > now) return { futureDate: true };
+  if (date.getTime() < oldest) return { tooOld: true };
+  return null;
+}
 
 @Component({
   selector: 'app-patient-editor-page',
@@ -44,9 +62,15 @@ export class PatientEditorPage {
       nonNullable: true,
       validators: [Validators.required, Validators.maxLength(80)],
     }),
-    birthDate: new FormControl('', { nonNullable: true }),
+    birthDate: new FormControl('', {
+      nonNullable: true,
+      validators: [plausiblePastBirthDate],
+    }),
     gender: new FormControl<PatientGender>('UNSPECIFIED', { nonNullable: true }),
-    phone: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(32)] }),
+    phone: new FormControl('', {
+      nonNullable: true,
+      validators: [optionalPhone, Validators.maxLength(32)],
+    }),
     email: new FormControl('', {
       nonNullable: true,
       validators: [optionalEmail, Validators.maxLength(254)],
@@ -65,7 +89,10 @@ export class PatientEditorPage {
       firstName: new FormControl('', { nonNullable: true }),
       lastName: new FormControl('', { nonNullable: true }),
       relationship: new FormControl<GuardianRelationship>('MOTHER', { nonNullable: true }),
-      phone: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(32)] }),
+      phone: new FormControl('', {
+        nonNullable: true,
+        validators: [optionalPhone, Validators.maxLength(32)],
+      }),
       email: new FormControl('', {
         nonNullable: true,
         validators: [optionalEmail, Validators.maxLength(254)],
@@ -235,7 +262,22 @@ export class PatientEditorPage {
         queryParams: { saved: '1', ...(guardianWarning ? { guardianWarning: '1' } : {}) },
       });
     } catch (error) {
-      this.error.set(getApiProblem(error).message);
+      const problem = getApiProblem(error);
+      this.error.set(problem.message);
+      const details = problem.details as
+        | { issues?: { path?: string; message?: string }[] }
+        | undefined;
+      if (details?.issues && Array.isArray(details.issues)) {
+        for (const issue of details.issues) {
+          if (issue.path) {
+            const ctrl = this.form.get(issue.path);
+            if (ctrl) {
+              ctrl.setErrors({ serverValidation: issue.message ?? 'Invalid value' });
+              ctrl.markAsTouched();
+            }
+          }
+        }
+      }
     } finally {
       this.submitting.set(false);
     }

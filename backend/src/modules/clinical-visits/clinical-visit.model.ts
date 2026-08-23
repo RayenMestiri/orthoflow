@@ -13,6 +13,7 @@ const clinicalVisitSchema = new Schema<ClinicalVisitAttributes>(
     patientId: { type: Schema.Types.ObjectId, ref: 'Patient', required: true },
     appointmentId: { type: Schema.Types.ObjectId, ref: 'Appointment', required: true },
     treatmentId: { type: Schema.Types.ObjectId, ref: 'Treatment', default: null },
+    retentionPlanId: { type: Schema.Types.ObjectId, ref: 'RetentionPlan', default: null },
     status: {
       type: String,
       enum: CLINICAL_VISIT_STATUS_VALUES,
@@ -42,6 +43,8 @@ clinicalVisitSchema.index(
 );
 clinicalVisitSchema.index({ clinicId: 1, patientId: 1, startedAt: -1 });
 clinicalVisitSchema.index({ clinicId: 1, treatmentId: 1, startedAt: -1 });
+clinicalVisitSchema.index({ clinicId: 1, retentionPlanId: 1, status: 1, completedAt: -1 });
+clinicalVisitSchema.index({ clinicId: 1, status: 1, nextVisitRecommendedAt: 1, completedAt: -1 });
 
 export const ClinicalVisitModel = model<ClinicalVisitAttributes>(
   'ClinicalVisit',

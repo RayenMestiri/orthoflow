@@ -8,10 +8,17 @@ import { CashRecordModel } from '../cash-records/cash-record.model.js';
 import type { CashRecordRecord } from '../cash-records/cash-record.types.js';
 import { ClinicalVisitModel } from '../clinical-visits/clinical-visit.model.js';
 import type { ClinicalVisitRecord } from '../clinical-visits/clinical-visit.types.js';
+import { SignedConsentModel } from '../consents/consent.model.js';
+import type { SignedConsentRecord } from '../consents/consent.types.js';
 import { ClinicMembershipModel } from '../memberships/membership.model.js';
 import type { MembershipRecord } from '../memberships/membership.types.js';
 import { PatientMediaModel } from '../patient-media/patient-media.model.js';
 import type { PatientMediaRecord } from '../patient-media/patient-media.types.js';
+import { RetainerDeviceModel, RetentionPlanModel } from '../retention/retention.model.js';
+import type {
+  RetainerDeviceRecord,
+  RetentionPlanRecord,
+} from '../retention/retention.types.js';
 import { ReceiptModel } from '../receipts/receipt.model.js';
 import type { ReceiptRecord } from '../receipts/receipt.types.js';
 import { TreatmentModel } from '../treatments/treatment.model.js';
@@ -30,6 +37,9 @@ export interface DomainRecordsResult {
   treatments: TreatmentRecord[];
   cashRecords: CashRecordRecord[];
   media: PatientMediaRecord[];
+  retentionPlans?: RetentionPlanRecord[];
+  retainerDevices?: RetainerDeviceRecord[];
+  signedConsents?: SignedConsentRecord[];
 }
 
 export interface PatientActivityContext {
@@ -81,7 +91,26 @@ export class PatientActivityRepository {
       (filter === PATIENT_ACTIVITY_FILTERS.ALL ||
         filter === PATIENT_ACTIVITY_FILTERS.DOCUMENTS);
 
-    const [appointments, visits, treatments, cashRecords, media] = await Promise.all([
+    const shouldFetchConsents =
+      visibility.consents &&
+      (filter === PATIENT_ACTIVITY_FILTERS.ALL ||
+        filter === PATIENT_ACTIVITY_FILTERS.DOCUMENTS);
+
+    const shouldFetchRetention =
+      visibility.clinical &&
+      (filter === PATIENT_ACTIVITY_FILTERS.ALL || filter === PATIENT_ACTIVITY_FILTERS.CLINICAL);
+
+    const [
+      appointments,
+      visits,
+      treatments,
+      cashRecords,
+      media,
+      retentionPlans,
+      retainerDevices,
+      signedConsents,
+    ] =
+      await Promise.all([
       shouldFetchAppointments
         ? AppointmentModel.find({ clinicId: clinicObjectId, patientId: patientObjectId })
             .sort({ startAt: -1, createdAt: -1 })
@@ -121,6 +150,27 @@ export class PatientActivityRepository {
             .lean<PatientMediaRecord[]>()
             .exec()
         : Promise.resolve([]),
+      shouldFetchRetention
+        ? RetentionPlanModel.find({ clinicId: clinicObjectId, patientId: patientObjectId })
+            .sort({ createdAt: -1 })
+            .limit(candidateLimit)
+            .lean<RetentionPlanRecord[]>()
+            .exec()
+        : Promise.resolve([]),
+      shouldFetchRetention
+        ? RetainerDeviceModel.find({ clinicId: clinicObjectId, patientId: patientObjectId })
+            .sort({ deliveredAt: -1, createdAt: -1 })
+            .limit(candidateLimit)
+            .lean<RetainerDeviceRecord[]>()
+            .exec()
+        : Promise.resolve([]),
+      shouldFetchConsents
+        ? SignedConsentModel.find({ clinicId: clinicObjectId, patientId: patientObjectId })
+            .sort({ signedAt: -1, createdAt: -1 })
+            .limit(candidateLimit)
+            .lean<SignedConsentRecord[]>()
+            .exec()
+        : Promise.resolve([]),
     ]);
 
     return {
@@ -129,6 +179,9 @@ export class PatientActivityRepository {
       treatments,
       cashRecords,
       media,
+      retentionPlans,
+      retainerDevices,
+      signedConsents,
     };
   }
 
@@ -173,6 +226,24 @@ export class PatientActivityRepository {
     for (const item of records.media) {
       if (item.uploadedByUserId) userIds.add(item.uploadedByUserId.toString());
       if (item.treatmentId) treatmentIds.add(item.treatmentId.toString());
+    }
+
+    for (const consent of records.signedConsents ?? []) {
+      userIds.add(consent.presentedByUserId.toString());
+      if (consent.revokedByUserId) userIds.add(consent.revokedByUserId.toString());
+      if (consent.voidedByUserId) userIds.add(consent.voidedByUserId.toString());
+      if (consent.treatmentId) treatmentIds.add(consent.treatmentId.toString());
+    }
+
+    for (const plan of records.retentionPlans ?? []) {
+      userIds.add(plan.createdBy.toString());
+      if (plan.updatedBy) userIds.add(plan.updatedBy.toString());
+      treatmentIds.add(plan.treatmentId.toString());
+    }
+    for (const device of records.retainerDevices ?? []) {
+      userIds.add(device.createdBy.toString());
+      if (device.updatedBy) userIds.add(device.updatedBy.toString());
+      treatmentIds.add(device.treatmentId.toString());
     }
 
     const userObjectIds = Array.from(userIds).map((id) => new Types.ObjectId(id));

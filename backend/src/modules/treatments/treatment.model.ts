@@ -24,6 +24,18 @@ const treatmentSchema = new Schema<TreatmentAttributes>(
     startDate: { type: Date, default: null },
     expectedEndDate: { type: Date, default: null },
     completedAt: { type: Date, default: null },
+    completionDate: { type: Date, default: null },
+    debondPerformed: { type: Boolean, default: null },
+    debondDate: { type: Date, default: null },
+    retentionRequired: { type: Boolean, default: null },
+    finalMediaIds: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'PatientMedia' }],
+      default: () => [],
+      validate: {
+        validator: (value: unknown[]) => value.length <= 20,
+        message: 'A treatment completion may reference at most 20 media records',
+      },
+    },
     agreedPrice: { type: Number, default: null, min: 0, max: 1_000_000 },
     notes: { type: String, default: null, trim: true, maxlength: 2000 },
     cancellationReason: { type: String, default: null, trim: true, maxlength: 500 },
@@ -39,6 +51,7 @@ const treatmentSchema = new Schema<TreatmentAttributes>(
 );
 
 treatmentSchema.index({ clinicId: 1, patientId: 1, createdAt: -1 });
+treatmentSchema.index({ clinicId: 1, patientId: 1, status: 1, startDate: -1 });
 treatmentSchema.index({ clinicId: 1, status: 1, startDate: -1 });
 /** Database-level race protection for the one-active-treatment invariant. */
 treatmentSchema.index(

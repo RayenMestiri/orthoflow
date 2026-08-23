@@ -45,6 +45,7 @@ export interface ClinicalVisitSummary {
   id: string;
   appointmentId: string;
   treatmentId: string | null;
+  retentionPlanId?: string | null;
   status: ClinicalVisitStatus;
   reasonCode: ClinicalReasonCode | null;
   reasonOther: string | null;
@@ -71,12 +72,14 @@ export interface ClinicalVisit extends Omit<ClinicalVisitSummary, 'clinicianName
     patient: { id: string; fullName: string };
     appointment: { id: string; startAt: string; endAt: string; status: string };
     treatment: { id: string; label: string; status: string } | null;
+    retention?: { id: string; status: string } | null;
     previousVisit: ClinicalVisitSummary | null;
   };
 }
 
 export interface ClinicalVisitInput {
   treatmentId?: string | null;
+  retentionPlanId?: string | null;
   reasonCode?: ClinicalReasonCode | null;
   reasonOther?: string | null;
   observations?: string | null;

@@ -1,0 +1,75 @@
+<section class="retention" aria-labelledby="retention-title">
+  <header>
+    <div>
+      <span>Post-treatment care</span>
+      <h4 id="retention-title">Retention</h4>
+    </div>
+    @if (plan(); as current) {
+      <strong class="status" [attr.data-status]="current.status">{{ current.status }}</strong>
+    }
+  </header>
+  @if (error(); as message) { <p class="error" role="alert">{{ message }}</p> }
+  @if (loading()) {
+    <p role="status">Loading retention plan…</p>
+  } @else if (plan(); as current) {
+    <dl>
+      <div><dt>Started</dt><dd>{{ current.startedAt ? (current.startedAt | date: 'mediumDate') : 'Not started' }}</dd></div>
+      <div><dt>Initial control</dt><dd>{{ current.initialControlRecommendedAt ? (current.initialControlRecommendedAt | date: 'mediumDate') : 'Not set' }}</dd></div>
+      <div><dt>Devices</dt><dd>{{ current.retainers.length }}</dd></div>
+    </dl>
+    @if (current.notes) { <p class="note">{{ current.notes }}</p> }
+    <div class="devices">
+      @for (device of current.retainers; track device.id) {
+        <article>
+          <div>
+            <strong>{{ device.customTypeLabel || device.type.replaceAll('_', ' ') }}</strong>
+            <span>{{ device.arch }} · delivered {{ device.deliveredAt | date: 'mediumDate' }}</span>
+          </div>
+          <span class="status" [attr.data-status]="device.status">{{ device.status }}</span>
+          @if (canManage() && device.status === 'ACTIVE' && current.status === 'ACTIVE') {
+            <div class="actions">
+              <button type="button" (click)="openDevice(device.id)">Replace</button>
+              <button type="button" (click)="markLost(device.id)">Lost</button>
+              <button type="button" (click)="discontinue(device.id)">Discontinue</button>
+            </div>
+          }
+        </article>
+      } @empty {
+        <p>No retainer device delivered yet.</p>
+      }
+    </div>
+    @if (canManage() && (current.status === 'PLANNED' || current.status === 'ACTIVE')) {
+      <footer>
+        <button type="button" class="primary" [disabled]="saving()" (click)="openDevice()">Deliver retainer</button>
+        @if (current.status === 'ACTIVE') {
+          <button type="button" [disabled]="saving()" (click)="complete()">Complete retention</button>
+        }
+      </footer>
+    }
+  } @else {
+    <div class="empty">
+      <p>No retention plan has been created for this completed treatment.</p>
+      @if (canManage()) { <button type="button" class="primary" (click)="showPlanForm.set(true)">Create retention plan</button> }
+    </div>
+  }
+
+  @if (showPlanForm()) {
+    <form [formGroup]="planForm" (ngSubmit)="createPlan()">
+      <label>Initial control recommendation<input type="date" formControlName="initialControlRecommendedAt" /></label>
+      <label>Clinical notes<textarea rows="3" formControlName="notes"></textarea></label>
+      <div class="form-actions"><button type="button" (click)="showPlanForm.set(false)">Cancel</button><button class="primary" type="submit" [disabled]="saving()">Create plan</button></div>
+    </form>
+  }
+  @if (deviceFormOpen()) {
+    <form [formGroup]="deviceForm" (ngSubmit)="saveDevice()">
+      <div class="fields">
+        <label>Device type<select formControlName="type"><option value="CLEAR_RETAINER">Clear retainer</option><option value="FIXED_WIRE">Fixed wire</option><option value="HAWLEY">Hawley</option><option value="OTHER">Other</option></select></label>
+        <label>Arch<select formControlName="arch"><option value="BOTH">Both</option><option value="UPPER">Upper</option><option value="LOWER">Lower</option></select></label>
+      </div>
+      @if (deviceForm.controls.type.value === 'OTHER') { <label>Custom type<input formControlName="customTypeLabel" /></label> }
+      <label>Delivered date<input type="date" formControlName="deliveredAt" /></label>
+      <label>Clinical notes<textarea rows="3" formControlName="notes"></textarea></label>
+      <div class="form-actions"><button type="button" (click)="deviceFormOpen.set(false)">Cancel</button><button class="primary" type="submit" [disabled]="saving()">{{ replacingId() ? 'Record replacement' : 'Deliver device' }}</button></div>
+    </form>
+  }
+</section>

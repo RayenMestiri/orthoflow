@@ -4,6 +4,7 @@ import { getApiProblem } from '../../../core/http/api-error';
 import type {
   CreateMilestoneInput,
   CreateTreatmentInput,
+  CompleteTreatmentInput,
   TreatmentWithMilestones,
   UpdateMilestoneInput,
   UpdateTreatmentInput,
@@ -98,8 +99,8 @@ export class TreatmentsStore {
     return this.mutate(() => firstValueFrom(this.api.resume(treatmentId)));
   }
 
-  complete(treatmentId: string): Promise<boolean> {
-    return this.mutate(() => firstValueFrom(this.api.complete(treatmentId)));
+  complete(treatmentId: string, input: CompleteTreatmentInput): Promise<boolean> {
+    return this.mutate(() => firstValueFrom(this.api.complete(treatmentId, input)));
   }
 
   cancel(treatmentId: string, reason: string): Promise<boolean> {

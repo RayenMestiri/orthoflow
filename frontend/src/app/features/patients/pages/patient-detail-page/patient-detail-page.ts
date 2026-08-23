@@ -20,6 +20,9 @@ import { PatientTreatments } from '../../../treatments/components/patient-treatm
 import { TreatmentsApiService } from '../../../treatments/data-access/treatments-api.service';
 import { treatmentTypeLabel } from '../../../treatments/models/treatment.models';
 import { PatientActivityTimeline } from '../../components/patient-activity/patient-activity';
+import { CreateTaskDrawerComponent } from '../../../tasks/components/create-task-drawer/create-task-drawer.component';
+import { PatientConsents } from '../../../consents/components/patient-consents/patient-consents';
+import { TasksStore } from '../../../tasks/data-access/tasks.store';
 import { PatientsApiService } from '../../data-access/patients-api.service';
 import type {
   ContactPreference,
@@ -42,6 +45,8 @@ import type {
     PatientMediaWorkspace,
     PatientTreatments,
     PatientActivityTimeline,
+    CreateTaskDrawerComponent,
+    PatientConsents,
     ReactiveFormsModule,
     RouterLink,
   ],
@@ -55,6 +60,7 @@ export class PatientDetailPage {
   private readonly permissions = inject(PermissionService);
   private readonly treatmentsApi = inject(TreatmentsApiService);
   private readonly followUpsApi = inject(FollowUpsApiService);
+  readonly tasksStore = inject(TasksStore);
   readonly patientId = this.route.snapshot.paramMap.get('patientId') ?? '';
   readonly patient = signal<Patient | null>(null);
   readonly guardians = signal<Guardian[]>([]);
@@ -85,7 +91,7 @@ export class PatientDetailPage {
     this.route.snapshot.queryParamMap.get('receiptId'),
   );
   readonly activeView = signal<
-    'overview' | 'activity' | 'treatments' | 'visits' | 'payments' | 'media'
+    'overview' | 'activity' | 'treatments' | 'visits' | 'payments' | 'media' | 'consents'
   >(
     (this.route.snapshot.queryParamMap.get('tab') as
       | 'overview'
@@ -94,6 +100,7 @@ export class PatientDetailPage {
       | 'visits'
       | 'payments'
       | 'media'
+      | 'consents'
       | null) ?? 'overview',
   );
 
@@ -116,6 +123,10 @@ export class PatientDetailPage {
   readonly canViewPayments = this.permissions.can(PERMISSIONS.CASH_RECORDS_VIEW);
   readonly canViewMedia = this.permissions.can(PERMISSIONS.PATIENT_MEDIA_VIEW);
   readonly canManageMedia = this.permissions.can(PERMISSIONS.PATIENT_MEDIA_MANAGE_ADMIN);
+  readonly canViewConsents = this.permissions.can(PERMISSIONS.CONSENTS_VIEW);
+  readonly canCaptureConsents = this.permissions.can(PERMISSIONS.CONSENTS_CAPTURE);
+  readonly canRevokeConsents = this.permissions.can(PERMISSIONS.CONSENTS_REVOKE);
+  readonly canVoidConsents = this.permissions.can(PERMISSIONS.CONSENTS_VOID);
   readonly manageableMediaCategories: readonly PatientMediaCategory[] = this.permissions.can(
     PERMISSIONS.PATIENT_MEDIA_MANAGE_CLINICAL,
   )
@@ -193,10 +204,10 @@ export class PatientDetailPage {
       const tab = params.get('tab');
       if (
         tab &&
-        ['overview', 'activity', 'treatments', 'visits', 'payments', 'media'].includes(tab)
+        ['overview', 'activity', 'treatments', 'visits', 'payments', 'media', 'consents'].includes(tab)
       ) {
         this.activeView.set(
-          tab as 'overview' | 'activity' | 'treatments' | 'visits' | 'payments' | 'media',
+          tab as 'overview' | 'activity' | 'treatments' | 'visits' | 'payments' | 'media' | 'consents',
         );
       }
       this.selectedTreatmentId.set(params.get('treatmentId'));
@@ -537,6 +548,7 @@ export class PatientDetailPage {
     if (target === 'TREATMENT' && this.canViewTreatments) this.activeView.set('treatments');
     if (target === 'CASH_RECORD' && this.canViewPayments) this.activeView.set('payments');
     if (target === 'MEDIA' && this.canViewMedia) void this.openMedia();
+    if (target === 'CONSENT' && this.canViewConsents) this.activeView.set('consents');
   }
 
   onActivityItemSelected(event: import('../../components/patient-activity/patient-activity').ActivityNavigationEvent): void {
@@ -561,6 +573,8 @@ export class PatientDetailPage {
         this.selectedTreatmentLabel.set(event.activity.treatment.label);
       }
       this.activeView.set('treatments');
+    } else if (event.targetType === 'CONSENT' && this.canViewConsents) {
+      this.activeView.set('consents');
     }
   }
 
@@ -578,5 +592,17 @@ export class PatientDetailPage {
       contactPreference: value.contactPreference,
     };
   }
-}
 
+  openCreateTaskForPatient(): void {
+    const p = this.patient();
+    if (!p) return;
+    this.tasksStore.openCreateDrawer({
+      context: {
+        type: 'PATIENT',
+        entityId: p.id,
+        patientId: p.id,
+        labelSnapshot: `${p.firstName} ${p.lastName}`.trim(),
+      },
+    });
+  }
+}

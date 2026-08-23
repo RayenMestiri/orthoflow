@@ -36,7 +36,9 @@ export interface FollowUpSummary {
 export interface FollowUpRow {
   patient: { id: string; fullName: string; phone: string | null };
   treatment: { id: string; label: string; status: string } | null;
-  sourceVisit: { id: string; startedAt: string; completedAt: string };
+  retentionPlanId?: string | null;
+  sourceVisit: { id: string; startedAt: string; completedAt: string } | null;
+  sourceRetentionPlan?: { id: string; createdAt: string } | null;
   recommendedAt: string;
   appointment: {
     id: string;

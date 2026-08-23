@@ -115,6 +115,12 @@ export const updateWorkingHoursBodySchema = z.object({
 });
 
 export const updateSchedulingSettingsBodySchema = schedulingSettingsSchema;
+export const careContinuitySettingsSchema = z.object({
+  treatmentInactivityDays: z.number().int().min(14).max(365),
+  retentionInactivityDays: z.number().int().min(30).max(730),
+  missedAppointmentRebookGraceDays: z.number().int().min(1).max(90),
+});
+export const updateCareContinuitySettingsBodySchema = careContinuitySettingsSchema;
 
 // --- responses --------------------------------------------------------------
 
@@ -148,12 +154,16 @@ export const clinicSettingsDtoSchema = z.object({
     defaultConcurrentCapacity: z.number().int(),
     allowOwnerOverbooking: z.boolean(),
   }),
+  careContinuity: careContinuitySettingsSchema,
   updatedAt: z.string(),
 });
 
 export type UpdateGeneralSettingsBody = z.infer<typeof updateGeneralSettingsBodySchema>;
 export type UpdateWorkingHoursBody = z.infer<typeof updateWorkingHoursBodySchema>;
 export type UpdateSchedulingSettingsBody = z.infer<typeof updateSchedulingSettingsBodySchema>;
+export type UpdateCareContinuitySettingsBody = z.infer<
+  typeof updateCareContinuitySettingsBodySchema
+>;
 
 /** Exported for tests and for the working-hours utilities. */
 export function periodsOverlap(periods: TimePeriod[]): boolean {

@@ -79,6 +79,11 @@ export class TreatmentRepository {
         startDate: input.startDate ?? null,
         expectedEndDate: input.expectedEndDate ?? null,
         completedAt: null,
+        completionDate: null,
+        debondPerformed: null,
+        debondDate: null,
+        retentionRequired: null,
+        finalMediaIds: [],
         agreedPrice: input.agreedPrice ?? null,
         notes: input.notes ?? null,
         cancellationReason: null,
@@ -122,6 +127,13 @@ export class TreatmentRepository {
     };
     if (changes.startDate !== undefined) set.startDate = changes.startDate;
     if (changes.completedAt !== undefined) set.completedAt = changes.completedAt;
+    if (changes.completionDate !== undefined) set.completionDate = changes.completionDate;
+    if (changes.debondPerformed !== undefined) set.debondPerformed = changes.debondPerformed;
+    if (changes.debondDate !== undefined) set.debondDate = changes.debondDate;
+    if (changes.retentionRequired !== undefined) set.retentionRequired = changes.retentionRequired;
+    if (changes.finalMediaIds !== undefined) {
+      set.finalMediaIds = changes.finalMediaIds.map((id) => toObjectId(id, 'finalMediaId'));
+    }
     if (changes.cancellationReason !== undefined)
       set.cancellationReason = changes.cancellationReason;
     return TreatmentModel.findOneAndUpdate(
@@ -131,6 +143,29 @@ export class TreatmentRepository {
         status: expectedFrom,
       },
       { $set: set },
+      { new: true, runValidators: true },
+    )
+      .lean<TreatmentRecord | null>()
+      .exec();
+  }
+
+  async markRetentionRequired(
+    treatmentId: string,
+    clinicId: string,
+    updatedBy: string,
+  ): Promise<TreatmentRecord | null> {
+    return TreatmentModel.findOneAndUpdate(
+      {
+        ...this.baseFilter(clinicId),
+        _id: toObjectId(treatmentId, 'treatmentId'),
+        status: TREATMENT_STATUSES.COMPLETED,
+      },
+      {
+        $set: {
+          retentionRequired: true,
+          updatedBy: toObjectId(updatedBy, 'updatedBy'),
+        },
+      },
       { new: true, runValidators: true },
     )
       .lean<TreatmentRecord | null>()

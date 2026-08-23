@@ -11,6 +11,7 @@ import {
   DEFAULT_CLINIC_SETTINGS,
   WEEKDAYS,
   type ClinicSchedulingSettings,
+  type ClinicCareContinuitySettings,
   type ClinicSettingsDto,
   type UpdateGeneralSettingsInput,
   type WeeklyWorkingHours,
@@ -65,6 +66,17 @@ export function toClinicSettingsDto(record: ClinicRecord): ClinicSettingsDto {
       allowOwnerOverbooking:
         stored?.scheduling?.allowOwnerOverbooking ??
         DEFAULT_CLINIC_SETTINGS.scheduling.allowOwnerOverbooking,
+    },
+    careContinuity: {
+      treatmentInactivityDays:
+        stored?.careContinuity?.treatmentInactivityDays ??
+        DEFAULT_CLINIC_SETTINGS.careContinuity.treatmentInactivityDays,
+      retentionInactivityDays:
+        stored?.careContinuity?.retentionInactivityDays ??
+        DEFAULT_CLINIC_SETTINGS.careContinuity.retentionInactivityDays,
+      missedAppointmentRebookGraceDays:
+        stored?.careContinuity?.missedAppointmentRebookGraceDays ??
+        DEFAULT_CLINIC_SETTINGS.careContinuity.missedAppointmentRebookGraceDays,
     },
     updatedAt: record.updatedAt.toISOString(),
   };
@@ -166,6 +178,27 @@ export class ClinicSettingsService {
       userAgent: context.userAgent,
     });
 
+    return dto;
+  }
+
+  async updateCareContinuity(
+    clinicId: string,
+    careContinuity: ClinicCareContinuitySettings,
+    context: MutationContext,
+  ): Promise<ClinicSettingsDto> {
+    const dto = this.requireUpdated(
+      await this.settings.updateCareContinuity(clinicId, careContinuity),
+    );
+    await this.audit.record({
+      clinicId,
+      actorUserId: context.actorUserId,
+      action: AUDIT_ACTIONS.CLINIC_CARE_CONTINUITY_SETTINGS_UPDATED,
+      resourceType: AUDIT_RESOURCE_TYPES.CLINIC,
+      resourceId: clinicId,
+      metadata: { section: 'careContinuity', ...careContinuity },
+      ip: context.ip,
+      userAgent: context.userAgent,
+    });
     return dto;
   }
 

@@ -83,6 +83,7 @@ export class SchedulePage implements OnInit {
 
   private async initializeRoute(): Promise<void> {
     await this.store.initialize(true);
+    await this.store.refresh();
     const patientId = this.route.snapshot.queryParamMap.get('patientId');
     const appointmentId = this.route.snapshot.queryParamMap.get('appointmentId');
     if (appointmentId) {
@@ -93,6 +94,7 @@ export class SchedulePage implements OnInit {
     this.store.setPrefill({
       patientId,
       treatmentId: this.route.snapshot.queryParamMap.get('treatmentId'),
+      retentionPlanId: this.route.snapshot.queryParamMap.get('retentionPlanId'),
       recommendedDate: this.route.snapshot.queryParamMap.get('recommendedDate'),
       returnUrl: this.route.snapshot.queryParamMap.get('returnUrl'),
     });

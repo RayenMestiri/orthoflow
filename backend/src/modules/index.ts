@@ -7,7 +7,7 @@ import { clinicSettingsRoutes } from './clinics/clinic-settings.routes.js';
 import { healthRoutes } from './health/health.routes.js';
 import { membershipRoutes } from './memberships/membership.routes.js';
 import { patientRoutes } from './patients/patient.routes.js';
-import { guardianRoutes } from './guardians/guardian.routes.js';
+import { guardianRoutes, standaloneGuardianRoutes } from './guardians/guardian.routes.js';
 import { appointmentRoutes } from './appointments/appointment.routes.js';
 import { appointmentTypeRoutes } from './appointment-types/appointment-type.routes.js';
 import { patientTreatmentRoutes, treatmentRoutes } from './treatments/treatment.routes.js';
@@ -29,6 +29,19 @@ import {
   patientClinicalVisitRoutes,
 } from './clinical-visits/clinical-visit.routes.js';
 import { followUpRoutes } from './follow-ups/follow-up.routes.js';
+import { globalSearchRoutes } from './global-search/global-search.routes.js';
+import { dashboardRoutes } from './dashboard/dashboard.routes.js';
+import { taskRoutes } from './tasks/task.routes.js';
+import {
+  patientRetentionRoutes,
+  retentionRoutes,
+  treatmentRetentionRoutes,
+} from './retention/retention.routes.js';
+import {
+  consentRoutes,
+  consentTemplateRoutes,
+  patientConsentRoutes,
+} from './consents/consent.routes.js';
 
 /**
  * The API surface, in one place.
@@ -48,11 +61,16 @@ export const registerModules: FastifyPluginAsyncZod = async (app) => {
   await app.register(membershipRoutes, { prefix: `${API_PREFIX}/clinics/:clinicId/members` });
   await app.register(patientRoutes, { prefix: `${API_PREFIX}/patients` });
   await app.register(guardianRoutes, { prefix: `${API_PREFIX}/patients` });
+  await app.register(standaloneGuardianRoutes, { prefix: `${API_PREFIX}/guardians` });
   await app.register(patientTreatmentRoutes, { prefix: `${API_PREFIX}/patients` });
+  await app.register(patientRetentionRoutes, { prefix: `${API_PREFIX}/patients` });
   await app.register(patientClinicalVisitRoutes, { prefix: `${API_PREFIX}/patients` });
   await app.register(patientMediaPatientRoutes, { prefix: `${API_PREFIX}/patients` });
+  await app.register(patientConsentRoutes, { prefix: `${API_PREFIX}/patients` });
   await app.register(patientMediaRoutes, { prefix: `${API_PREFIX}/patient-media` });
   await app.register(treatmentRoutes, { prefix: `${API_PREFIX}/treatments` });
+  await app.register(treatmentRetentionRoutes, { prefix: `${API_PREFIX}/treatments` });
+  await app.register(retentionRoutes, { prefix: `${API_PREFIX}/retention-plans` });
   await app.register(patientCashRecordRoutes, { prefix: `${API_PREFIX}/patients` });
   await app.register(cashRecordRoutes, { prefix: `${API_PREFIX}/cash-records` });
   await app.register(cashRecordReceiptRoutes, { prefix: `${API_PREFIX}/cash-records` });
@@ -66,4 +84,9 @@ export const registerModules: FastifyPluginAsyncZod = async (app) => {
   await app.register(followUpRoutes, { prefix: `${API_PREFIX}/follow-ups` });
   await app.register(appointmentTypeRoutes, { prefix: `${API_PREFIX}/appointment-types` });
   await app.register(auditLogRoutes, { prefix: `${API_PREFIX}/audit-logs` });
+  await app.register(globalSearchRoutes, { prefix: `${API_PREFIX}/search` });
+  await app.register(dashboardRoutes, { prefix: `${API_PREFIX}/dashboard` });
+  await app.register(taskRoutes, { prefix: `${API_PREFIX}/tasks` });
+  await app.register(consentTemplateRoutes, { prefix: `${API_PREFIX}/consent-templates` });
+  await app.register(consentRoutes, { prefix: `${API_PREFIX}/consents` });
 };

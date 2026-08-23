@@ -183,7 +183,7 @@ export class ClinicalVisitPage {
           ...(visit.treatmentId ? { treatmentId: visit.treatmentId } : {}),
         }),
       );
-      this.followUp.set(result.rows.find((row) => row.sourceVisit.id === visit.id) ?? null);
+      this.followUp.set(result.rows.find((row) => row.sourceVisit?.id === visit.id) ?? null);
     } catch {
       this.followUp.set(null);
     }

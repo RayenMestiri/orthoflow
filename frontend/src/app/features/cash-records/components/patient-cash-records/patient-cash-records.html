@@ -31,7 +31,15 @@
   } @else {
     <!-- Financial overview -->
     <section class="fin-summary" aria-labelledby="fin-summary-title">
-      <h3 id="fin-summary-title" class="fin-summary__title">Financial overview</h3>
+      <div class="fin-summary__head">
+        <h3 id="fin-summary-title" class="fin-summary__title">Financial overview</h3>
+        @if (treatmentLabel()) {
+          <div class="fin-summary__scope">
+            <span class="material-icons" aria-hidden="true">medical_services</span>
+            <span>Treatment: <strong>{{ treatmentLabel() }}</strong></span>
+          </div>
+        }
+      </div>
       <dl class="fin-summary__grid">
         <div>
           <dt>Agreed treatment price</dt>
@@ -41,9 +49,9 @@
           <dt>Recorded</dt>
           <dd>{{ money(summary()?.recordedAmountMinor) }}</dd>
         </div>
-        <div class="fin-summary__remaining">
-          <dt>Remaining</dt>
-          <dd>{{ money(summary()?.remainingAmountMinor) }}</dd>
+        <div class="fin-summary__remaining" [class.fin-summary__remaining--overpaid]="(summary()?.remainingAmountMinor ?? 0) < 0">
+          <dt>{{ (summary()?.remainingAmountMinor ?? 0) < 0 ? 'Excess credit' : 'Remaining' }}</dt>
+          <dd>{{ (summary()?.remainingAmountMinor ?? 0) < 0 ? '+' + money(-(summary()?.remainingAmountMinor ?? 0)) : money(summary()?.remainingAmountMinor) }}</dd>
         </div>
       </dl>
       @if (!hasAgreedPrice()) {
@@ -90,6 +98,23 @@
             }
           </div>
         </header>
+
+        @if (treatmentId() && treatmentLabel()) {
+          <div class="fin-treatment-filter-bar">
+            <span class="material-icons" aria-hidden="true">filter_alt</span>
+            <span class="fin-treatment-filter-bar__text">
+              {{ onlyCurrentTreatment() ? 'Filtered to:' : 'Showing all payments (including' }}
+              <strong>{{ treatmentLabel() }}</strong>{{ onlyCurrentTreatment() ? '' : ')' }}
+            </span>
+            <button
+              type="button"
+              class="btn-toggle-treatment-filter"
+              (click)="toggleTreatmentFilter()"
+            >
+              {{ onlyCurrentTreatment() ? 'Show all patient payments' : 'Filter to this treatment' }}
+            </button>
+          </div>
+        }
 
         <!-- Flexible Search & Month/Method Filter Bar -->
         <div class="fin-filter-bar">

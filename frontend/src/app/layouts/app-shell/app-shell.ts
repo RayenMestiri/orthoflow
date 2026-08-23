@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  ElementRef,
   HostListener,
   inject,
   signal,
@@ -14,6 +15,7 @@ import { AuthStore } from '../../core/auth/auth.store';
 import { CLINIC_ROLES, PLATFORM_ROLES } from '../../core/auth/auth.models';
 import { PermissionService, PERMISSIONS } from '../../core/auth/permissions';
 import { ClinicSettingsStore } from '../../features/settings/data-access/clinic-settings.store';
+import { GlobalSearchComponent } from '../../shared/components/global-search/global-search.component';
 
 interface AppNavigationItem {
   label: string;
@@ -25,7 +27,7 @@ interface AppNavigationItem {
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, GlobalSearchComponent],
   templateUrl: './app-shell.html',
   styleUrl: './app-shell.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,12 +37,18 @@ export class AppShell {
   private readonly router = inject(Router);
   private readonly permissions = inject(PermissionService);
   private readonly settingsStore = inject(ClinicSettingsStore);
+  private readonly elementRef = inject(ElementRef);
   readonly auth = inject(AuthStore);
 
   readonly compact = signal(false);
   readonly navigationOpen = signal(false);
   readonly accountOpen = signal(false);
+  readonly commandCenterOpen = signal(false);
   readonly logoFailed = signal(false);
+
+  readonly canManageSettings = computed(() =>
+    this.permissions.can(PERMISSIONS.CLINIC_SETTINGS_MANAGE),
+  );
 
   readonly clinicLogoUrl = computed(() => {
     if (this.logoFailed()) return null;
@@ -98,6 +106,12 @@ export class AppShell {
       visible: this.permissions.can(PERMISSIONS.FOLLOWUPS_VIEW),
     },
     {
+      label: 'Tasks',
+      icon: 'task_alt',
+      route: '/app/tasks',
+      visible: this.permissions.can(PERMISSIONS.TASKS_VIEW),
+    },
+    {
       label: 'Treatments',
       icon: 'dentistry',
       route: '/app/patients',
@@ -148,12 +162,30 @@ export class AppShell {
     this.accountOpen.set(false);
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.accountOpen()) return;
+    const target = event.target as HTMLElement | null;
+    const accountEl = this.elementRef.nativeElement.querySelector('.app-shell__account');
+    if (accountEl && target && !accountEl.contains(target)) {
+      this.accountOpen.set(false);
+    }
+  }
+
   toggleNavigation(): void {
     this.navigationOpen.update((open) => !open);
   }
 
+  openCommandCenter(): void {
+    this.commandCenterOpen.set(true);
+  }
+
   toggleAccount(): void {
     this.accountOpen.update((open) => !open);
+  }
+
+  closeAccountMenu(): void {
+    this.accountOpen.set(false);
   }
 
   selectClinic(event: Event): void {

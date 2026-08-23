@@ -92,20 +92,16 @@
       <h2 id="fin-attention-title">Needs your attention</h2>
       <ul>
         @for (item of attentionItems(); track item.label) {
-          <li>
+          <li [class.fin-attention__item--active]="activeAttention() === item.key">
             <span class="fin-attention__count">{{ item.count }}</span>
             <span class="fin-attention__label">{{ item.label }}</span>
             @if (item.detail) {
               <span class="fin-attention__detail">{{ item.detail }}</span>
             }
-            @if (item.reviewable) {
-              <button type="button" class="fin-review" (click)="reviewAttention(item.key)">
-                Review
-                <span class="material-icons" aria-hidden="true">arrow_forward</span>
-              </button>
-            } @else {
-              <span class="fin-attention__muted">Patient payments</span>
-            }
+            <button type="button" class="fin-review" (click)="reviewAttention(item.key)">
+              Review
+              <span class="material-icons" aria-hidden="true">arrow_forward</span>
+            </button>
           </li>
         }
       </ul>
@@ -263,9 +259,12 @@
                 <span class="fin-treatment__status">{{ row.treatmentStatus }}</span>
               </td>
               <td class="fin-progress-cell">
-                <span class="fin-progress__figures">
+                <span class="fin-progress__figures" [class.fin-progress__figures--overpaid]="row.paymentStatus === 'OVERPAID'">
                   {{ money(row.recordedMinor) }}
                   <span>/ {{ money(row.agreedMinor) }}</span>
+                  @if (row.paymentStatus === 'OVERPAID') {
+                    <span class="fin-excess-pill" title="Excess over agreed price">+{{ money(row.overpaidMinor) }}</span>
+                  }
                 </span>
                 <span
                   class="fin-progress"
@@ -281,7 +280,9 @@
               </td>
               <td class="fin-num fin-num--lead">
                 @if (row.paymentStatus === 'OVERPAID') {
-                  +{{ money(row.overpaidMinor) }}
+                  <span class="fin-credit-tag">+{{ money(row.overpaidMinor) }} <small>credit</small></span>
+                } @else if (row.paymentStatus === 'PAID') {
+                  <span class="fin-settled-tag">{{ money(0) }}</span>
                 } @else {
                   {{ money(row.remainingMinor) }}
                 }
@@ -319,18 +320,20 @@
               </span>
 
               <span class="fin-rowcard__amount">
-                <small>{{ row.paymentStatus === 'OVERPAID' ? 'Overpaid' : 'Remaining' }}</small>
-                <strong>
-                  {{
-                    row.paymentStatus === 'OVERPAID'
-                      ? money(row.overpaidMinor)
-                      : money(row.remainingMinor)
-                  }}
-                </strong>
+                @if (row.paymentStatus === 'OVERPAID') {
+                  <small class="fin-overpaid-label">Excess Credit</small>
+                  <strong class="fin-credit-tag">+{{ money(row.overpaidMinor) }}</strong>
+                } @else {
+                  <small>Remaining</small>
+                  <strong>{{ money(row.remainingMinor) }}</strong>
+                }
               </span>
 
-              <span class="fin-progress__figures">
+              <span class="fin-progress__figures" [class.fin-progress__figures--overpaid]="row.paymentStatus === 'OVERPAID'">
                 {{ money(row.recordedMinor) }} <span>/ {{ money(row.agreedMinor) }}</span>
+                @if (row.paymentStatus === 'OVERPAID') {
+                  <span class="fin-excess-pill">+{{ money(row.overpaidMinor) }}</span>
+                }
               </span>
               <span class="fin-progress" [attr.data-status]="row.paymentStatus">
                 <span class="fin-progress__fill" [style.width.%]="progressPercent(row)"></span>
@@ -373,9 +376,21 @@
     }
   </section>
 
-  <!-- Recent money movement -->
+  <!-- Recent money movement (Multi-column with intelligent column distribution) -->
   <section class="fin-activity" aria-labelledby="fin-activity-title">
-    <h2 id="fin-activity-title">Recent money movement</h2>
+    <div class="fin-activity__header">
+      <div>
+        <h2 id="fin-activity-title">Recent money movement</h2>
+        <p class="fin-activity__subtitle">
+          Journal des flux de caisse et encaissements du cabinet
+        </p>
+      </div>
+      @if (store.activity().length > 0) {
+        <span class="fin-activity__badge">
+          {{ store.activity().length }} mouvement{{ store.activity().length === 1 ? '' : 's' }}
+        </span>
+      }
+    </div>
 
     @if (store.activityError(); as message) {
       <div class="fin-alert" role="alert">
@@ -392,39 +407,104 @@
     } @else if (store.activity().length === 0) {
       <p class="fin-activity__empty">No payments have been recorded yet.</p>
     } @else {
-      <ol class="fin-feed">
-        @for (entry of store.activity(); track entry.cashRecordId) {
-          <li [attr.data-status]="entry.status">
-            <time [attr.datetime]="entry.receivedAt">
-              <strong>{{ entry.receivedAt | date: 'HH:mm' }}</strong>
-              <span>{{ entry.receivedAt | date: 'dd MMM' }}</span>
-            </time>
-            <span class="fin-feed__rail" aria-hidden="true"></span>
-            <div class="fin-feed__body">
-              <p class="fin-feed__amount">
-                {{ entry.status === 'CANCELLED' ? '' : '+' }}{{ money(entry.amountMinor) }}
-                @if (entry.status === 'CANCELLED') {
-                  <span class="fin-status" data-status="CANCELLED">Cancelled</span>
-                }
-              </p>
-              <p class="fin-feed__patient">{{ entry.patientName }}</p>
-              <p class="fin-feed__meta">
-                @if (entry.status === 'CANCELLED') {
-                  Cancelled by {{ entry.cancelledByName ?? 'clinic staff' }}
-                  @if (entry.cancellationReason) {
-                    · {{ entry.cancellationReason }}
-                  }
-                } @else {
-                  {{ entry.paymentMethod }} · {{ entry.receivedByName }}
-                  @if (entry.receiptNumber) {
-                    · {{ entry.receiptNumber }}
-                  }
-                }
-              </p>
-            </div>
-          </li>
+      <div
+        class="fin-activity__grid"
+        [class.fin-activity__grid--cols-1]="activityColumns().length === 1"
+        [class.fin-activity__grid--cols-2]="activityColumns().length === 2"
+        [class.fin-activity__grid--cols-3]="activityColumns().length === 3"
+      >
+        @for (column of activityColumns(); track $index; let colIndex = $index) {
+          <div class="fin-activity__col" [attr.data-col]="colIndex + 1">
+            <ol class="fin-feed">
+              @for (entry of column; track trackActivity($index, entry)) {
+                <li
+                  class="fin-feed__item"
+                  [attr.data-status]="entry.status"
+                  tabindex="0"
+                  role="button"
+                  (click)="openPatientPayment(entry)"
+                  (keydown.enter)="openPatientPayment(entry)"
+                  [attr.aria-label]="'Ouvrir le paiement de ' + entry.patientName"
+                >
+                  <time class="fin-feed__time" [attr.datetime]="entry.receivedAt">
+                    <strong>{{ entry.receivedAt | date: 'HH:mm' }}</strong>
+                    <span>{{ entry.receivedAt | date: 'dd MMM' }}</span>
+                  </time>
+
+                  <span class="fin-feed__rail" aria-hidden="true"></span>
+
+                  <div class="fin-feed__body">
+                    <div class="fin-feed__top">
+                      <p
+                        class="fin-feed__amount"
+                        [class.fin-feed__amount--cancelled]="entry.status === 'CANCELLED'"
+                      >
+                        {{ entry.status === 'CANCELLED' ? '' : '+' }}{{ money(entry.amountMinor) }}
+                        @if (entry.status === 'CANCELLED') {
+                          <span class="fin-status fin-status--cancelled" data-status="CANCELLED"
+                            >Cancelled</span
+                          >
+                        }
+                      </p>
+                      @if (entry.receiptNumber) {
+                        <span class="fin-receipt-badge">{{ entry.receiptNumber }}</span>
+                      }
+                    </div>
+
+                    <div class="fin-feed__patient-row">
+                      <span class="fin-avatar fin-avatar--sm" aria-hidden="true">{{
+                        initials(entry.patientName)
+                      }}</span>
+                      <span class="fin-feed__patient">{{ entry.patientName }}</span>
+                    </div>
+
+                    <p class="fin-feed__meta">
+                      @if (entry.status === 'CANCELLED') {
+                        <span class="fin-feed__meta-cancelled">
+                          Cancelled by {{ entry.cancelledByName ?? 'clinic staff' }}
+                          @if (entry.cancellationReason) {
+                            ·
+                            <span class="fin-feed__meta-reason">{{ entry.cancellationReason }}</span>
+                          }
+                        </span>
+                      } @else {
+                        <span class="fin-feed__method-tag">{{ entry.paymentMethod }}</span>
+                        <span>· {{ entry.receivedByName }}</span>
+                      }
+                    </p>
+                  </div>
+
+                  <span class="fin-feed__arrow material-icons" aria-hidden="true"
+                    >chevron_right</span
+                  >
+                </li>
+              }
+            </ol>
+          </div>
         }
-      </ol>
+      </div>
+
+      @if (hasMoreActivity()) {
+        <div class="fin-activity__footer">
+          <button
+            type="button"
+            class="fin-btn-expand"
+            (click)="toggleShowAllActivity()"
+            [attr.aria-expanded]="showAllActivity()"
+          >
+            <span class="material-icons" aria-hidden="true">
+              {{ showAllActivity() ? 'expand_less' : 'expand_more' }}
+            </span>
+            <span>
+              {{
+                showAllActivity()
+                  ? 'Voir moins'
+                  : 'Voir plus (' + (store.activity().length - 27) + ' restants)'
+              }}
+            </span>
+          </button>
+        </div>
+      }
     }
   </section>
 </section>

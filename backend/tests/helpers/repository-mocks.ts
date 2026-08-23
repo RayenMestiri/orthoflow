@@ -140,7 +140,22 @@ export const userRepositoryMock = {
   updatePasswordHash: vi.fn(async () => undefined),
   markEmailVerified: vi.fn(async () => undefined),
   isEmpty: vi.fn(async () => false),
-  findManyByIds: vi.fn(async () => []),
+  findManyByIds: vi.fn(async (ids: string[]) =>
+    ids.map((id) => ({
+      id,
+      _id: new Types.ObjectId(id),
+      email: 'amine@clinic.tn',
+      firstName: 'Amine',
+      lastName: 'Ben Salah',
+      phone: null,
+      platformRole: testState.platformRole,
+      status: 'ACTIVE' as const,
+      emailVerifiedAt: FIXED_DATE,
+      lastLoginAt: null,
+      createdAt: FIXED_DATE,
+      updatedAt: FIXED_DATE,
+    })),
+  ),
 };
 
 export const authSessionRepositoryMock = {
@@ -169,7 +184,32 @@ export const membershipRepositoryMock = {
         }))
       : [],
   ),
-  findByUserAndClinic: vi.fn(async () => null),
+  findByUserAndClinic: vi.fn(async (userId: string, clinicId: string) => ({
+    _id: new Types.ObjectId(),
+    userId: new Types.ObjectId(userId),
+    clinicId: new Types.ObjectId(clinicId),
+    role: testState.membershipRole,
+    status: testState.membershipStatus,
+    invitedBy: null,
+    joinedAt: FIXED_DATE,
+    removedAt: null,
+    createdAt: FIXED_DATE,
+    updatedAt: FIXED_DATE,
+  })),
+  findManyByUsersInClinic: vi.fn(async (userIds: string[], clinicId: string) =>
+    userIds.map((uid) => ({
+      _id: new Types.ObjectId(),
+      userId: new Types.ObjectId(uid),
+      clinicId: new Types.ObjectId(clinicId),
+      role: testState.membershipRole,
+      status: testState.membershipStatus,
+      invitedBy: null,
+      joinedAt: FIXED_DATE,
+      removedAt: null,
+      createdAt: FIXED_DATE,
+      updatedAt: FIXED_DATE,
+    })),
+  ),
   findByIdInClinic: vi.fn(async () => null),
   listByClinic: vi.fn(async () => ({ items: [], total: 0 })),
   create: vi.fn(),
@@ -490,6 +530,40 @@ export const patientActivityRepositoryMock = {
   })),
 };
 
+export const taskRepositoryMock = {
+  create: vi.fn(async (data: any) => ({
+    _id: new Types.ObjectId(),
+    clinicId: data.clinicId,
+    title: data.title,
+    description: data.description ?? null,
+    status: data.status ?? 'TODO',
+    priority: data.priority ?? 'NORMAL',
+    assignedToUserId: data.assignedToUserId,
+    createdByUserId: data.createdByUserId,
+    dueAt: data.dueAt ?? null,
+    startedAt: null,
+    completedAt: null,
+    completedByUserId: null,
+    cancelledAt: null,
+    cancelledByUserId: null,
+    cancellationReason: null,
+    context: data.context ?? null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  })),
+  findById: vi.fn(async () => null),
+  list: vi.fn(async () => ({ items: [], total: 0 })),
+  getSummary: vi.fn(async () => ({
+    toDo: 0,
+    inProgress: 0,
+    overdue: 0,
+    urgent: 0,
+    completedToday: 0,
+  })),
+  countOpenByPatient: vi.fn(async () => 0),
+  update: vi.fn(async () => null),
+};
+
 export function resetRepositoryMocks(): void {
   const repositories = [
     userRepositoryMock,
@@ -504,6 +578,7 @@ export function resetRepositoryMocks(): void {
     treatmentRepositoryMock,
     clinicalVisitRepositoryMock,
     patientActivityRepositoryMock,
+    taskRepositoryMock,
     auditLogRepositoryMock,
   ];
 

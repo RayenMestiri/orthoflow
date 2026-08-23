@@ -62,7 +62,16 @@ export async function connectDatabase(logger?: FastifyBaseLogger): Promise<typeo
 
   try {
     await connecting;
-    logger?.info({ database: databaseConfig.dbName }, 'MongoDB connected');
+    // Pre-warm the pool so concurrent initial requests don't stall on TLS handshakes
+    if (mongoose.connection.db) {
+      const warmTarget = mongooseConnectOptions.minPoolSize ?? 5;
+      await Promise.all(
+        Array.from({ length: warmTarget }).map(() =>
+          mongoose.connection.db!.admin().ping().catch(() => {}),
+        ),
+      );
+    }
+    logger?.info({ database: databaseConfig.dbName }, 'MongoDB connected and pool pre-warmed');
     return mongoose;
   } finally {
     connecting = null;

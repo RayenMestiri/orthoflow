@@ -131,6 +131,21 @@ export class TodayPage {
     return this.canUpdate && canMarkNoShow(row);
   }
 
+  protected canDirectComplete(row: ReceptionRow): boolean {
+    return (
+      this.canCompleteVisit &&
+      (row.status === 'WAITING' || row.status === 'ARRIVED')
+    );
+  }
+
+  protected async directComplete(row: ReceptionRow, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    if (!this.canCompleteVisit) return;
+    if (await this.store.changeStatus(row.appointmentId, 'COMPLETED')) {
+      await this.refreshOpenActivity(row.appointmentId);
+    }
+  }
+
   protected initials(name: string): string {
     const parts = name.trim().split(/\s+/);
     return `${parts[0]?.[0] ?? ''}${parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : ''}`

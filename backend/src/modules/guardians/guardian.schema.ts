@@ -46,7 +46,41 @@ export const patientGuardianParamSchema = z.object({
 
 export const patientParamSchema = z.object({ patientId: objectIdSchema });
 
+export const linkExistingGuardianBodySchema = z.object({
+  guardianId: objectIdSchema,
+  relationship: z.enum(GUARDIAN_RELATIONSHIP_VALUES),
+  isPrimary: z.boolean().optional(),
+  financiallyResponsible: z.boolean().optional(),
+  contactPreference: z.enum(CONTACT_PREFERENCE_VALUES).optional(),
+});
+
+export const guardianChildDtoSchema = z.object({
+  patientId: objectIdSchema,
+  fullName: z.string(),
+  referenceNumber: z.string().nullable(),
+  birthDate: z.string().nullable(),
+  relationship: z.enum(GUARDIAN_RELATIONSHIP_VALUES),
+  isPrimary: z.boolean(),
+});
+
+export const guardianSearchDtoSchema = z.object({
+  id: objectIdSchema,
+  firstName: z.string(),
+  lastName: z.string(),
+  fullName: z.string(),
+  phone: z.string().nullable(),
+  email: z.string().nullable(),
+  linkedPatientsCount: z.number(),
+});
+
+export const guardianSearchQuerySchema = z.object({
+  query: z.string().optional().default(''),
+});
+
 export type CreateGuardianBody = z.infer<typeof createGuardianBodySchema>;
 export type UpdateGuardianBody = z.infer<typeof updateGuardianBodySchema>;
+export type LinkExistingGuardianBody = z.infer<typeof linkExistingGuardianBodySchema>;
 export type PatientGuardianParam = z.infer<typeof patientGuardianParamSchema>;
 export type PatientParam = z.infer<typeof patientParamSchema>;
+export type GuardianSearchQuery = z.infer<typeof guardianSearchQuerySchema>;
+

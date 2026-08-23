@@ -125,6 +125,42 @@ export class PatientGuardianRepository {
     if (session) query.session(session);
     return query.lean<PatientGuardianRecord | null>().exec();
   }
+
+  async unlink(
+    patientId: string,
+    guardianId: string,
+    clinicId: string,
+    session?: ClientSession,
+  ): Promise<boolean> {
+    const query = PatientGuardianModel.deleteOne({
+      ...this.baseFilter(clinicId),
+      patientId: toObjectId(patientId, 'patientId'),
+      guardianId: toObjectId(guardianId, 'guardianId'),
+    });
+    if (session) query.session(session);
+    const result = await query.exec();
+    return (result.deletedCount ?? 0) > 0;
+  }
+
+  async listSiblingsByGuardian(
+    guardianId: string,
+    clinicId: string,
+  ): Promise<PatientGuardianRecord[]> {
+    return PatientGuardianModel.find({
+      ...this.baseFilter(clinicId),
+      guardianId: toObjectId(guardianId, 'guardianId'),
+    })
+      .sort({ createdAt: 1 })
+      .lean<PatientGuardianRecord[]>()
+      .exec();
+  }
+
+  async countByGuardianInClinic(guardianId: string, clinicId: string): Promise<number> {
+    return PatientGuardianModel.countDocuments({
+      ...this.baseFilter(clinicId),
+      guardianId: toObjectId(guardianId, 'guardianId'),
+    }).exec();
+  }
 }
 
 export const patientGuardianRepository = new PatientGuardianRepository();

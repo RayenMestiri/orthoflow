@@ -152,6 +152,15 @@
         }
         <button
           type="button"
+          class="btn-edit-profile"
+          (click)="openCreateTaskForPatient()"
+          title="Créer une tâche ou consigne pour ce patient"
+        >
+          <span class="material-icons" aria-hidden="true">add_task</span>
+          <span>+ Tâche</span>
+        </button>
+        <button
+          type="button"
           class="btn-action-disabled"
           disabled
           title="Cash records are planned for a later phase"
@@ -254,10 +263,13 @@
           <span>Documents</span>
         </button>
       }
+      @if (canViewConsents) {
+        <button type="button" [class.active]="activeView() === 'consents'" (click)="activeView.set('consents')">
+          <span class="material-icons" aria-hidden="true">verified_user</span>
+          <span>Consents</span>
+        </button>
+      }
 
-      <div class="future-tabs" aria-label="Future modules">
-        <span title="Coming soon">Appointments</span>
-      </div>
     </nav>
 
     <!-- Main Content Panels -->
@@ -570,6 +582,16 @@
         [canManage]="canManageMedia"
         [treatmentOptions]="mediaTreatmentOptions()"
         [manageableCategories]="manageableMediaCategories"
+      />
+    } @else if (activeView() === 'consents') {
+      <app-patient-consents
+        [patientId]="current.id"
+        [patientName]="current.fullName"
+        [isMinor]="isMinor()"
+        [guardians]="cashRecordGuardians()"
+        [canCapture]="canCaptureConsents"
+        [canRevoke]="canRevokeConsents"
+        [canVoid]="canVoidConsents"
       />
     }
 
@@ -1052,4 +1074,6 @@
       </div>
     }
   }
+
+  <app-create-task-drawer />
 </section>

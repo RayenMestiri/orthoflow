@@ -4,6 +4,7 @@ import { map, type Observable } from 'rxjs';
 import type { ApiEnvelope } from '../../../core/auth/auth.models';
 import { API_BASE_URL } from '../../../core/config/api.config';
 import type {
+  ClinicCareContinuitySettings,
   ClinicSchedulingSettings,
   ClinicSettings,
   UpdateGeneralSettingsInput,
@@ -38,6 +39,14 @@ export class ClinicSettingsApiService {
 
   updateScheduling(scheduling: ClinicSchedulingSettings): Observable<ClinicSettings> {
     return this.patch('scheduling', scheduling);
+  }
+
+  updateCareContinuity(
+    careContinuity: ClinicCareContinuitySettings,
+  ): Observable<ClinicSettings> {
+    return this.http
+      .put<ApiEnvelope<ClinicSettings>>(`${this.settingsUrl}/care-continuity`, careContinuity)
+      .pipe(map((response) => response.data));
   }
 
   private patch(section: string, body: unknown): Observable<ClinicSettings> {

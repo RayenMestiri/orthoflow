@@ -185,6 +185,46 @@ export class ScheduleStore {
     }
   }
 
+  async refresh(): Promise<void> {
+    const range = this.rangeState();
+    const schedule = this.clinicScheduleState();
+    const calls: Promise<unknown>[] = [];
+
+    if (schedule) {
+      const { start, end } = todayRange(schedule.timezone);
+      calls.push(
+        firstValueFrom(this.api.listAppointments(start.toISOString(), end.toISOString()))
+          .then((today) => this.todayState.set(today))
+          .catch(() => {}),
+      );
+    }
+
+    if (range) {
+      const sequence = ++this.requestSequence;
+      this.loadingState.set(true);
+      calls.push(
+        firstValueFrom(this.api.listAppointments(range.start, range.end))
+          .then((appointments) => {
+            if (sequence === this.requestSequence) {
+              this.appointmentsState.set(appointments);
+            }
+          })
+          .catch((error) => {
+            if (sequence === this.requestSequence) {
+              this.errorState.set(getApiProblem(error).message);
+            }
+          })
+          .finally(() => {
+            if (sequence === this.requestSequence) {
+              this.loadingState.set(false);
+            }
+          }),
+      );
+    }
+
+    await Promise.all(calls);
+  }
+
   // --- drawer --------------------------------------------------------------
 
   openCreate(slot: DraftSlot | null): void {
@@ -204,14 +244,19 @@ export class ScheduleStore {
     const appointment =
       this.appointmentsState().find((a) => a.id === appointmentId) ??
       this.todayState().find((a) => a.id === appointmentId);
-    if (!appointment) {
-      return;
+    if (appointment) {
+      this.selectedState.set(appointment);
     }
-    this.selectedState.set(appointment);
     this.draftSlotState.set(null);
     this.drawerModeState.set('edit');
     if (!preserveCapacityWarning) this.clearCapacityWarning();
     void this.loadActivity(appointmentId);
+
+    void firstValueFrom(this.api.getAppointment(appointmentId))
+      .then((fresh) => {
+        this.upsert(fresh);
+      })
+      .catch(() => {});
   }
 
   async openRemote(appointmentId: string): Promise<void> {

@@ -71,6 +71,7 @@ export function toAppointmentDto(
     clinicId: record.clinicId.toString(),
     patientId: record.patientId.toString(),
     treatmentId: record.treatmentId?.toString() ?? null,
+    retentionPlanId: record.retentionPlanId?.toString() ?? null,
     doctorId: record.doctorId.toString(),
     appointmentTypeId: record.appointmentTypeId.toString(),
 

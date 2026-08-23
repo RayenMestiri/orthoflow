@@ -231,6 +231,10 @@ interface Fakes {
   };
   audit: { record: ReturnType<typeof vi.fn>; listForClinic: ReturnType<typeof vi.fn> };
   users: { findManyByIds: ReturnType<typeof vi.fn> };
+  treatments: {
+    findByIdInClinic: ReturnType<typeof vi.fn>;
+    findManyByIdsInClinic: ReturnType<typeof vi.fn>;
+  };
 }
 
 function buildService(scheduling: Partial<ClinicSchedulingSettings> = {}): Fakes {

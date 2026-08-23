@@ -142,4 +142,92 @@ describe('patient guardians', () => {
     expect(response.statusCode).toBe(400);
     expect(guardianRepositoryMock.create).not.toHaveBeenCalled();
   });
+
+  it('links an existing guardian to a patient', async () => {
+    patientGuardianRepositoryMock.findByPatientAndGuardian.mockResolvedValueOnce(null);
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/patients/${PATIENT_ID}/guardians/link-existing`,
+      headers: authHeader(),
+      payload: {
+        guardianId: GUARDIAN_ID,
+        relationship: 'FATHER',
+        isPrimary: true,
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(patientGuardianRepositoryMock.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clinicId: CLINIC_A,
+        patientId: PATIENT_ID,
+        guardianId: GUARDIAN_ID,
+        relationship: 'FATHER',
+        isPrimary: true,
+      }),
+      undefined,
+    );
+  });
+
+  it('sets a guardian as primary contact', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/patients/${PATIENT_ID}/guardians/${GUARDIAN_ID}/make-primary`,
+      headers: authHeader(),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(patientGuardianRepositoryMock.clearPrimary).toHaveBeenCalledWith(
+      PATIENT_ID,
+      CLINIC_A,
+      undefined,
+    );
+    expect(patientGuardianRepositoryMock.update).toHaveBeenCalledWith(
+      PATIENT_ID,
+      GUARDIAN_ID,
+      CLINIC_A,
+      { isPrimary: true },
+      undefined,
+    );
+  });
+
+  it('unlinks a guardian from a patient without deleting person', async () => {
+    const response = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/patients/${PATIENT_ID}/guardians/${GUARDIAN_ID}`,
+      headers: authHeader(),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data).toEqual({ unlinked: true });
+    expect(patientGuardianRepositoryMock.unlink).toHaveBeenCalledWith(
+      PATIENT_ID,
+      GUARDIAN_ID,
+      CLINIC_A,
+      undefined,
+    );
+  });
+
+  it('retrieves children linked to a guardian', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/patients/${PATIENT_ID}/guardians/${GUARDIAN_ID}/children`,
+      headers: authHeader(),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(Array.isArray(response.json().data)).toBe(true);
+  });
+
+  it('searches guardians within clinic', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/guardians/search?query=Leila`,
+      headers: authHeader(),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(guardianRepositoryMock.searchInClinic).toHaveBeenCalledWith(CLINIC_A, 'Leila', 20);
+  });
 });
+

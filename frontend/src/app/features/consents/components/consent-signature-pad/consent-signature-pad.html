@@ -1,0 +1,9 @@
+<div class="signature-field">
+  <div class="signature-field__canvas">
+    <canvas #canvas aria-label="Signature drawing area"></canvas>
+  </div>
+  <div class="signature-field__footer">
+    <span>Sign inside the box using a mouse, stylus, or finger.</span>
+    <button type="button" (click)="clear()" [disabled]="!hasInk()">Clear</button>
+  </div>
+</div>

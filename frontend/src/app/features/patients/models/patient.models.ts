@@ -50,7 +50,7 @@ export interface Guardian {
 export type PatientActivityFilter = 'ALL' | 'CLINICAL' | 'APPOINTMENTS' | 'PAYMENTS' | 'DOCUMENTS';
 
 export type PatientActivityTargetType =
-  'APPOINTMENT' | 'TREATMENT' | 'CLINICAL_VISIT' | 'CASH_RECORD' | 'MEDIA';
+  'APPOINTMENT' | 'TREATMENT' | 'CLINICAL_VISIT' | 'CASH_RECORD' | 'MEDIA' | 'CONSENT';
 
 export interface PatientActivity {
   id: string;
@@ -144,4 +144,3 @@ export interface LinkExistingGuardianInput {
   financiallyResponsible?: boolean;
   contactPreference?: ContactPreference;
 }
-

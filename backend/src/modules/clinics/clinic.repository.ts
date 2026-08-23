@@ -1,11 +1,12 @@
 import type { ClientSession, QueryFilter } from 'mongoose';
 import { toObjectId } from '../../common/utils/object-id.js';
 import { ClinicModel } from './clinic.model.js';
-import type {
-  ClinicAttributes,
-  ClinicRecord,
-  CreateClinicInput,
-  UpdateClinicInput,
+import {
+  CLINIC_STATUSES,
+  type ClinicAttributes,
+  type ClinicRecord,
+  type CreateClinicInput,
+  type UpdateClinicInput,
 } from './clinic.types.js';
 
 export class ClinicRepository {
@@ -13,6 +14,14 @@ export class ClinicRepository {
     return ClinicModel.findById(toObjectId(clinicId, 'clinicId'))
       .lean<ClinicRecord | null>()
       .exec();
+  }
+
+  async isActiveClinic(clinicId: string): Promise<boolean> {
+    const found = await ClinicModel.exists({
+      _id: toObjectId(clinicId, 'clinicId'),
+      status: CLINIC_STATUSES.ACTIVE,
+    }).exec();
+    return found !== null;
   }
 
   async findManyByIds(clinicIds: string[]): Promise<ClinicRecord[]> {

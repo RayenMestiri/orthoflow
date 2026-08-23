@@ -4,6 +4,7 @@ import { ok } from '../../common/utils/response.js';
 import { clinicSettingsService } from './clinic-settings.service.js';
 import type {
   UpdateGeneralSettingsBody,
+  UpdateCareContinuitySettingsBody,
   UpdateSchedulingSettingsBody,
   UpdateWorkingHoursBody,
 } from './clinic-settings.schema.js';
@@ -43,6 +44,18 @@ export async function updateSchedulingSettingsHandler(
   const settings = await clinicSettingsService.updateScheduling(
     requireTenant(request).clinicId,
     validatedBody<UpdateSchedulingSettingsBody>(request),
+    mutationContext(request),
+  );
+  return reply.send(ok(settings));
+}
+
+export async function updateCareContinuitySettingsHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const settings = await clinicSettingsService.updateCareContinuity(
+    requireTenant(request).clinicId,
+    validatedBody<UpdateCareContinuitySettingsBody>(request),
     mutationContext(request),
   );
   return reply.send(ok(settings));

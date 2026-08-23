@@ -1,8 +1,13 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { PERMISSIONS } from '../../common/constants/permissions.js';
 import { errorResponses, successSchema } from '../../common/validation/api-schemas.js';
-import { listFollowUpsHandler } from './follow-up.controller.js';
-import { followUpListSchema, followUpQuerySchema } from './follow-up.schema.js';
+import { listCareContinuityHandler, listFollowUpsHandler } from './follow-up.controller.js';
+import {
+  careContinuityListSchema,
+  careContinuityQuerySchema,
+  followUpListSchema,
+  followUpQuerySchema,
+} from './follow-up.schema.js';
 
 export const followUpRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', app.authenticate);
@@ -22,5 +27,24 @@ export const followUpRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     listFollowUpsHandler,
+  );
+  app.get(
+    '/attention',
+    {
+      preHandler: [app.requirePermission(PERMISSIONS.FOLLOW_UP_READ)],
+      schema: {
+        tags: ['follow-ups'],
+        summary: 'Derived care-continuity attention worklist',
+        description:
+          'Finds active treatment or retention patients without a qualifying future appointment. States are derived from clinical visits, appointments, and clinic thresholds.',
+        security: [{ bearerAuth: [] }],
+        querystring: careContinuityQuerySchema,
+        response: {
+          200: successSchema(careContinuityListSchema),
+          ...errorResponses(400, 401, 403, 404),
+        },
+      },
+    },
+    listCareContinuityHandler,
   );
 };

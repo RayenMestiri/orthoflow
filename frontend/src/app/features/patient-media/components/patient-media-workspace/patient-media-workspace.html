@@ -41,7 +41,7 @@
       }
     </div>
     <div class="media-toolbar-right">
-      <div class="media-search" role="search">
+      <form class="media-search" role="search" (submit)="$event.preventDefault()">
         <label class="sr-only" for="patient-media-search">Search patient files</label>
         <span class="material-icons" aria-hidden="true">search</span>
         <input
@@ -50,7 +50,7 @@
           [formControl]="search"
           placeholder="Search files…"
         />
-      </div>
+      </form>
       <label class="media-sort" aria-label="Sort order">
         <span class="material-icons" aria-hidden="true">sort</span>
         <select (change)="setSortOrder($event)">

@@ -26,6 +26,23 @@ export class PatientMediaRepository {
       .exec();
   }
 
+  async findManyByIdsForPatient(
+    mediaIds: string[],
+    patientId: string,
+    clinicId: string,
+  ): Promise<PatientMediaRecord[]> {
+    if (mediaIds.length === 0) return [];
+    return PatientMediaModel.find({
+      ...this.baseFilter(clinicId),
+      _id: { $in: mediaIds.map((id) => toObjectId(id, 'mediaId')) },
+      patientId: toObjectId(patientId, 'patientId'),
+      status: PATIENT_MEDIA_STATUSES.ACTIVE,
+    })
+      .limit(mediaIds.length)
+      .lean<PatientMediaRecord[]>()
+      .exec();
+  }
+
   async listByPatient(
     patientId: string,
     clinicId: string,

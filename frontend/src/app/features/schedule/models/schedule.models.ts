@@ -88,6 +88,7 @@ export interface Appointment {
   clinicId: string;
   patientId: string;
   treatmentId: string | null;
+  retentionPlanId?: string | null;
   doctorId: string;
   appointmentTypeId: string;
   startAt: string;
@@ -137,6 +138,7 @@ export interface ClinicScheduleConfiguration {
 export interface CreateAppointmentInput {
   patientId: string;
   treatmentId?: string | null;
+  retentionPlanId?: string | null;
   appointmentTypeId: string;
   /** ISO UTC instant. */
   startAt: string;
@@ -148,6 +150,7 @@ export interface CreateAppointmentInput {
 export interface UpdateAppointmentInput {
   patientId?: string;
   treatmentId?: string | null;
+  retentionPlanId?: string | null;
   appointmentTypeId?: string;
   startAt?: string;
   durationMinutes?: number;
@@ -177,6 +180,7 @@ export interface AppointmentActivity {
   action: string;
   actorUserId: string | null;
   actorName: string;
+  actorRole: string | null;
   metadata: Record<string, unknown>;
   createdAt: string;
 }
@@ -201,6 +205,7 @@ export interface DraftSlot {
 export interface SchedulePrefill {
   patientId: string;
   treatmentId: string | null;
+  retentionPlanId?: string | null;
   recommendedDate: string | null;
   returnUrl: string | null;
 }

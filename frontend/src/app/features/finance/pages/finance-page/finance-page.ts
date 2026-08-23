@@ -19,6 +19,7 @@ import {
   PAYMENT_STATUS_LABELS,
   type BalanceFilter,
   type BalanceSort,
+  type FinanceActivityEntry,
   type PatientBalance,
 } from '../../models/finance.models';
 
@@ -186,18 +187,34 @@ export class FinancePage {
   }
 
   protected async reviewAttention(filter: BalanceFilter | null): Promise<void> {
-    if (!filter) return;
     this.activeAttention.set(filter);
-    await this.store.setFilter(filter);
+    if (filter) {
+      await this.store.setFilter(filter);
+      const element = document.getElementById('fin-balances-title');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } else {
+      const element = document.getElementById('fin-activity-title');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
   }
 
   protected async changeSort(value: string): Promise<void> {
     await this.store.setSort(value as BalanceSort);
   }
 
-  /** A row is a patient's money: send the user to that patient's Payments tab. */
+  /** A row is a patient's money: send the user to that patient's Payments tab with treatment scope. */
   protected openPatient(row: PatientBalance): void {
-    void this.router.navigate(['/app/patients', row.patientId]);
+    void this.router.navigate(['/app/patients', row.patientId], {
+      queryParams: {
+        tab: 'payments',
+        treatmentId: row.treatmentId,
+        treatmentLabel: row.treatmentLabel,
+      },
+    });
   }
 
   protected trackBalance(_index: number, row: PatientBalance): string {
@@ -223,5 +240,64 @@ export class FinancePage {
       return 0;
     }
     return Math.max(0, Math.min(100, Math.round((row.recordedMinor / row.agreedMinor) * 100)));
+  }
+
+  // --- Recent Money Movement Multi-column Logic ---------------------------
+
+  protected readonly showAllActivity = signal(false);
+
+  protected readonly hasMoreActivity = computed(() => this.store.activity().length > 27);
+
+  protected readonly displayedActivity = computed(() => {
+    const all = this.store.activity();
+    return this.showAllActivity() ? all : all.slice(0, 27);
+  });
+
+  /**
+   * Automatically organizes movements into 1, 2, or 3 columns:
+   * - <= 9 items: 1 column
+   * - 10..18 items: 2 columns (max 9 per column)
+   * - 19..27 items: 3 columns (max 9 per column)
+   * - > 27 items: 3 columns with "Voir plus" toggle
+   */
+  protected readonly activityColumns = computed<FinanceActivityEntry[][]>(() => {
+    const items = this.displayedActivity();
+    const count = items.length;
+    if (count === 0) return [];
+    if (count <= 9) return [items];
+    if (count <= 18) {
+      return [items.slice(0, 9), items.slice(9, 18)];
+    }
+    if (!this.showAllActivity() || count <= 27) {
+      return [
+        items.slice(0, 9),
+        items.slice(9, 18),
+        items.slice(18, 27),
+      ];
+    }
+    const colSize = Math.ceil(count / 3);
+    return [
+      items.slice(0, colSize),
+      items.slice(colSize, colSize * 2),
+      items.slice(colSize * 2),
+    ];
+  });
+
+  protected toggleShowAllActivity(): void {
+    this.showAllActivity.update((prev) => !prev);
+  }
+
+  protected openPatientPayment(entry: FinanceActivityEntry): void {
+    void this.router.navigate(['/app/patients', entry.patientId], {
+      queryParams: {
+        tab: 'payments',
+        recordId: entry.cashRecordId,
+        receiptNumber: entry.receiptNumber ?? undefined,
+      },
+    });
+  }
+
+  protected trackActivity(_index: number, entry: FinanceActivityEntry): string {
+    return entry.cashRecordId;
   }
 }

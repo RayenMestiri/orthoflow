@@ -1,0 +1,59 @@
+<section class="templates" aria-labelledby="template-title">
+  <header class="templates__header">
+    <div><span class="eyebrow">Clinical documents</span><h2 id="template-title">Consent templates</h2><p>Manage clinic-authored documents as immutable versions. Only an active version can be signed.</p></div>
+    @if (canEdit()) {<button type="button" class="button button--primary" (click)="openCreate()"><span class="material-icons" aria-hidden="true">add</span>New template</button>}
+  </header>
+
+  <aside class="policy-note"><span class="material-icons" aria-hidden="true">gavel</span><div><strong>Clinic-approved content only</strong><p>OrthoFlow preserves evidence and version history; it does not provide legal language. Have each document reviewed for your jurisdiction.</p></div></aside>
+
+  @if (notice(); as message) {<div class="notice" role="status"><span class="material-icons" aria-hidden="true">check_circle</span>{{ message }}</div>}
+  @if (error(); as message) {<div class="alert" role="alert"><span class="material-icons" aria-hidden="true">error_outline</span>{{ message }}<button type="button" (click)="error.set(null)" aria-label="Dismiss error">×</button></div>}
+
+  @if (loading()) {
+    <div class="state" role="status">Loading consent templates…</div>
+  } @else if (!families().length) {
+    <div class="empty"><span class="material-icons" aria-hidden="true">article</span><h3>No consent templates</h3><p>Create a blank draft and add content approved by your clinic. Nothing is activated automatically.</p>@if (canEdit()) {<button type="button" class="button button--primary" (click)="openCreate()">Create first draft</button>}</div>
+  } @else {
+    <div class="families">
+      @for (family of families(); track family.code) {
+        <article class="family">
+          <header><div><span class="family__code">{{ family.code }}</span><h3>{{ family.latest.title }}</h3><p>{{ categoryLabels[family.latest.category] }} · {{ family.versions.length }} version{{ family.versions.length === 1 ? '' : 's' }}</p></div>@if (canEdit()) {<button type="button" class="icon-button" (click)="requestAction(family.latest, 'version')" aria-label="Create new version"><span class="material-icons" aria-hidden="true">difference</span></button>}</header>
+          <div class="versions">
+            @for (version of family.versions; track version.id) {
+              <div class="version-row">
+                <span class="version-row__index">{{ version.versionLabel }}</span>
+                <div><strong>{{ version.title }}</strong><small>Updated {{ version.updatedAt | date: 'mediumDate' }}</small></div>
+                <span class="badge" [attr.data-status]="version.status">{{ version.status }}</span>
+                @if (canEdit()) {
+                  <div class="version-row__actions">
+                    @if (version.status === 'DRAFT') {<button type="button" (click)="openEdit(version)">Edit</button><button type="button" (click)="requestAction(version, 'activate')">Activate</button>}
+                    @if (version.status !== 'ARCHIVED') {<button type="button" class="danger" (click)="requestAction(version, 'archive')">Archive</button>}
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>
+
+@if (editorOpen()) {
+  <div class="overlay" role="presentation" (click)="closeEditor()" (keydown.escape)="closeEditor()">
+    <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="editor-title" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+      <header class="drawer__header"><div><span class="eyebrow">{{ editing() ? 'Draft version' : 'New document family' }}</span><h2 id="editor-title">{{ editing() ? 'Edit consent template' : 'Create consent template' }}</h2></div><button type="button" class="icon-button" (click)="closeEditor()" aria-label="Close editor"><span class="material-icons" aria-hidden="true">close</span></button></header>
+      <div class="drawer__body">
+        <label class="field"><span>Template code</span><input maxlength="48" placeholder="ORTHO_TREATMENT" [value]="code()" [disabled]="!!editing()" (input)="setText(code, $event)" /><small>Stable identifier: uppercase letters, numbers, _ or -.</small></label>
+        <label class="field"><span>Title</span><input maxlength="160" [value]="title()" (input)="setText(title, $event)" /></label>
+        <label class="field"><span>Category</span><select [value]="category()" (change)="setCategory($event)">@for (item of categories; track item) {<option [value]="item">{{ categoryLabels[item] }}</option>}</select></label>
+        <label class="field field--content"><span>Clinic-approved plain text</span><textarea rows="18" maxlength="20000" [value]="content()" (input)="setText(content, $event)" placeholder="Enter reviewed consent wording here…"></textarea><small>Allowed placeholders: {{ '{{patient.fullName}}' }}, {{ '{{guardian.fullName}}' }}, {{ '{{signer.fullName}}' }}, {{ '{{clinic.name}}' }}, {{ '{{doctor.fullName}}' }}, {{ '{{treatment.label}}' }}, {{ '{{date}}' }}.</small></label>
+      </div>
+      <footer class="drawer__footer"><button type="button" class="button button--secondary" (click)="closeEditor()">Cancel</button><button type="button" class="button button--primary" [disabled]="saving()" (click)="save()">{{ saving() ? 'Saving…' : 'Save draft' }}</button></footer>
+    </section>
+  </div>
+}
+
+@if (actionTarget(); as target) {
+  <div class="overlay overlay--confirm" role="presentation" (click)="closeAction()" (keydown.escape)="closeAction()"><section class="confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()"><span class="material-icons" aria-hidden="true">{{ action() === 'activate' ? 'verified' : action() === 'archive' ? 'archive' : 'difference' }}</span><h2 id="confirm-title">{{ action() === 'activate' ? 'Activate this version?' : action() === 'archive' ? 'Archive this version?' : 'Create a new draft version?' }}</h2><p>{{ target.title }} · {{ target.versionLabel }}</p>@if (action() === 'activate') {<small>This becomes the only active version for future signatures. Existing signed records remain unchanged.</small>}<div><button type="button" class="button button--secondary" (click)="closeAction()">Cancel</button><button type="button" class="button" [class.button--primary]="action() !== 'archive'" [class.button--danger]="action() === 'archive'" [disabled]="saving()" (click)="confirmAction()">Confirm</button></div></section></div>
+}

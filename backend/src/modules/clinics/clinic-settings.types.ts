@@ -72,10 +72,17 @@ export interface ClinicSchedulingSettings {
   allowOwnerOverbooking: boolean;
 }
 
+export interface ClinicCareContinuitySettings {
+  treatmentInactivityDays: number;
+  retentionInactivityDays: number;
+  missedAppointmentRebookGraceDays: number;
+}
+
 export interface ClinicSettings {
   general: ClinicGeneralSettings;
   workingHours: WeeklyWorkingHours;
   scheduling: ClinicSchedulingSettings;
+  careContinuity: ClinicCareContinuitySettings;
 }
 
 /**
@@ -117,6 +124,11 @@ export const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
     defaultConcurrentCapacity: 2,
     allowOwnerOverbooking: true,
   },
+  careContinuity: {
+    treatmentInactivityDays: 60,
+    retentionInactivityDays: 120,
+    missedAppointmentRebookGraceDays: 14,
+  },
 };
 
 // --- API shapes -------------------------------------------------------------
@@ -141,6 +153,7 @@ export interface ClinicSettingsDto {
   general: ClinicSettingsGeneralDto;
   workingHours: WeeklyWorkingHours;
   scheduling: ClinicSchedulingSettings;
+  careContinuity: ClinicCareContinuitySettings;
   updatedAt: string;
 }
 

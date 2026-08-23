@@ -5,7 +5,10 @@ import type { ApiEnvelope } from '../../../core/auth/auth.models';
 import { API_BASE_URL } from '../../../core/config/api.config';
 import type {
   Guardian,
+  GuardianChild,
   GuardianInput,
+  GuardianSearchResult,
+  LinkExistingGuardianInput,
   PaginatedData,
   Patient,
   PatientActivity,
@@ -23,7 +26,9 @@ interface PaginatedEnvelope<T> {
 @Injectable({ providedIn: 'root' })
 export class PatientsApiService {
   private readonly http = inject(HttpClient);
-  private readonly patientsUrl = `${inject(API_BASE_URL)}/patients`;
+  private readonly baseUrl = inject(API_BASE_URL);
+  private readonly patientsUrl = `${this.baseUrl}/patients`;
+  private readonly guardiansUrl = `${this.baseUrl}/guardians`;
 
   list(query: PatientListQuery): Observable<PaginatedData<Patient>> {
     let params = new HttpParams()
@@ -70,6 +75,18 @@ export class PatientsApiService {
       .pipe(map((response) => response.data));
   }
 
+  linkExistingGuardian(
+    patientId: string,
+    input: LinkExistingGuardianInput,
+  ): Observable<Guardian> {
+    return this.http
+      .post<ApiEnvelope<Guardian>>(
+        `${this.patientsUrl}/${patientId}/guardians/link-existing`,
+        input,
+      )
+      .pipe(map((response) => response.data));
+  }
+
   updateGuardian(
     patientId: string,
     guardianId: string,
@@ -81,6 +98,36 @@ export class PatientsApiService {
         input,
       )
       .pipe(map((response) => response.data));
+  }
+
+  makePrimaryGuardian(patientId: string, guardianId: string): Observable<Guardian> {
+    return this.http
+      .post<ApiEnvelope<Guardian>>(
+        `${this.patientsUrl}/${patientId}/guardians/${guardianId}/make-primary`,
+        {},
+      )
+      .pipe(map((response) => response.data));
+  }
+
+  unlinkGuardian(patientId: string, guardianId: string): Observable<{ unlinked: boolean }> {
+    return this.http
+      .delete<ApiEnvelope<{ unlinked: boolean }>>(
+        `${this.patientsUrl}/${patientId}/guardians/${guardianId}`,
+      )
+      .pipe(map((response) => response.data));
+  }
+
+  getGuardianChildren(patientId: string, guardianId: string): Observable<GuardianChild[]> {
+    return this.getData<GuardianChild[]>(
+      `${this.patientsUrl}/${patientId}/guardians/${guardianId}/children`,
+    );
+  }
+
+  searchGuardians(query = ''): Observable<GuardianSearchResult[]> {
+    const params = new HttpParams().set('query', query.trim());
+    return this.getData<GuardianSearchResult[]>(
+      `${this.guardiansUrl}/search?${params.toString()}`,
+    );
   }
 
   activity(
@@ -101,3 +148,4 @@ export class PatientsApiService {
     return this.http.get<ApiEnvelope<T>>(url).pipe(map((response) => response.data));
   }
 }
+

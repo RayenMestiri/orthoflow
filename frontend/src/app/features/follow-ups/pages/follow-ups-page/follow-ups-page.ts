@@ -5,12 +5,24 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { getApiProblem } from '../../../../core/http/api-error';
+import { CreateTaskDrawerComponent } from '../../../tasks/components/create-task-drawer/create-task-drawer.component';
+import { TasksStore } from '../../../tasks/data-access/tasks.store';
 import { FollowUpsApiService } from '../../data-access/follow-ups-api.service';
-import type { FollowUpFilter, FollowUpResult, FollowUpSort } from '../../models/follow-up.models';
+import type {
+  CareContinuityResult,
+  CareContinuityRow,
+  CareContinuityState,
+  FollowUpFilter,
+  FollowUpResult,
+  FollowUpRow,
+  FollowUpSort,
+} from '../../models/follow-up.models';
+
+type WorklistMode = 'recommendations' | 'attention';
 
 @Component({
   selector: 'app-follow-ups-page',
-  imports: [DatePipe, FormsModule, RouterLink],
+  imports: [DatePipe, FormsModule, RouterLink, CreateTaskDrawerComponent],
   templateUrl: './follow-ups-page.html',
   styleUrl: './follow-ups-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -18,7 +30,11 @@ import type { FollowUpFilter, FollowUpResult, FollowUpSort } from '../../models/
 export class FollowUpsPage {
   private readonly api = inject(FollowUpsApiService);
   private readonly permissions = inject(PermissionService);
+  readonly tasksStore = inject(TasksStore);
   protected readonly result = signal<FollowUpResult | null>(null);
+  protected readonly attentionResult = signal<CareContinuityResult | null>(null);
+  protected readonly mode = signal<WorklistMode>('recommendations');
+  protected readonly attentionState = signal<CareContinuityState | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly filter = signal<FollowUpFilter>('NEEDS_SCHEDULING');
@@ -46,22 +62,47 @@ export class FollowUpsPage {
     this.loading.set(true);
     this.error.set(null);
     try {
-      this.result.set(
-        await firstValueFrom(
-          this.api.list({
-            page: this.page(),
-            limit: 20,
-            filter: this.filter(),
-            sort: this.sort(),
-            ...(this.search().trim() ? { search: this.search().trim() } : {}),
-          }),
-        ),
-      );
+      if (this.mode() === 'attention') {
+        this.attentionResult.set(
+          await firstValueFrom(
+            this.api.listAttention({
+              page: this.page(),
+              limit: 20,
+              ...(this.attentionState() ? { state: this.attentionState()! } : {}),
+              ...(this.search().trim() ? { search: this.search().trim() } : {}),
+            }),
+          ),
+        );
+      } else {
+        this.result.set(
+          await firstValueFrom(
+            this.api.list({
+              page: this.page(),
+              limit: 20,
+              filter: this.filter(),
+              sort: this.sort(),
+              ...(this.search().trim() ? { search: this.search().trim() } : {}),
+            }),
+          ),
+        );
+      }
     } catch (error) {
       this.error.set(getApiProblem(error).message);
     } finally {
       this.loading.set(false);
     }
+  }
+
+  protected chooseMode(mode: WorklistMode): void {
+    this.mode.set(mode);
+    this.page.set(1);
+    void this.load();
+  }
+
+  protected chooseAttentionState(state: CareContinuityState | null): void {
+    this.attentionState.set(state);
+    this.page.set(1);
+    void this.load();
   }
 
   protected chooseFilter(filter: FollowUpFilter): void {
@@ -92,5 +133,41 @@ export class FollowUpsPage {
       .toLowerCase()
       .replaceAll('_', ' ')
       .replace(/^./, (letter) => letter.toUpperCase());
+  }
+
+  createTaskForFollowUp(row: FollowUpRow): void {
+    const sourceId = row.sourceVisit?.id ?? row.sourceRetentionPlan?.id;
+    if (!sourceId) return;
+    this.tasksStore.openCreateDrawer({
+      title: `Relancer ${row.patient.fullName} pour son suivi`,
+      context: {
+        type: 'FOLLOW_UP',
+        entityId: sourceId,
+        patientId: row.patient.id,
+        labelSnapshot: `${row.patient.fullName} (Suivi)`,
+      },
+    });
+  }
+
+  createTaskForAttention(row: CareContinuityRow): void {
+    this.tasksStore.openCreateDrawer({
+      title: `Reprendre contact avec ${row.patient.fullName}`,
+      context: {
+        type: row.context.type === 'RETENTION' ? 'RETENTION' : 'TREATMENT',
+        entityId: row.context.retentionPlanId ?? row.context.treatment.id,
+        patientId: row.patient.id,
+        labelSnapshot: `${row.patient.fullName} (${row.context.type === 'RETENTION' ? 'Contention' : 'Traitement'})`,
+      },
+    });
+  }
+
+  protected reasonLabel(reason: string): string {
+    const labels: Record<string, string> = {
+      NO_RECENT_VISIT: 'No recent clinical visit',
+      NO_FUTURE_APPOINTMENT: 'No future appointment',
+      RETENTION_CONTROL_OVERDUE: 'Retention control overdue',
+      MISSED_NOT_REBOOKED: 'Missed appointment not rebooked',
+    };
+    return labels[reason] ?? this.stateLabel(reason);
   }
 }

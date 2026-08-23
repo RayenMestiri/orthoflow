@@ -25,6 +25,7 @@ export const appointmentDtoSchema = z.object({
   clinicId: objectIdSchema,
   patientId: objectIdSchema,
   treatmentId: objectIdSchema.nullable(),
+  retentionPlanId: objectIdSchema.nullable(),
   doctorId: objectIdSchema,
   appointmentTypeId: objectIdSchema,
 
@@ -71,6 +72,7 @@ export const appointmentDtoSchema = z.object({
 export const createAppointmentBodySchema = z.object({
   patientId: objectIdSchema,
   treatmentId: objectIdSchema.nullable().optional(),
+  retentionPlanId: objectIdSchema.nullable().optional(),
   appointmentTypeId: objectIdSchema,
   startAt: isoDateTimeSchema,
   durationMinutes: durationMinutesSchema.optional(),
@@ -82,6 +84,7 @@ export const updateAppointmentBodySchema = z
   .object({
     patientId: objectIdSchema.optional(),
     treatmentId: objectIdSchema.nullable().optional(),
+    retentionPlanId: objectIdSchema.nullable().optional(),
     appointmentTypeId: objectIdSchema.optional(),
     startAt: isoDateTimeSchema.optional(),
     durationMinutes: durationMinutesSchema.optional(),

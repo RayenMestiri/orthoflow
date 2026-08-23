@@ -92,6 +92,24 @@ const clinicSettingsSchema = new Schema(
       required: true,
       default: () => DEFAULT_CLINIC_SETTINGS.scheduling,
     },
+    careContinuity: {
+      type: new Schema(
+        {
+          treatmentInactivityDays: { type: Number, required: true, min: 14, max: 365, default: 60 },
+          retentionInactivityDays: { type: Number, required: true, min: 30, max: 730, default: 120 },
+          missedAppointmentRebookGraceDays: {
+            type: Number,
+            required: true,
+            min: 1,
+            max: 90,
+            default: 14,
+          },
+        },
+        { _id: false },
+      ),
+      required: true,
+      default: () => DEFAULT_CLINIC_SETTINGS.careContinuity,
+    },
   },
   { _id: false },
 );

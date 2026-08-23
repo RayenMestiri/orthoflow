@@ -69,6 +69,11 @@ export const treatmentDtoSchema = z.object({
   startDate: z.string().nullable(),
   expectedEndDate: z.string().nullable(),
   completedAt: z.string().nullable(),
+  completionDate: z.string().nullable(),
+  debondPerformed: z.boolean().nullable(),
+  debondDate: z.string().nullable(),
+  retentionRequired: z.boolean().nullable(),
+  finalMediaIds: z.array(objectIdSchema),
   agreedPrice: z.number().nullable(),
   notes: z.string().nullable(),
   cancellationReason: z.string().nullable(),
@@ -112,7 +117,30 @@ export const updateTreatmentBodySchema = z
 export const startTreatmentBodySchema = z.object({ startDate: isoDateSchema.optional() });
 export const pauseTreatmentBodySchema = z.object({ reason: z.string().trim().max(500).optional() });
 export const resumeTreatmentBodySchema = z.object({});
-export const completeTreatmentBodySchema = z.object({});
+export const completeTreatmentBodySchema = z
+  .object({
+    completionDate: isoDateSchema,
+    debondPerformed: z.boolean(),
+    debondDate: isoDateSchema.nullable().optional(),
+    retentionRequired: z.boolean(),
+    finalMediaIds: z.array(objectIdSchema).max(20).default([]),
+  })
+  .superRefine((value, context) => {
+    if (value.debondPerformed && !value.debondDate) {
+      context.addIssue({
+        code: 'custom',
+        path: ['debondDate'],
+        message: 'Debond date is required when debond was performed',
+      });
+    }
+    if (!value.debondPerformed && value.debondDate) {
+      context.addIssue({
+        code: 'custom',
+        path: ['debondDate'],
+        message: 'Debond date must be empty when debond was not performed',
+      });
+    }
+  });
 export const cancelTreatmentBodySchema = z.object({
   reason: z.string().trim().min(1).max(500),
 });

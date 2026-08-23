@@ -100,6 +100,11 @@ export interface TreatmentAttributes {
   startDate: Date | null;
   expectedEndDate: Date | null;
   completedAt: Date | null;
+  completionDate?: Date | null;
+  debondPerformed?: boolean | null;
+  debondDate?: Date | null;
+  retentionRequired?: boolean | null;
+  finalMediaIds?: Types.ObjectId[];
   agreedPrice: number | null;
   notes: string | null;
   cancellationReason: string | null;
@@ -154,6 +159,11 @@ export interface TreatmentStatusChangeFields {
   status: TreatmentStatus;
   startDate?: Date;
   completedAt?: Date;
+  completionDate?: Date;
+  debondPerformed?: boolean;
+  debondDate?: Date | null;
+  retentionRequired?: boolean;
+  finalMediaIds?: string[];
   cancellationReason?: string | null;
   updatedBy: string;
 }
@@ -201,6 +211,11 @@ export interface TreatmentDto {
   startDate: string | null;
   expectedEndDate: string | null;
   completedAt: string | null;
+  completionDate: string | null;
+  debondPerformed: boolean | null;
+  debondDate: string | null;
+  retentionRequired: boolean | null;
+  finalMediaIds: string[];
   agreedPrice: number | null;
   notes: string | null;
   cancellationReason: string | null;

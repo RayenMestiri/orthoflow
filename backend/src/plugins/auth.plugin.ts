@@ -9,7 +9,6 @@ import { ForbiddenError, UnauthorizedError } from '../common/errors/app-error.js
 import type { RequireClinicOptions, RouteGuard } from '../common/types/guard.types.js';
 import { isValidObjectId } from '../common/utils/object-id.js';
 import { authService } from '../modules/auth/auth.service.js';
-import { CLINIC_STATUSES } from '../modules/clinics/clinic.types.js';
 import { clinicRepository } from '../modules/clinics/clinic.repository.js';
 import { tokenService } from '../infrastructure/security/token.service.js';
 
@@ -123,8 +122,8 @@ export const authPlugin = fp(
 
         const tenant = buildTenantContext(user, clinicId);
 
-        const clinic = await clinicRepository.findById(clinicId);
-        if (!clinic || clinic.status !== CLINIC_STATUSES.ACTIVE) {
+        const isActive = await clinicRepository.isActiveClinic(clinicId);
+        if (!isActive) {
           throw new ForbiddenError('This clinic is not active', {
             code: ERROR_CODES.CLINIC_ACCESS_DENIED,
           });

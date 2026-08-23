@@ -1,0 +1,186 @@
+<section class="consents" aria-labelledby="consents-title">
+  <header class="consents__header">
+    <div>
+      <span class="consents__eyebrow">Documented decisions</span>
+      <h2 id="consents-title">Consents & signatures</h2>
+      <p>Signed records are preserved with the exact document version and signer evidence.</p>
+    </div>
+    @if (canCapture()) {
+      <button type="button" class="button button--primary" (click)="openCapture()">
+        <span class="material-icons" aria-hidden="true">draw</span>
+        Capture consent
+      </button>
+    }
+  </header>
+
+  @if (notice(); as message) {
+    <div class="notice" role="status">
+      <span class="material-icons" aria-hidden="true">check_circle</span>{{ message }}
+    </div>
+  }
+  @if (error(); as message) {
+    <div class="alert" role="alert">
+      <span class="material-icons" aria-hidden="true">error_outline</span>{{ message }}
+      <button type="button" (click)="error.set(null)" aria-label="Dismiss error">×</button>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state" role="status"><span class="spinner"></span> Loading consents…</div>
+  } @else if (!items().length) {
+    <div class="empty">
+      <span class="material-icons" aria-hidden="true">verified_user</span>
+      <h3>No signed consent yet</h3>
+      <p>Capture the first consent when a patient or guardian is ready to review and sign.</p>
+      @if (canCapture()) {
+        <button type="button" class="button button--primary" (click)="openCapture()">Capture consent</button>
+      }
+    </div>
+  } @else {
+    <div class="consent-list">
+      @for (item of items(); track item.id) {
+        <article class="consent-row">
+          <div class="consent-row__icon"><span class="material-icons" aria-hidden="true">description</span></div>
+          <div class="consent-row__main">
+            <div class="consent-row__title">
+              <h3>{{ item.title }}</h3>
+              <span class="badge" [attr.data-status]="item.status">{{ item.status }}</span>
+            </div>
+            <p>{{ item.consentRef }} · {{ item.versionLabel }} · {{ categoryLabels[item.category] }}</p>
+            <div class="consent-row__meta">
+              <span><span class="material-icons" aria-hidden="true">person</span>{{ item.signerName }}{{ item.signerRelationship ? ' · ' + item.signerRelationship : '' }}</span>
+              <span><span class="material-icons" aria-hidden="true">schedule</span>{{ item.signedAt | date: 'medium' }}</span>
+              <span><span class="material-icons" aria-hidden="true">badge</span>Presented by {{ item.presentedByName }}</span>
+            </div>
+            @if (item.revocationReason || item.voidReason) {
+              <p class="consent-row__reason">{{ item.revocationReason || item.voidReason }}</p>
+            }
+          </div>
+          <div class="consent-row__actions">
+            <button type="button" class="icon-button" (click)="openPdf(item)" aria-label="Open signed PDF">
+              <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
+            </button>
+            @if (item.status === 'SIGNED' && canRevoke()) {
+              <button type="button" class="text-button" (click)="openAction(item, 'revoke')">Revoke</button>
+            }
+            @if (item.status === 'SIGNED' && canVoid()) {
+              <button type="button" class="text-button text-button--danger" (click)="openAction(item, 'void')">Void</button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>
+
+@if (drawerOpen()) {
+  <div class="overlay" role="presentation" (click)="requestClose()" (keydown.escape)="requestClose()">
+    <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="capture-title" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+      <header class="drawer__header">
+        <div>
+          <span class="consents__eyebrow">Step {{ step() }} of 5</span>
+          <h2 id="capture-title">Capture consent</h2>
+        </div>
+        <button type="button" class="icon-button" (click)="requestClose()" aria-label="Close consent capture"><span class="material-icons" aria-hidden="true">close</span></button>
+      </header>
+
+      <ol class="steps" aria-label="Consent capture progress">
+        @for (label of ['Document', 'Signer', 'Review', 'Signature', 'Confirm']; track label; let index = $index) {
+          <li [class.active]="step() === index + 1" [class.done]="step() > index + 1"><span>{{ index + 1 }}</span><small>{{ label }}</small></li>
+        }
+      </ol>
+
+      <div class="drawer__body">
+        @if (drawerError(); as message) {
+          <div class="alert" role="alert"><span class="material-icons" aria-hidden="true">error_outline</span>{{ message }}</div>
+        }
+
+        @switch (step()) {
+          @case (1) {
+            <div class="step-panel">
+              <div class="step-panel__intro"><h3>Select the active document</h3><p>Only activated versions can be presented for signature.</p></div>
+              @if (!templates().length && !drawerError()) {
+                <div class="empty empty--compact"><h3>No active templates</h3><p>An owner must activate a consent template in Settings first.</p></div>
+              } @else {
+                <div class="choice-list">
+                  @for (template of templates(); track template.id) {
+                    <label class="choice" [class.selected]="selectedTemplateId() === template.id">
+                      <input type="radio" name="template" [value]="template.id" [checked]="selectedTemplateId() === template.id" (change)="selectedTemplateId.set(template.id)" />
+                      <span><strong>{{ template.title }}</strong><small>{{ categoryLabels[template.category] }} · {{ template.versionLabel }} · {{ template.code }}</small></span>
+                      <span class="material-icons" aria-hidden="true">chevron_right</span>
+                    </label>
+                  }
+                </div>
+              }
+              <label class="field"><span>Related treatment <small>Optional</small></span><select (change)="setSelect(treatmentId, $event)"><option value="">No treatment context</option>@for (option of treatmentOptions(); track option.id) {<option [value]="option.id">{{ option.label }}</option>}</select></label>
+              <label class="field"><span>Related retention plan <small>Optional</small></span><select (change)="setSelect(retentionPlanId, $event)"><option value="">No retention context</option>@for (option of retentionOptions(); track option.id) {<option [value]="option.id">{{ option.label }}</option>}</select></label>
+            </div>
+          }
+          @case (2) {
+            <div class="step-panel">
+              <div class="step-panel__intro"><h3>Who is signing?</h3><p>The signer must match the identity shown in the final evidence record.</p></div>
+              <label class="choice" [class.selected]="signerType() === 'PATIENT'" [class.disabled]="isMinor()">
+                <input type="radio" name="signer" value="PATIENT" [disabled]="isMinor()" [checked]="signerType() === 'PATIENT'" (change)="signerType.set('PATIENT'); guardianId.set('')" />
+                <span><strong>{{ patientName() }}</strong><small>Patient{{ isMinor() ? ' · guardian signature required for a minor' : '' }}</small></span>
+              </label>
+              @for (guardian of activeGuardians(); track guardian.id) {
+                <label class="choice" [class.selected]="signerType() === 'GUARDIAN' && guardianId() === guardian.id">
+                  <input type="radio" name="signer" [value]="guardian.id" [checked]="signerType() === 'GUARDIAN' && guardianId() === guardian.id" (change)="signerType.set('GUARDIAN'); guardianId.set(guardian.id)" />
+                  <span><strong>{{ guardian.fullName }}</strong><small>{{ guardian.relationship }}{{ guardian.isPrimary ? ' · Primary contact' : '' }}</small></span>
+                </label>
+              }
+              @if (isMinor() && !activeGuardians().length) {
+                <div class="alert" role="alert"><span class="material-icons" aria-hidden="true">family_restroom</span>Add and link a guardian before capturing consent for this minor patient.</div>
+              }
+            </div>
+          }
+          @case (3) {
+            @if (preview(); as document) {
+              <div class="step-panel">
+                <div class="document-meta"><div><span>Document</span><strong>{{ document.title }}</strong></div><div><span>Version</span><strong>{{ document.versionLabel }}</strong></div><div><span>Signer</span><strong>{{ document.signerName }}</strong></div><div><span>Date</span><strong>{{ document.signingDate }}</strong></div></div>
+                <article class="document-preview"><h3>{{ document.title }}</h3><p>{{ document.renderedContent }}</p></article>
+                <p class="evidence-note"><span class="material-icons" aria-hidden="true">lock</span>This exact rendered text will be preserved with the signed record.</p>
+              </div>
+            }
+          }
+          @case (4) {
+            <div class="step-panel"><div class="step-panel__intro"><h3>Draw the signer’s signature</h3><p>Keep the device with the signer while they review and sign.</p></div><app-consent-signature-pad (inkChange)="signatureHasInk.set($event)" /></div>
+          }
+          @case (5) {
+            @if (preview(); as document) {
+              <div class="step-panel">
+                <div class="confirmation"><span class="material-icons" aria-hidden="true">verified_user</span><div><h3>Ready to finalize</h3><p>{{ document.title }} · {{ document.versionLabel }}</p></div></div>
+                <dl class="review-list"><div><dt>Patient</dt><dd>{{ document.patientName }}</dd></div><div><dt>Signer</dt><dd>{{ document.signerName }}</dd></div><div><dt>Presented by</dt><dd>{{ document.presentedByName }}</dd></div></dl>
+                <label class="acknowledgement"><input type="checkbox" [checked]="acknowledgement()" (change)="acknowledgement.set(($any($event.target)).checked)" /><span>I confirm the signer reviewed this document and the signature was captured in their presence.</span></label>
+              </div>
+            }
+          }
+        }
+      </div>
+
+      <footer class="drawer__footer">
+        <button type="button" class="button button--secondary" (click)="step() === 1 ? requestClose() : back()">{{ step() === 1 ? 'Cancel' : 'Back' }}</button>
+        @if (step() < 5) {<button type="button" class="button button--primary" [disabled]="!canAdvance()" (click)="next()">Continue</button>} @else {<button type="button" class="button button--primary" [disabled]="!canAdvance() || saving()" (click)="submit()">{{ saving() ? 'Finalizing…' : 'Finalize signed consent' }}</button>}
+      </footer>
+    </section>
+  </div>
+}
+
+@if (discardConfirmOpen()) {
+  <div class="overlay overlay--confirm" role="presentation" (click)="discardConfirmOpen.set(false)" (keydown.escape)="discardConfirmOpen.set(false)">
+    <section class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="discard-title" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+      <span class="material-icons" aria-hidden="true">edit_off</span><h2 id="discard-title">Discard this consent?</h2><p>Your selections and signature will not be saved.</p>
+      <div><button type="button" class="button button--secondary" (click)="discardConfirmOpen.set(false)">Keep editing</button><button type="button" class="button button--danger" (click)="closeCapture()">Discard</button></div>
+    </section>
+  </div>
+}
+
+@if (actionTarget(); as target) {
+  <div class="overlay overlay--confirm" role="presentation" (click)="closeAction()" (keydown.escape)="closeAction()">
+    <section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="action-title" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+      <span class="material-icons" aria-hidden="true">{{ actionKind() === 'revoke' ? 'person_remove' : 'block' }}</span><h2 id="action-title">{{ actionKind() === 'revoke' ? 'Revoke consent' : 'Void consent' }}</h2><p>{{ target.title }} · {{ target.consentRef }}</p>
+      <label class="field"><span>Reason</span><textarea rows="4" maxlength="500" [value]="actionReason()" (input)="setReason($event)"></textarea></label>
+      <div><button type="button" class="button button--secondary" (click)="closeAction()">Cancel</button><button type="button" class="button button--danger" [disabled]="actionReason().trim().length < 3 || actionSaving()" (click)="confirmAction()">{{ actionSaving() ? 'Saving…' : 'Confirm' }}</button></div>
+    </section>
+  </div>
+}

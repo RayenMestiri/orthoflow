@@ -5,11 +5,11 @@
     <header class="receipt-shell__bar">
       <h2 id="receipt-title">Receipt {{ doc.receiptNumber }}</h2>
       <div class="receipt-shell__actions">
-        <button type="button" class="receipt-btn" (click)="print()">
+        <button type="button" class="receipt-btn receipt-btn--primary" (click)="print()">
           <span class="material-icons" aria-hidden="true">print</span>
-          Print
+          <span>Imprimer / PDF</span>
         </button>
-        <button type="button" class="receipt-btn" (click)="close()">Close</button>
+        <button type="button" class="receipt-btn" (click)="close()">Fermer</button>
       </div>
     </header>
 

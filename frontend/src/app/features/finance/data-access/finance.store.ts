@@ -130,7 +130,7 @@ export class FinanceStore {
     this.activityLoadingState.set(true);
     this.activityErrorState.set(null);
     try {
-      this.activityState.set(await firstValueFrom(this.api.activity()));
+      this.activityState.set(await firstValueFrom(this.api.activity(50)));
     } catch (error) {
       this.activityErrorState.set(getApiProblem(error).message);
     } finally {

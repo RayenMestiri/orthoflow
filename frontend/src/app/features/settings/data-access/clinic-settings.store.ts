@@ -2,6 +2,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { getApiProblem } from '../../../core/http/api-error';
 import type {
+  ClinicCareContinuitySettings,
   ClinicSchedulingSettings,
   ClinicSettings,
   SettingsSection,
@@ -62,6 +63,10 @@ export class ClinicSettingsStore {
 
   async saveScheduling(scheduling: ClinicSchedulingSettings): Promise<boolean> {
     return this.save('scheduling', () => this.api.updateScheduling(scheduling));
+  }
+
+  async saveCareContinuity(settings: ClinicCareContinuitySettings): Promise<boolean> {
+    return this.save('care-continuity', () => this.api.updateCareContinuity(settings));
   }
 
   dismissError(): void {

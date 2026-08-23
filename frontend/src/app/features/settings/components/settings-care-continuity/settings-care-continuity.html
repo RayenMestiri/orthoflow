@@ -1,0 +1,32 @@
+<form class="settings-section" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <header class="settings-section__header">
+    <div>
+      <h2>Care continuity</h2>
+      <p>Operational alert thresholds. These do not replace clinical recommendations.</p>
+    </div>
+  </header>
+  <div class="settings-grid">
+    <div class="settings-field">
+      <label for="treatment-inactivity">Active treatment inactivity</label>
+      <input id="treatment-inactivity" type="number" min="14" max="365" formControlName="treatmentInactivityDays" />
+      <p class="settings-field__hint">Days without a completed visit before treatment care is flagged lost to follow-up.</p>
+    </div>
+    <div class="settings-field">
+      <label for="retention-inactivity">Retention inactivity</label>
+      <input id="retention-inactivity" type="number" min="30" max="730" formControlName="retentionInactivityDays" />
+      <p class="settings-field__hint">Days without a completed retention visit before attention escalates.</p>
+    </div>
+    <div class="settings-field settings-field--wide">
+      <label for="missed-grace">Missed appointment rebooking grace</label>
+      <input id="missed-grace" type="number" min="1" max="90" formControlName="missedAppointmentRebookGraceDays" />
+      <p class="settings-field__hint">Days allowed after a no-show or cancellation before it appears in continuity attention.</p>
+    </div>
+  </div>
+  @if (canEdit()) {
+    <footer class="settings-actions">
+      @if (justSaved()) { <span class="settings-actions__saved" role="status"><span class="material-icons" aria-hidden="true">check_circle</span> Saved</span> }
+      <button type="button" class="settings-btn" [disabled]="!isDirty()" (click)="reset()">Reset</button>
+      <button type="submit" class="settings-btn settings-btn--primary" [disabled]="!isDirty() || isSaving()">{{ isSaving() ? 'Saving…' : 'Save thresholds' }}</button>
+    </footer>
+  }
+</form>

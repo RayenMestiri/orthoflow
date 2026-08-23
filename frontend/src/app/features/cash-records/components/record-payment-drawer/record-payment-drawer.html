@@ -214,7 +214,7 @@
             <select id="pay-guardian" formControlName="guardianId">
               <option [ngValue]="null">Select a guardian…</option>
               @for (guardian of guardians(); track guardian.id) {
-                <option [ngValue]="guardian.id">{{ guardian.fullName }}</option>
+                <option [ngValue]="guardian.id">{{ guardianOptionLabel(guardian) }}</option>
               }
             </select>
             @if (

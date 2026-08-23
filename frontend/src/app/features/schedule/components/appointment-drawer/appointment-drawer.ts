@@ -16,6 +16,8 @@ import { debounceTime, distinctUntilChanged, of, startWith, switchMap } from 'rx
 import { PatientsApiService } from '../../../patients/data-access/patients-api.service';
 import type { Patient } from '../../../patients/models/patient.models';
 import { TreatmentsApiService } from '../../../treatments/data-access/treatments-api.service';
+import { RetentionApiService } from '../../../treatments/data-access/retention-api.service';
+import type { RetentionPlan } from '../../../treatments/models/retention.models';
 import {
   treatmentTypeLabel,
   type TreatmentWithMilestones,
@@ -72,6 +74,7 @@ export class AppointmentDrawer {
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly patientsApi = inject(PatientsApiService);
   private readonly treatmentsApi = inject(TreatmentsApiService);
+  private readonly retentionApi = inject(RetentionApiService);
   private readonly router = inject(Router);
 
   protected readonly firstField = viewChild<ElementRef<HTMLInputElement>>('firstField');
@@ -79,6 +82,7 @@ export class AppointmentDrawer {
   protected readonly form = this.fb.group({
     patientSearch: [''],
     treatmentId: [''],
+    retentionPlanId: [''],
     appointmentTypeId: ['', Validators.required],
     date: ['', Validators.required],
     startTime: ['', Validators.required],
@@ -97,6 +101,7 @@ export class AppointmentDrawer {
   protected readonly cancelPanelOpen = signal(false);
   protected readonly moreActionsOpen = signal(false);
   protected readonly treatmentOptions = signal<TreatmentWithMilestones[]>([]);
+  protected readonly retentionOptions = signal<RetentionPlan[]>([]);
 
   private readonly formValue = toSignal(this.form.valueChanges);
 
@@ -225,6 +230,11 @@ export class AppointmentDrawer {
         );
       }
     });
+    this.form.controls.retentionPlanId.valueChanges.subscribe((planId) => {
+      if (!planId) return;
+      const plan = this.retentionOptions().find((candidate) => candidate.id === planId);
+      if (plan) this.form.controls.treatmentId.setValue(plan.treatmentId);
+    });
   }
 
   // --- patient selection ---------------------------------------------------
@@ -241,7 +251,9 @@ export class AppointmentDrawer {
     this.form.controls.patientSearch.setValue('');
     this.searchOpen.set(true);
     this.treatmentOptions.set([]);
+    this.retentionOptions.set([]);
     this.form.controls.treatmentId.setValue('');
+    this.form.controls.retentionPlanId.setValue('');
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
@@ -264,7 +276,7 @@ export class AppointmentDrawer {
       return;
     }
 
-    const { treatmentId, appointmentTypeId, date, startTime, durationMinutes, note } =
+    const { treatmentId, retentionPlanId, appointmentTypeId, date, startTime, durationMinutes, note } =
       this.form.getRawValue();
     const schedule = this.store.clinicSchedule();
     if (!schedule) return;
@@ -272,6 +284,7 @@ export class AppointmentDrawer {
     const payload = {
       patientId: patient.id,
       treatmentId: treatmentId || null,
+      retentionPlanId: retentionPlanId || null,
       appointmentTypeId,
       startAt,
       durationMinutes,
@@ -348,6 +361,7 @@ export class AppointmentDrawer {
     this.form.reset({
       patientSearch: '',
       treatmentId: prefill?.treatmentId ?? '',
+      retentionPlanId: prefill?.retentionPlanId ?? '',
       appointmentTypeId: defaultType?.id ?? '',
       date: toDateInputValue(startIso, schedule.timezone),
       startTime: toTimeInputValue(startIso, schedule.timezone),
@@ -362,7 +376,7 @@ export class AppointmentDrawer {
         this.selectedPatient.set(patient);
         this.form.controls.patientSearch.setValue(patient.fullName);
         this.searchOpen.set(false);
-        await this.loadTreatments(patient.id, prefill.treatmentId);
+        await this.loadTreatments(patient.id, prefill.treatmentId, prefill.retentionPlanId);
       } catch {
         this.store.setPrefill(null);
       }
@@ -439,10 +453,15 @@ export class AppointmentDrawer {
           } as unknown as Patient)
         : null,
     );
-    void this.loadTreatments(appointment.patientId, appointment.treatmentId);
+    void this.loadTreatments(
+      appointment.patientId,
+      appointment.treatmentId,
+      appointment.retentionPlanId,
+    );
     this.form.reset({
       patientSearch: appointment.patient?.fullName ?? '',
       treatmentId: appointment.treatmentId ?? '',
+      retentionPlanId: appointment.retentionPlanId ?? '',
       appointmentTypeId: appointment.appointmentTypeId,
       date: toDateInputValue(appointment.startAt, this.store.clinicSchedule()?.timezone ?? 'UTC'),
       startTime: toTimeInputValue(
@@ -455,16 +474,39 @@ export class AppointmentDrawer {
     this.searchOpen.set(false);
   }
 
-  private async loadTreatments(patientId: string, selectedId: string | null = null): Promise<void> {
+  private async loadTreatments(
+    patientId: string,
+    selectedId: string | null = null,
+    selectedRetentionId: string | null = null,
+  ): Promise<void> {
     try {
       const treatments = await firstValueFrom(this.treatmentsApi.listForPatient(patientId));
       if (this.selectedPatient()?.id !== patientId) return;
       this.treatmentOptions.set(treatments.filter((item) => item.status !== 'CANCELLED'));
+      const plans = (
+        await Promise.all(
+          treatments
+            .filter((item) => item.status === 'COMPLETED')
+            .map(async (item) => {
+              try {
+                return await firstValueFrom(this.retentionApi.getByTreatment(item.id));
+              } catch {
+                return null;
+              }
+            }),
+        )
+      ).filter((plan): plan is RetentionPlan => !!plan && plan.status !== 'CANCELLED');
+      if (this.selectedPatient()?.id !== patientId) return;
+      this.retentionOptions.set(plans);
       if (selectedId && treatments.some((item) => item.id === selectedId)) {
         this.form.controls.treatmentId.setValue(selectedId);
       }
+      if (selectedRetentionId && plans.some((item) => item.id === selectedRetentionId)) {
+        this.form.controls.retentionPlanId.setValue(selectedRetentionId);
+      }
     } catch {
       this.treatmentOptions.set([]);
+      this.retentionOptions.set([]);
     }
   }
 

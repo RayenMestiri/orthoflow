@@ -1,0 +1,166 @@
+@if (isOpen()) {
+  <div class="cmd-overlay" role="dialog" aria-modal="true" aria-label="Centre de commande OrthoFlow">
+    <div class="cmd-scrim" (click)="close()" aria-hidden="true"></div>
+
+    <div class="cmd-dialog">
+      <!-- Search Header -->
+      <div class="cmd-header">
+        <span class="material-icons cmd-header__icon" aria-hidden="true">search</span>
+        <input
+          #searchInput
+          type="text"
+          class="cmd-header__input"
+          placeholder="Rechercher patient, téléphone, reçu (REC-...), traitement..."
+          [formControl]="searchControl"
+          role="combobox"
+          aria-expanded="true"
+          aria-autocomplete="list"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        @if (currentQuery()) {
+          <button
+            type="button"
+            class="cmd-header__clear"
+            (click)="clearSearch()"
+            aria-label="Effacer la recherche"
+          >
+            <span class="material-icons" aria-hidden="true">close</span>
+          </button>
+        }
+        <kbd class="cmd-header__kbd">ESC</kbd>
+      </div>
+
+      <!-- Results Body -->
+      <div class="cmd-body" role="listbox">
+        <!-- Loading Skeleton -->
+        @if (loading()) {
+          <div class="cmd-loading" aria-label="Recherche en cours...">
+            <div class="cmd-skeleton-row">
+              <div class="cmd-skeleton-avatar"></div>
+              <div class="cmd-skeleton-lines">
+                <div class="cmd-skeleton-line cmd-skeleton-line--short"></div>
+                <div class="cmd-skeleton-line"></div>
+              </div>
+            </div>
+            <div class="cmd-skeleton-row">
+              <div class="cmd-skeleton-avatar"></div>
+              <div class="cmd-skeleton-lines">
+                <div class="cmd-skeleton-line cmd-skeleton-line--short"></div>
+                <div class="cmd-skeleton-line"></div>
+              </div>
+            </div>
+            <div class="cmd-skeleton-row">
+              <div class="cmd-skeleton-avatar"></div>
+              <div class="cmd-skeleton-lines">
+                <div class="cmd-skeleton-line cmd-skeleton-line--short"></div>
+                <div class="cmd-skeleton-line"></div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Error State -->
+        @if (error(); as errorMsg) {
+          <div class="cmd-error">
+            <span class="material-icons" aria-hidden="true">error_outline</span>
+            <div class="cmd-error__copy">
+              <strong>{{ errorMsg }}</strong>
+              <small>Vérifiez votre connexion ou réessayez dans un instant.</small>
+            </div>
+            <button type="button" class="cmd-btn cmd-btn--secondary" (click)="retry()">
+              <span class="material-icons" aria-hidden="true">refresh</span>
+              <span>Réessayer</span>
+            </button>
+          </div>
+        }
+
+        <!-- Empty Query State (Initial) -->
+        @if (!loading() && !error() && isQueryTooShort()) {
+          <div class="cmd-empty-initial">
+            <span class="material-icons cmd-empty-initial__icon" aria-hidden="true">travel_explore</span>
+            <h3>Centre de commande OrthoFlow</h3>
+            <p>Tapez au moins 2 caractères pour rechercher instantanément à travers la clinique.</p>
+            <div class="cmd-empty-initial__tags">
+              <span class="cmd-tag"><span class="material-icons" aria-hidden="true">person</span> Patients & Téléphones</span>
+              <span class="cmd-tag"><span class="material-icons" aria-hidden="true">receipt_long</span> Reçus (REC-...)</span>
+              <span class="cmd-tag"><span class="material-icons" aria-hidden="true">medical_services</span> Traitements</span>
+              <span class="cmd-tag"><span class="material-icons" aria-hidden="true">event</span> Rendez-vous</span>
+              <span class="cmd-tag"><span class="material-icons" aria-hidden="true">description</span> Documents & Radios</span>
+            </div>
+          </div>
+        }
+
+        <!-- No Results Found -->
+        @if (!loading() && !error() && !isQueryTooShort() && !hasResults()) {
+          <div class="cmd-empty-results">
+            <span class="material-icons" aria-hidden="true">search_off</span>
+            <h4>Aucun résultat pour « {{ currentQuery() }} »</h4>
+            <p>Essayez un nom de patient, un numéro de téléphone ou une référence de reçu.</p>
+          </div>
+        }
+
+        <!-- Grouped Results -->
+        @if (!loading() && !error() && hasResults()) {
+          @for (group of groups(); track group.category) {
+            <div class="cmd-group">
+              <div class="cmd-group__header">
+                <span class="material-icons cmd-group__icon" aria-hidden="true">{{ getCategoryIcon(group.category) }}</span>
+                <span class="cmd-group__title">{{ group.label }}</span>
+                <span class="cmd-group__count">{{ group.items.length }}</span>
+              </div>
+
+              <div class="cmd-group__items">
+                @for (item of group.items; track item.id + item.type) {
+                  <button
+                    type="button"
+                    class="cmd-item"
+                    [class.cmd-item--selected]="isItemSelected(item)"
+                    (mouseenter)="onItemHover(item)"
+                    (click)="selectItem(item)"
+                    role="option"
+                    [attr.aria-selected]="isItemSelected(item)"
+                  >
+                    <div class="cmd-item__icon-wrap" [attr.data-type]="item.type">
+                      <span class="material-icons" aria-hidden="true">{{ getTypeIcon(item.type) }}</span>
+                    </div>
+
+                    <div class="cmd-item__content">
+                      <div class="cmd-item__title-row">
+                        <strong class="cmd-item__title">{{ item.title }}</strong>
+                        @if (item.badge) {
+                          <span class="cmd-item__badge">{{ item.badge }}</span>
+                        }
+                      </div>
+                      @if (item.subtitle) {
+                        <small class="cmd-item__subtitle">{{ item.subtitle }}</small>
+                      }
+                    </div>
+
+                    @if (item.meta) {
+                      <span class="cmd-item__meta">{{ item.meta }}</span>
+                    }
+
+                    <span class="material-icons cmd-item__enter-hint" aria-hidden="true">subdirectory_arrow_left</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Footer navigation hints -->
+      <footer class="cmd-footer">
+        <div class="cmd-footer__hints">
+          <span><kbd>↑</kbd><kbd>↓</kbd> Naviguer</span>
+          <span><kbd>↵</kbd> Ouvrir</span>
+          <span><kbd>ESC</kbd> Fermer</span>
+        </div>
+        <div class="cmd-footer__brand">
+          <span>OrthoFlow Command Center</span>
+        </div>
+      </footer>
+    </div>
+  </div>
+}

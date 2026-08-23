@@ -113,6 +113,16 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'tasks',
+        title: 'Tâches & Délégation — OrthoFlow',
+        canActivate: [permissionGuard],
+        data: { permission: PERMISSIONS.TASKS_VIEW },
+        loadComponent: () =>
+          import('./features/tasks/pages/tasks-page/tasks-page.component').then(
+            (component) => component.TasksPageComponent,
+          ),
+      },
+      {
         path: 'clinical-visits/appointments/:appointmentId',
         title: 'Clinical visit — OrthoFlow',
         canActivate: [permissionGuard],

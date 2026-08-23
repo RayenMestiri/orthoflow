@@ -9,6 +9,7 @@ import { appointmentRepository, type AppointmentRepository } from '../appointmen
 import { appointmentService, type AppointmentService } from '../appointments/appointment.service.js';
 import { APPOINTMENT_STATUSES } from '../appointments/appointment.types.js';
 import { patientRepository, type PatientRepository } from '../patients/patient.repository.js';
+import { retentionRepository, type RetentionRepository } from '../retention/retention.repository.js';
 import { treatmentRepository, type TreatmentRepository } from '../treatments/treatment.repository.js';
 import { TREATMENT_STATUSES, TREATMENT_TYPES, type TreatmentRecord } from '../treatments/treatment.types.js';
 import { userRepository, type UserRepository } from '../users/user.repository.js';
@@ -46,6 +47,7 @@ export class ClinicalVisitService {
     private readonly treatments: TreatmentRepository = treatmentRepository,
     private readonly users: UserRepository = userRepository,
     private readonly audit: AuditLogService = auditLogService,
+    private readonly retention: RetentionRepository = retentionRepository,
   ) {}
 
   async ensureForAppointment(
@@ -62,17 +64,42 @@ export class ClinicalVisitService {
       });
     }
 
-    const activeTreatment = await this.treatments.findActiveForPatient(
-      appointment.patientId.toString(),
-      clinicId,
-    );
+    const patientId = appointment.patientId.toString();
+    const retentionPlan = appointment.retentionPlanId
+      ? await this.retention.findPlanById(clinicId, appointment.retentionPlanId.toString())
+      : null;
+    if (appointment.retentionPlanId && (!retentionPlan || retentionPlan.patientId.toString() !== patientId)) {
+      throw new BusinessRuleError('The appointment retention context is invalid for this patient', {
+        code: ERROR_CODES.CLINICAL_VISIT_TREATMENT_MISMATCH,
+      });
+    }
+    if (
+      retentionPlan &&
+      appointment.treatmentId &&
+      retentionPlan.treatmentId.toString() !== appointment.treatmentId.toString()
+    ) {
+      throw new BusinessRuleError('The appointment treatment and retention contexts do not match', {
+        code: ERROR_CODES.CLINICAL_VISIT_TREATMENT_MISMATCH,
+      });
+    }
+    const contextualTreatmentId =
+      appointment.treatmentId?.toString() ?? retentionPlan?.treatmentId.toString() ?? null;
+    const activeTreatment = contextualTreatmentId
+      ? await this.treatments.findByIdInClinic(contextualTreatmentId, clinicId)
+      : await this.treatments.findActiveForPatient(patientId, clinicId);
+    if (activeTreatment && activeTreatment.patientId.toString() !== patientId) {
+      throw new BusinessRuleError('The appointment treatment context is invalid for this patient', {
+        code: ERROR_CODES.CLINICAL_VISIT_TREATMENT_MISMATCH,
+      });
+    }
     let created: ClinicalVisitRecord;
     try {
       created = await this.visits.create({
         clinicId,
-        patientId: appointment.patientId.toString(),
+        patientId,
         appointmentId,
         treatmentId: activeTreatment?._id.toString() ?? null,
+        retentionPlanId: retentionPlan?._id.toString() ?? null,
         startedAt: appointment.treatmentStartedAt ?? new Date(),
         createdBy: context.actorUserId,
       });
@@ -88,7 +115,12 @@ export class ClinicalVisitService {
       action: AUDIT_ACTIONS.CLINICAL_VISIT_CREATED,
       resourceType: AUDIT_RESOURCE_TYPES.CLINICAL_VISIT,
       resourceId: created._id.toString(),
-      metadata: { appointmentId, patientId: appointment.patientId.toString(), hasTreatment: !!activeTreatment },
+      metadata: {
+        appointmentId,
+        patientId,
+        hasTreatment: !!activeTreatment,
+        retentionPlanId: retentionPlan?._id.toString() ?? null,
+      },
       ip: context.ip,
       userAgent: context.userAgent,
     });
@@ -271,8 +303,31 @@ export class ClinicalVisitService {
     if (reasonCode !== CLINICAL_REASON_CODES.OTHER && fields.reasonOther !== undefined) {
       fields.reasonOther = null;
     }
-    if (fields.treatmentId) {
-      const treatment = await this.treatments.findByIdInClinic(fields.treatmentId, clinicId);
+    let resolvedTreatmentId =
+      fields.treatmentId === undefined ? (visit.treatmentId?.toString() ?? null) : fields.treatmentId;
+    const resolvedRetentionPlanId =
+      fields.retentionPlanId === undefined
+        ? (visit.retentionPlanId?.toString() ?? null)
+        : fields.retentionPlanId;
+    if (resolvedRetentionPlanId) {
+      const plan = await this.retention.findPlanById(clinicId, resolvedRetentionPlanId);
+      if (!plan || plan.patientId.toString() !== visit.patientId.toString()) {
+        throw new BusinessRuleError('The selected retention plan does not belong to this patient', {
+          code: ERROR_CODES.CLINICAL_VISIT_TREATMENT_MISMATCH,
+        });
+      }
+      if (!resolvedTreatmentId) {
+        resolvedTreatmentId = plan.treatmentId.toString();
+        fields.treatmentId = resolvedTreatmentId;
+      }
+      if (plan.treatmentId.toString() !== resolvedTreatmentId) {
+        throw new BusinessRuleError('The selected treatment and retention plan do not match', {
+          code: ERROR_CODES.CLINICAL_VISIT_TREATMENT_MISMATCH,
+        });
+      }
+    }
+    if (resolvedTreatmentId) {
+      const treatment = await this.treatments.findByIdInClinic(resolvedTreatmentId, clinicId);
       if (!treatment || treatment.patientId.toString() !== visit.patientId.toString()) {
         throw new BusinessRuleError('The selected treatment does not belong to this patient', {
           code: ERROR_CODES.CLINICAL_VISIT_TREATMENT_MISMATCH,
@@ -322,11 +377,14 @@ export class ClinicalVisitService {
   }
 
   private async hydrate(clinicId: string, visit: ClinicalVisitRecord): Promise<ClinicalVisitDto> {
-    const [patient, appointment, treatment, previous] = await Promise.all([
+    const [patient, appointment, treatment, retention, previous] = await Promise.all([
       this.patients.findByIdInClinic(visit.patientId.toString(), clinicId),
       this.appointments.findByIdInClinic(visit.appointmentId.toString(), clinicId),
       visit.treatmentId
         ? this.treatments.findByIdInClinic(visit.treatmentId.toString(), clinicId)
+        : Promise.resolve(null),
+      visit.retentionPlanId
+        ? this.retention.findPlanById(clinicId, visit.retentionPlanId.toString())
         : Promise.resolve(null),
       this.visits.findPreviousCompleted(
         visit.patientId.toString(),
@@ -352,6 +410,7 @@ export class ClinicalVisitService {
       patientId: visit.patientId.toString(),
       appointmentId: visit.appointmentId.toString(),
       treatmentId: visit.treatmentId?.toString() ?? null,
+      retentionPlanId: visit.retentionPlanId?.toString() ?? null,
       status: visit.status,
       reasonCode: visit.reasonCode,
       reasonOther: visit.reasonOther,
@@ -377,6 +436,9 @@ export class ClinicalVisitService {
           status: appointment.status,
         },
         treatment: treatment ? this.toTreatmentSummary(treatment) : null,
+        retention: retention
+          ? { id: retention._id.toString(), status: retention.status }
+          : null,
         previousVisit: previousSummary,
       },
     };
@@ -387,6 +449,7 @@ export class ClinicalVisitService {
       id: visit._id.toString(),
       appointmentId: visit.appointmentId.toString(),
       treatmentId: visit.treatmentId?.toString() ?? null,
+      retentionPlanId: visit.retentionPlanId?.toString() ?? null,
       status: visit.status,
       reasonCode: visit.reasonCode,
       reasonOther: visit.reasonOther,

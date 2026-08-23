@@ -31,6 +31,7 @@
     "material-icons": "^1.13.14",
     "motion": "^13.0.0",
     "rxjs": "~7.8.0",
+    "signature_pad": "^5.1.4",
     "temporal-polyfill": "^1.0.3",
     "three": "^0.185.1",
     "tslib": "^2.3.0"

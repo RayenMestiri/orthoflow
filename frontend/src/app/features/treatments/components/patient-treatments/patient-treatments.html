@@ -96,7 +96,7 @@
                 <div class="tx-more__menu">
                   <button type="button" (click)="openEdit(treatment)">Edit treatment</button>
                   @if (treatment.status === 'ACTIVE') {
-                    <button type="button" (click)="complete(treatment.id)">
+                    <button type="button" (click)="openComplete(treatment)">
                       Complete treatment
                     </button>
                   }
@@ -131,6 +131,23 @@
             <dd>{{ formatPrice(treatment.agreedPrice) }}</dd>
           </div>
         </dl>
+
+        @if (canViewConsents) {
+          <section class="tx-consent-status" aria-label="Treatment consent status">
+            <span class="material-icons" aria-hidden="true">verified_user</span>
+            <div>
+              <span class="treatments__eyebrow">Consent evidence</span>
+              @if (currentTreatmentConsents().length) {
+                <strong>{{ currentTreatmentConsents().length }} linked record{{ currentTreatmentConsents().length === 1 ? '' : 's' }}</strong>
+                <small>{{ currentTreatmentConsents()[0].title }} · {{ currentTreatmentConsents()[0].status }}</small>
+              } @else {
+                <strong>No consent linked to this treatment</strong>
+                <small>Capture or link a record from the patient Consents tab.</small>
+              }
+            </div>
+            <a [routerLink]="['/app/patients', patientId()]" [queryParams]="{ tab: 'consents' }">View consents</a>
+          </section>
+        }
 
         @if (treatment.notes) {
           <div class="tx-notes">
@@ -220,6 +237,13 @@
               >
             }
           </section>
+        }
+
+        @if (treatment.status === 'COMPLETED') {
+          <app-patient-retention
+            [treatmentId]="treatment.id"
+            [canManage]="canManage"
+          />
         }
 
         <section class="tx-visits" aria-labelledby="tx-visits-title">
@@ -430,6 +454,9 @@
                 @case ('edit-treatment') {
                   Edit treatment
                 }
+                @case ('complete-treatment') {
+                  Complete treatment
+                }
                 @case ('add-milestone') {
                   Add milestone
                 }
@@ -514,6 +541,52 @@
                       ? 'Create treatment'
                       : 'Save changes'
                 }}
+              </button>
+            </footer>
+          </form>
+        } @else if (mode === 'complete-treatment') {
+          <form
+            class="tx-drawer__form"
+            [formGroup]="completionForm"
+            (ngSubmit)="confirmComplete()"
+            novalidate
+          >
+            <p>Record the end of active care before opening the retention phase.</p>
+            <label class="tx-field">
+              <span>Completion date *</span>
+              <input type="date" formControlName="completionDate" />
+            </label>
+            <label class="tx-field">
+              <span><input type="checkbox" formControlName="debondPerformed" /> Debond performed</span>
+            </label>
+            @if (completionForm.controls.debondPerformed.value) {
+              <label class="tx-field">
+                <span>Debond date *</span>
+                <input type="date" formControlName="debondDate" />
+              </label>
+            }
+            <label class="tx-field">
+              <span><input type="checkbox" formControlName="retentionRequired" /> Retention required</span>
+            </label>
+            <fieldset class="tx-field">
+              <legend>Final clinical media</legend>
+              @for (media of completionMedia(); track media.id) {
+                <label>
+                  <input
+                    type="checkbox"
+                    [checked]="selectedFinalMediaIds().includes(media.id)"
+                    (change)="toggleFinalMedia(media.id, $any($event.target).checked)"
+                  />
+                  {{ media.title }} · {{ media.category.replaceAll('_', ' ') }}
+                </label>
+              } @empty {
+                <small>No active patient media available. Completion can still be recorded.</small>
+              }
+            </fieldset>
+            <footer class="tx-drawer__footer">
+              <button type="button" class="tx-btn" (click)="closeDrawer()">Cancel</button>
+              <button type="submit" class="tx-btn tx-btn--primary" [disabled]="store.isSaving()">
+                {{ store.isSaving() ? 'Completing…' : 'Complete treatment' }}
               </button>
             </footer>
           </form>

@@ -1,4 +1,5 @@
 import type { ClientSession, QueryFilter } from 'mongoose';
+import { containsInsensitive } from '../../infrastructure/database/query.helpers.js';
 import { toObjectId } from '../../common/utils/object-id.js';
 import { GuardianModel } from './guardian.model.js';
 import type {
@@ -43,6 +44,40 @@ export class GuardianRepository {
       _id: { $in: guardianIds.map((id) => toObjectId(id, 'guardianId')) },
     })
       .limit(guardianIds.length)
+      .lean<GuardianRecord[]>()
+      .exec();
+  }
+
+  async findByIdInClinic(guardianId: string, clinicId: string): Promise<GuardianRecord | null> {
+    return GuardianModel.findOne({
+      ...this.baseFilter(clinicId),
+      _id: toObjectId(guardianId, 'guardianId'),
+    })
+      .lean<GuardianRecord | null>()
+      .exec();
+  }
+
+  async searchInClinic(clinicId: string, query: string, limit = 20): Promise<GuardianRecord[]> {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      return GuardianModel.find(this.baseFilter(clinicId))
+        .sort({ lastName: 1, firstName: 1 })
+        .limit(limit)
+        .lean<GuardianRecord[]>()
+        .exec();
+    }
+    const escaped = containsInsensitive(trimmed);
+    return GuardianModel.find({
+      ...this.baseFilter(clinicId),
+      $or: [
+        { firstName: escaped },
+        { lastName: escaped },
+        { phone: escaped },
+        { email: escaped },
+      ],
+    })
+      .sort({ lastName: 1, firstName: 1 })
+      .limit(limit)
       .lean<GuardianRecord[]>()
       .exec();
   }

@@ -112,13 +112,20 @@ export class ReceptionStore {
     return this.rowErrorState()[appointmentId] ?? null;
   }
 
+  private inFlight = false;
+
   /**
    * Reads the board.
    *
    * `background` refreshes keep the current rows on screen while the request is
    * in flight, so a poll never blanks a board someone is working from.
+   * Concurrent requests are guarded so polling cannot stack or overlap.
    */
   async load(background = false): Promise<void> {
+    if (this.inFlight && background) {
+      return;
+    }
+    this.inFlight = true;
     const requestId = ++this.requestId;
     if (!background) {
       this.loadingState.set(true);
@@ -137,6 +144,7 @@ export class ReceptionStore {
         this.errorState.set(getApiProblem(error).message);
       }
     } finally {
+      this.inFlight = false;
       if (requestId === this.requestId) this.loadingState.set(false);
     }
   }

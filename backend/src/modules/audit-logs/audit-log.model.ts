@@ -29,5 +29,6 @@ const auditLogSchema = new Schema<AuditLogAttributes>(
 auditLogSchema.index({ clinicId: 1, createdAt: -1 });
 auditLogSchema.index({ clinicId: 1, action: 1, createdAt: -1 });
 auditLogSchema.index({ clinicId: 1, resourceType: 1, resourceId: 1, createdAt: -1 });
+auditLogSchema.index({ clinicId: 1, 'metadata.patientId': 1, createdAt: -1 });
 
 export const AuditLogModel = model<AuditLogAttributes>('AuditLog', auditLogSchema);

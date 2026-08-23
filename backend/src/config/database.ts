@@ -11,8 +11,9 @@ import { env, isProduction } from './env.js';
 export const mongooseConnectOptions: ConnectOptions = {
   dbName: env.MONGODB_DB_NAME,
   autoIndex: !isProduction,
-  maxPoolSize: 20,
-  minPoolSize: 2,
+  maxPoolSize: 30,
+  minPoolSize: 10,
+  maxIdleTimeMS: 60_000,
   serverSelectionTimeoutMS: 10_000,
   socketTimeoutMS: 45_000,
   retryWrites: true,

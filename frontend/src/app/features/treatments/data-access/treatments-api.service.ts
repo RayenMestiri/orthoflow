@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../../../core/config/api.config';
 import type {
   CreateMilestoneInput,
   CreateTreatmentInput,
+  CompleteTreatmentInput,
   Treatment,
   TreatmentMilestone,
   TreatmentWithMilestones,
@@ -50,8 +51,8 @@ export class TreatmentsApiService {
     return this.action(treatmentId, 'resume', {});
   }
 
-  complete(treatmentId: string): Observable<Treatment> {
-    return this.action(treatmentId, 'complete', {});
+  complete(treatmentId: string, input: CompleteTreatmentInput): Observable<Treatment> {
+    return this.action(treatmentId, 'complete', input);
   }
 
   cancel(treatmentId: string, reason: string): Observable<Treatment> {

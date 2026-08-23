@@ -12,6 +12,7 @@ export const MEDIA_SCOPES = {
   TREATMENT_PHOTOS: 'treatment-photos',
   PATIENT_DOCUMENTS: 'patient-documents',
   PROFILE_PHOTOS: 'profile-photos',
+  CONSENT_ARTIFACTS: 'consent-artifacts',
 } as const;
 
 export type MediaScope = (typeof MEDIA_SCOPES)[keyof typeof MEDIA_SCOPES];
@@ -26,6 +27,7 @@ export interface StoredMedia {
   width: number | null;
   height: number | null;
   resourceType: string;
+  deliveryType?: 'upload' | 'authenticated';
   uploadedAt: Date;
 }
 
@@ -38,6 +40,8 @@ export interface UploadMediaInput {
   /** Original file name, used only to derive a readable public id. */
   fileName?: string;
   mimeType?: string;
+  /** Sensitive evidence is uploaded as an authenticated Cloudinary asset. */
+  deliveryType?: 'upload' | 'authenticated';
 }
 
 /**
@@ -94,6 +98,7 @@ export class MediaService {
       filename_override: input.fileName,
       // Clinical photos must never be transformed or stripped on the way in.
       invalidate: true,
+      type: input.deliveryType ?? 'upload',
     };
 
     const response = await new Promise<UploadApiResponse>((resolve, reject) => {
@@ -123,8 +128,39 @@ export class MediaService {
       width: response.width ?? null,
       height: response.height ?? null,
       resourceType: response.resource_type,
+      deliveryType: input.deliveryType ?? 'upload',
       uploadedAt: new Date(),
     };
+  }
+
+  /**
+   * Downloads a private asset server-side. The signed provider URL never leaves
+   * the API, so every caller still passes normal OrthoFlow auth and tenancy.
+   */
+  async download(
+    publicId: string,
+    resourceType: string,
+    deliveryType: 'upload' | 'authenticated' = 'authenticated',
+  ): Promise<Buffer> {
+    if (!this.isEnabled()) {
+      throw new ServiceUnavailableError('Media storage is not configured', {
+        code: ERROR_CODES.MEDIA_STORAGE_UNAVAILABLE,
+      });
+    }
+    const cloudinary = getCloudinary();
+    const signedUrl = cloudinary.url(publicId, {
+      resource_type: resourceType,
+      type: deliveryType,
+      secure: true,
+      sign_url: true,
+    });
+    const response = await fetch(signedUrl);
+    if (!response.ok) {
+      throw new ServiceUnavailableError('Media download failed', {
+        code: ERROR_CODES.MEDIA_STORAGE_UNAVAILABLE,
+      });
+    }
+    return Buffer.from(await response.arrayBuffer());
   }
 
   /**

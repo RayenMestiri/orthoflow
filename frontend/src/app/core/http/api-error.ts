@@ -11,7 +11,26 @@ export function getApiProblem(error: unknown): ApiProblem {
   if (error instanceof HttpErrorResponse) {
     const envelope = error.error as Partial<ApiErrorEnvelope> | null;
     if (envelope?.error?.code && envelope.error.message) {
-      return envelope.error;
+      let message = envelope.error.message;
+      const details = envelope.error.details as
+        | { issues?: { path?: string; message?: string }[] }
+        | undefined;
+      if (details?.issues && Array.isArray(details.issues) && details.issues.length > 0) {
+        const issuesText = details.issues
+          .map((issue) =>
+            issue.path && issue.path !== '(root)' ? `${issue.path}: ${issue.message}` : issue.message,
+          )
+          .filter(Boolean)
+          .join(', ');
+        if (issuesText) {
+          message = `${message} (${issuesText})`;
+        }
+      }
+      return {
+        code: envelope.error.code,
+        message,
+        details: envelope.error.details,
+      };
     }
     if (error.status === 0) {
       return {

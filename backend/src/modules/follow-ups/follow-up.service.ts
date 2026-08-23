@@ -56,11 +56,19 @@ export class FollowUpService {
               status: row.treatmentStatus ?? 'UNKNOWN',
             }
           : null,
-        sourceVisit: {
-          id: row.visitId.toString(),
-          startedAt: row.visitStartedAt.toISOString(),
-          completedAt: row.visitCompletedAt.toISOString(),
-        },
+        retentionPlanId: row.retentionPlanId?.toString() ?? null,
+        sourceVisit:
+          row.sourceType === 'CLINICAL_VISIT'
+            ? {
+                id: row.visitId.toString(),
+                startedAt: row.visitStartedAt.toISOString(),
+                completedAt: row.visitCompletedAt.toISOString(),
+              }
+            : null,
+        sourceRetentionPlan:
+          row.sourceType === 'RETENTION_PLAN'
+            ? { id: row.visitId.toString(), createdAt: row.visitCompletedAt.toISOString() }
+            : null,
         recommendedAt: row.recommendedAt.toISOString(),
         appointment:
           row.appointmentId && row.appointmentStartAt && row.appointmentEndAt

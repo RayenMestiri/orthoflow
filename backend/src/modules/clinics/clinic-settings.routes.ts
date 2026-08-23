@@ -4,12 +4,14 @@ import { errorResponses, successSchema } from '../../common/validation/api-schem
 import {
   getClinicSettingsHandler,
   updateGeneralSettingsHandler,
+  updateCareContinuitySettingsHandler,
   updateSchedulingSettingsHandler,
   updateWorkingHoursHandler,
 } from './clinic-settings.controller.js';
 import {
   clinicSettingsDtoSchema,
   updateGeneralSettingsBodySchema,
+  updateCareContinuitySettingsBodySchema,
   updateSchedulingSettingsBodySchema,
   updateWorkingHoursBodySchema,
 } from './clinic-settings.schema.js';
@@ -109,5 +111,24 @@ export const clinicSettingsRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     updateSchedulingSettingsHandler,
+  );
+
+  app.put(
+    '/care-continuity',
+    {
+      preHandler: [app.requirePermission(PERMISSIONS.CLINIC_UPDATE)],
+      schema: {
+        tags: ['clinic-settings'],
+        summary: 'Update operational care-continuity thresholds',
+        description: 'These alert thresholds are operational settings, not clinical guidance.',
+        security: [{ bearerAuth: [] }],
+        body: updateCareContinuitySettingsBodySchema,
+        response: {
+          200: successSchema(clinicSettingsDtoSchema),
+          ...errorResponses(400, 401, 403, 404),
+        },
+      },
+    },
+    updateCareContinuitySettingsHandler,
   );
 };

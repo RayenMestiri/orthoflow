@@ -16,6 +16,10 @@ import {
 import { patientRepository, type PatientRepository } from '../patients/patient.repository.js';
 import { PATIENT_STATUSES } from '../patients/patient.types.js';
 import {
+  patientMediaRepository,
+  type PatientMediaRepository,
+} from '../patient-media/patient-media.repository.js';
+import {
   toTreatmentDto,
   toTreatmentMilestoneDto,
   toTreatmentWithMilestonesDto,
@@ -73,6 +77,7 @@ export class TreatmentService {
     private readonly patients: PatientRepository = patientRepository,
     private readonly memberships: MembershipRepository = membershipRepository,
     private readonly audit: AuditLogService = auditLogService,
+    private readonly media: PatientMediaRepository = patientMediaRepository,
   ) {}
 
   async listForPatient(
@@ -313,16 +318,65 @@ export class TreatmentService {
   async complete(
     clinicId: string,
     treatmentId: string,
-    _input: Record<string, never>,
+    input: {
+      completionDate?: string;
+      debondPerformed?: boolean;
+      debondDate?: string | null;
+      retentionRequired?: boolean;
+      finalMediaIds?: string[];
+    },
     context: MutationContext,
   ): Promise<TreatmentDto> {
     const existing = await this.requireTreatment(clinicId, treatmentId);
+    const finalMediaIds = [...new Set(input.finalMediaIds ?? [])];
+    if (finalMediaIds.length !== (input.finalMediaIds ?? []).length) {
+      throw new BusinessRuleError('Final media references must be unique');
+    }
+    const mediaRecords = await this.media.findManyByIdsForPatient(
+      finalMediaIds,
+      existing.patientId.toString(),
+      clinicId,
+    );
+    if (mediaRecords.length !== finalMediaIds.length) {
+      throw new NotFoundError('One or more final media records were not found for this patient');
+    }
+    if (
+      mediaRecords.some(
+        (record) => record.treatmentId && record.treatmentId.toString() !== treatmentId,
+      )
+    ) {
+      throw new BusinessRuleError('Final media must be unassigned or linked to this treatment');
+    }
+    const completionDate = input.completionDate ? toCalendarDate(input.completionDate) : today();
+    const debondDate = input.debondDate ? toCalendarDate(input.debondDate) : null;
+    if (debondDate && debondDate.getTime() > completionDate.getTime()) {
+      throw new BusinessRuleError('Debond date cannot be after treatment completion date', {
+        code: ERROR_CODES.TREATMENT_INVALID_DATE_RANGE,
+      });
+    }
     return this.transition(
       clinicId,
       existing,
       TREATMENT_STATUSES.COMPLETED,
-      { completedAt: new Date() },
+      {
+        completedAt: new Date(),
+        completionDate,
+        debondPerformed: input.debondPerformed ?? false,
+        debondDate,
+        retentionRequired: input.retentionRequired ?? false,
+        finalMediaIds,
+      },
       context,
+      null,
+      {
+        auditMetadata: {
+          completionDate: input.completionDate ?? completionDate.toISOString().slice(0, 10),
+          debondPerformed: input.debondPerformed ?? false,
+          debondDate: input.debondDate ?? null,
+          retentionRequired: input.retentionRequired ?? false,
+          finalMediaCount: finalMediaIds.length,
+        },
+      },
     );
   }
 
@@ -429,12 +483,22 @@ export class TreatmentService {
     clinicId: string,
     existing: TreatmentRecord,
     target: TreatmentStatus,
-    fields: { startDate?: Date; completedAt?: Date; cancellationReason?: string },
+    fields: {
+      startDate?: Date;
+      completedAt?: Date;
+      completionDate?: Date;
+      debondPerformed?: boolean;
+      debondDate?: Date | null;
+      retentionRequired?: boolean;
+      finalMediaIds?: string[];
+      cancellationReason?: string;
+    },
     context: MutationContext,
     description: string | null = null,
     overrides: {
       auditAction?: AuditAction;
       milestone?: { type: TreatmentMilestoneType; title: string };
+      auditMetadata?: Record<string, unknown>;
     } = {},
   ): Promise<TreatmentDto> {
     if (!canTransitionTreatment(existing.status, target)) {
@@ -470,7 +534,7 @@ export class TreatmentService {
       patientId,
       treatmentId,
       overrides.auditAction ?? STATUS_AUDIT_ACTIONS[target],
-      { from: existing.status, to: target },
+      { from: existing.status, to: target, ...(overrides.auditMetadata ?? {}) },
       context,
     );
     const milestone = overrides.milestone ?? AUTOMATIC_MILESTONES[target];

@@ -230,6 +230,7 @@ export class CashRecordStore {
       await this.refresh(patientId, treatmentId);
       // Stay in the cancel drawer and show the post-cancel state with a correction CTA
       this.postCancelState.set(cancelled);
+      this.drawerState.set(null);
       return true;
     } catch (error) {
       this.errorState.set(getApiProblem(error).message);

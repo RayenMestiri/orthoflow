@@ -90,3 +90,31 @@ export interface UpdateGuardianInput {
   financiallyResponsible?: boolean;
   contactPreference?: ContactPreference;
 }
+
+export interface LinkExistingGuardianInput {
+  guardianId: string;
+  relationship: GuardianRelationship;
+  isPrimary?: boolean;
+  financiallyResponsible?: boolean;
+  contactPreference?: ContactPreference;
+}
+
+export interface GuardianChildDto {
+  patientId: string;
+  fullName: string;
+  referenceNumber: string | null;
+  birthDate: string | null;
+  relationship: GuardianRelationship;
+  isPrimary: boolean;
+}
+
+export interface GuardianSearchDto {
+  id: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+  linkedPatientsCount: number;
+}
+

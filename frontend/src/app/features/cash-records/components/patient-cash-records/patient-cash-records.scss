@@ -111,13 +111,79 @@
   box-shadow: 0 8px 28px rgba(13, 41, 37, 0.05);
 }
 
+.fin-summary__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
 .fin-summary__title {
-  margin: 0 0 1rem;
+  margin: 0;
   font-size: 0.68rem;
   font-weight: 750;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-slate);
+}
+
+.fin-summary__scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.76rem;
+  color: var(--color-pine-800);
+  background: color-mix(in srgb, var(--color-pine-700) 12%, white);
+  border: 1px solid color-mix(in srgb, var(--color-pine-700) 22%, transparent);
+
+  .material-icons {
+    font-size: 0.95rem;
+  }
+}
+
+.fin-treatment-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0.85rem 0;
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-pine-700) 8%, white);
+  border: 1px solid color-mix(in srgb, var(--color-pine-700) 18%, transparent);
+  font-size: 0.82rem;
+
+  .material-icons {
+    color: var(--color-pine-700);
+    font-size: 1.1rem;
+  }
+
+  &__text {
+    flex: 1;
+    color: var(--color-pine-900);
+  }
+}
+
+.btn-toggle-treatment-filter {
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  color: var(--color-pine-700);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 160ms ease;
+
+  &:hover {
+    background: var(--color-pine-700);
+    color: var(--color-white);
+    border-color: var(--color-pine-700);
+  }
 }
 
 .fin-summary__grid {
@@ -162,6 +228,10 @@
 
 .fin-summary__remaining dd {
   color: var(--color-pine-700);
+}
+
+.fin-summary__remaining--overpaid dd {
+  color: var(--color-info);
 }
 
 .fin-summary__note {
@@ -295,7 +365,9 @@
     font-size: 0.82rem;
     color: var(--color-pine-900);
     outline: none;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
 
     &:focus {
       border-color: var(--color-pine-700);
@@ -400,7 +472,6 @@
     padding: 0 0 1rem;
   }
 }
-
 
 .fin-ledger {
   margin: 0;

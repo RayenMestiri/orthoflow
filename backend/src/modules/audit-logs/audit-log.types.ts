@@ -19,6 +19,7 @@ export const AUDIT_ACTIONS = {
   CLINIC_SETTINGS_UPDATED: 'clinic.settings_updated',
   CLINIC_WORKING_HOURS_UPDATED: 'clinic.working_hours_updated',
   CLINIC_SCHEDULING_SETTINGS_UPDATED: 'clinic.scheduling_settings_updated',
+  CLINIC_CARE_CONTINUITY_SETTINGS_UPDATED: 'clinic.care_continuity_settings_updated',
 
   MEMBERSHIP_CREATED: 'membership.created',
   MEMBERSHIP_ROLE_CHANGED: 'membership.role_changed',
@@ -38,6 +39,8 @@ export const AUDIT_ACTIONS = {
   GUARDIAN_CREATED: 'guardian.created',
   GUARDIAN_LINKED: 'guardian.linked',
   GUARDIAN_UPDATED: 'guardian.updated',
+  GUARDIAN_UNLINKED: 'guardian.unlinked',
+  PRIMARY_GUARDIAN_CHANGED: 'guardian.primary_changed',
 
   APPOINTMENT_CREATED: 'appointment.created',
   APPOINTMENT_UPDATED: 'appointment.updated',
@@ -59,6 +62,25 @@ export const AUDIT_ACTIONS = {
   TREATMENT_MILESTONE_CREATED: 'treatment_milestone.created',
   TREATMENT_MILESTONE_UPDATED: 'treatment_milestone.updated',
 
+  RETENTION_CREATED: 'retention.created',
+  RETENTION_UPDATED: 'retention.updated',
+  RETENTION_ACTIVATED: 'retention.activated',
+  RETENTION_COMPLETED: 'retention.completed',
+  RETENTION_CANCELLED: 'retention.cancelled',
+  RETAINER_DELIVERED: 'retainer.delivered',
+  RETAINER_REPLACED: 'retainer.replaced',
+  RETAINER_LOST: 'retainer.lost',
+  RETAINER_DISCONTINUED: 'retainer.discontinued',
+
+  CONSENT_TEMPLATE_CREATED: 'consent_template.created',
+  CONSENT_TEMPLATE_UPDATED: 'consent_template.updated',
+  CONSENT_TEMPLATE_VERSION_CREATED: 'consent_template.version_created',
+  CONSENT_TEMPLATE_VERSION_ACTIVATED: 'consent_template.version_activated',
+  CONSENT_TEMPLATE_ARCHIVED: 'consent_template.archived',
+  CONSENT_SIGNED: 'consent.signed',
+  CONSENT_REVOKED: 'consent.revoked',
+  CONSENT_VOIDED: 'consent.voided',
+
   CLINICAL_VISIT_CREATED: 'clinical_visit.created',
   CLINICAL_VISIT_UPDATED: 'clinical_visit.updated',
   CLINICAL_VISIT_COMPLETED: 'clinical_visit.completed',
@@ -73,6 +95,13 @@ export const AUDIT_ACTIONS = {
 
   APPOINTMENT_TYPE_CREATED: 'appointment_type.created',
   APPOINTMENT_TYPE_UPDATED: 'appointment_type.updated',
+
+  TASK_CREATED: 'task.created',
+  TASK_UPDATED: 'task.updated',
+  TASK_REASSIGNED: 'task.reassigned',
+  TASK_STARTED: 'task.started',
+  TASK_COMPLETED: 'task.completed',
+  TASK_CANCELLED: 'task.cancelled',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -90,9 +119,14 @@ export const AUDIT_RESOURCE_TYPES = {
   APPOINTMENT_TYPE: 'appointment_type',
   TREATMENT: 'treatment',
   TREATMENT_MILESTONE: 'treatment_milestone',
+  RETENTION_PLAN: 'retention_plan',
+  RETAINER_DEVICE: 'retainer_device',
+  CONSENT_TEMPLATE: 'consent_template',
+  CONSENT: 'consent',
   CLINICAL_VISIT: 'clinical_visit',
   CASH_RECORD: 'cash_record',
   RECEIPT: 'receipt',
+  TASK: 'task',
   AUTH_SESSION: 'auth_session',
 } as const;
 

@@ -1,5 +1,5 @@
 import { ERROR_CODES } from '../../common/constants/error-codes.js';
-import { NotFoundError } from '../../common/errors/app-error.js';
+import { ConflictError, NotFoundError } from '../../common/errors/app-error.js';
 import type { MutationContext } from '../../common/utils/request-context.js';
 import { withTransaction } from '../../infrastructure/database/transaction.js';
 import { auditLogService, type AuditLogService } from '../audit-logs/audit-log.service.js';
@@ -10,7 +10,10 @@ import { guardianRepository, type GuardianRepository } from './guardian.reposito
 import {
   CONTACT_PREFERENCES,
   type CreateGuardianInput,
+  type GuardianChildDto,
   type GuardianDto,
+  type GuardianSearchDto,
+  type LinkExistingGuardianInput,
   type UpdateGuardianInput,
 } from './guardian.types.js';
 import {
@@ -75,6 +78,63 @@ export class GuardianService {
           metadata: {},
           ip: context.ip,
           userAgent: context.userAgent,
+        },
+        session,
+      );
+      await this.audit.record(
+        {
+          clinicId,
+          actorUserId: context.actorUserId,
+          action: AUDIT_ACTIONS.GUARDIAN_LINKED,
+          resourceType: AUDIT_RESOURCE_TYPES.PATIENT,
+          resourceId: patientId,
+          metadata: { guardianId: guardian._id.toString(), relationship: input.relationship },
+          ip: context.ip,
+          userAgent: context.userAgent,
+        },
+        session,
+      );
+      return toGuardianDto(guardian, relationship);
+    });
+  }
+
+  async linkExistingToPatient(
+    clinicId: string,
+    patientId: string,
+    input: LinkExistingGuardianInput,
+    context: MutationContext,
+  ): Promise<GuardianDto> {
+    await this.assertPatient(clinicId, patientId);
+    const guardian = await this.guardians.findByIdInClinic(input.guardianId, clinicId);
+    if (!guardian) {
+      throw new NotFoundError('Guardian not found in this clinic', {
+        code: ERROR_CODES.GUARDIAN_NOT_FOUND,
+      });
+    }
+
+    const existingRelationship = await this.relationships.findByPatientAndGuardian(
+      patientId,
+      input.guardianId,
+      clinicId,
+    );
+    if (existingRelationship) {
+      throw new ConflictError('This guardian is already linked to this patient');
+    }
+
+    return withTransaction(async (session) => {
+      if (input.isPrimary) {
+        await this.relationships.clearPrimary(patientId, clinicId, session);
+      }
+      const relationship = await this.relationships.create(
+        {
+          clinicId,
+          patientId,
+          guardianId: guardian._id.toString(),
+          createdBy: context.actorUserId,
+          relationship: input.relationship,
+          isPrimary: input.isPrimary ?? false,
+          financiallyResponsible: input.financiallyResponsible ?? false,
+          contactPreference: input.contactPreference ?? CONTACT_PREFERENCES.NO_PREFERENCE,
         },
         session,
       );
@@ -165,6 +225,142 @@ export class GuardianService {
     });
   }
 
+  async makePrimary(
+    clinicId: string,
+    patientId: string,
+    guardianId: string,
+    context: MutationContext,
+  ): Promise<GuardianDto> {
+    await this.assertPatient(clinicId, patientId);
+    const existingRelationship = await this.relationships.findByPatientAndGuardian(
+      patientId,
+      guardianId,
+      clinicId,
+    );
+    const [existingGuardian] = await this.guardians.findManyByIdsInClinic([guardianId], clinicId);
+    if (!existingRelationship || !existingGuardian) {
+      throw new NotFoundError('Guardian not found for this patient', {
+        code: ERROR_CODES.GUARDIAN_NOT_FOUND,
+      });
+    }
+
+    return withTransaction(async (session) => {
+      await this.relationships.clearPrimary(patientId, clinicId, session);
+      const relationship = await this.relationships.update(
+        patientId,
+        guardianId,
+        clinicId,
+        { isPrimary: true },
+        session,
+      );
+      if (!relationship) {
+        throw new NotFoundError('Guardian relationship update failed', {
+          code: ERROR_CODES.GUARDIAN_NOT_FOUND,
+        });
+      }
+      await this.audit.record(
+        {
+          clinicId,
+          actorUserId: context.actorUserId,
+          action: AUDIT_ACTIONS.PRIMARY_GUARDIAN_CHANGED,
+          resourceType: AUDIT_RESOURCE_TYPES.PATIENT,
+          resourceId: patientId,
+          metadata: { guardianId },
+          ip: context.ip,
+          userAgent: context.userAgent,
+        },
+        session,
+      );
+      return toGuardianDto(existingGuardian, relationship);
+    });
+  }
+
+  async unlinkFromPatient(
+    clinicId: string,
+    patientId: string,
+    guardianId: string,
+    context: MutationContext,
+  ): Promise<void> {
+    await this.assertPatient(clinicId, patientId);
+    const existingRelationship = await this.relationships.findByPatientAndGuardian(
+      patientId,
+      guardianId,
+      clinicId,
+    );
+    if (!existingRelationship) {
+      throw new NotFoundError('Guardian not found for this patient', {
+        code: ERROR_CODES.GUARDIAN_NOT_FOUND,
+      });
+    }
+
+    await withTransaction(async (session) => {
+      await this.relationships.unlink(patientId, guardianId, clinicId, session);
+      await this.audit.record(
+        {
+          clinicId,
+          actorUserId: context.actorUserId,
+          action: AUDIT_ACTIONS.GUARDIAN_UNLINKED,
+          resourceType: AUDIT_RESOURCE_TYPES.PATIENT,
+          resourceId: patientId,
+          metadata: { guardianId },
+          ip: context.ip,
+          userAgent: context.userAgent,
+        },
+        session,
+      );
+    });
+  }
+
+  async getGuardianChildren(clinicId: string, guardianId: string): Promise<GuardianChildDto[]> {
+    const guardian = await this.guardians.findByIdInClinic(guardianId, clinicId);
+    if (!guardian) {
+      throw new NotFoundError('Guardian not found in this clinic', {
+        code: ERROR_CODES.GUARDIAN_NOT_FOUND,
+      });
+    }
+
+    const relationships = await this.relationships.listSiblingsByGuardian(guardianId, clinicId);
+    if (relationships.length === 0) return [];
+
+    const patientIds = relationships.map((rel) => rel.patientId.toString());
+    const patients = await this.patients.findManyByIdsInClinic(patientIds, clinicId);
+    const patientsById = new Map(patients.map((p) => [p._id.toString(), p]));
+
+    return relationships.flatMap((rel) => {
+      const patient = patientsById.get(rel.patientId.toString());
+      if (!patient) return [];
+      return [
+        {
+          patientId: patient._id.toString(),
+          fullName: `${patient.firstName} ${patient.lastName}`.trim(),
+          referenceNumber: patient.referenceNumber ?? null,
+          birthDate: patient.birthDate ? patient.birthDate.toISOString().slice(0, 10) : null,
+          relationship: rel.relationship,
+          isPrimary: rel.isPrimary,
+        },
+      ];
+    });
+  }
+
+  async searchGuardians(clinicId: string, query: string): Promise<GuardianSearchDto[]> {
+    const guardians = await this.guardians.searchInClinic(clinicId, query, 20);
+    const results = await Promise.all(
+      guardians.map(async (g) => {
+        const count = await this.relationships.countByGuardianInClinic(g._id.toString(), clinicId);
+        return {
+          id: g._id.toString(),
+          firstName: g.firstName,
+          lastName: g.lastName,
+          fullName: `${g.firstName} ${g.lastName}`.trim(),
+          phone: g.phone ?? null,
+          email: g.email ?? null,
+          linkedPatientsCount: count,
+        };
+      }),
+    );
+    return results;
+  }
+
   private async assertPatient(clinicId: string, patientId: string): Promise<void> {
     const patient = await this.patients.findByIdInClinic(patientId, clinicId);
     if (!patient) {
@@ -174,3 +370,4 @@ export class GuardianService {
 }
 
 export const guardianService = new GuardianService();
+

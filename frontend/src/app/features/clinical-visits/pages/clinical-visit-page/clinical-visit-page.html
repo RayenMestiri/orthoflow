@@ -25,7 +25,10 @@
       </div>
       <div class="appointment-context">
         <strong>{{ current.context.appointment.startAt | date: 'EEE, MMM d · HH:mm' }}</strong>
-        <span>{{ current.context.treatment?.label || 'General consultation' }}</span>
+        <span>
+          {{ current.context.treatment?.label || 'General consultation' }}
+          @if (current.context.retention) { · Retention }
+        </span>
       </div>
       <span class="visit-status" [attr.data-status]="current.status">{{
         label(current.status)
@@ -88,6 +91,7 @@
                 [queryParams]="{
                   patientId: current.patientId,
                   treatmentId: current.treatmentId,
+                  retentionPlanId: current.retentionPlanId,
                   recommendedDate: current.nextVisitRecommendedAt.slice(0, 10),
                   returnUrl: '/app/clinical-visits/' + current.id,
                 }"

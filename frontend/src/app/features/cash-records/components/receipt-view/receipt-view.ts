@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, input, output } from '@angular/core';
 import { PAYMENT_METHOD_LABELS } from '../../models/cash-record.model';
 import type { ReceiptDocument } from '../../models/receipt.model';
 
@@ -9,7 +9,7 @@ import type { ReceiptDocument } from '../../models/receipt.model';
  * Printing is the browser's, not a PDF library's: a receipt is a page of text
  * and a clinic already has a printer. `@media print` in the stylesheet hides
  * the app chrome so only this document reaches the paper. PDF export is a
- * future enhancement, deliberately not a dependency today.
+ * native feature via Print -> Save as PDF.
  *
  * The closing line claims only what OrthoFlow can honestly claim — that the
  * clinic recorded this amount as received. No tax or legal assertion.
@@ -26,6 +26,11 @@ export class ReceiptView {
   readonly closed = output<void>();
 
   protected readonly methodLabels = PAYMENT_METHOD_LABELS;
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.close();
+  }
 
   protected print(): void {
     window.print();

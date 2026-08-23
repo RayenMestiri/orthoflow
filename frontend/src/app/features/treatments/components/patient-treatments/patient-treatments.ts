@@ -15,12 +15,17 @@ import { firstValueFrom } from 'rxjs';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { ClinicalVisitsApiService } from '../../../clinical-visits/data-access/clinical-visits-api.service';
 import { FollowUpsApiService } from '../../../follow-ups/data-access/follow-ups-api.service';
+import { PatientMediaApiService } from '../../../patient-media/data-access/patient-media-api.service';
+import type { PatientMedia } from '../../../patient-media/models/patient-media.models';
 import type { FollowUpRow } from '../../../follow-ups/models/follow-up.models';
+import { ConsentsApiService } from '../../../consents/data-access/consents-api.service';
+import type { SignedConsent } from '../../../consents/models/consent.models';
 import {
   clinicalLabel,
   type ClinicalVisitSummary,
 } from '../../../clinical-visits/models/clinical-visit.models';
 import { TreatmentsStore } from '../../data-access/treatments.store';
+import { PatientRetention } from '../patient-retention/patient-retention';
 import {
   formatTreatmentDuration,
   MANUAL_MILESTONE_TYPES,
@@ -36,11 +41,16 @@ import {
   type TreatmentWithMilestones,
 } from '../../models/treatment.models';
 
-type DrawerMode = 'create' | 'edit-treatment' | 'add-milestone' | 'edit-milestone';
+type DrawerMode =
+  | 'create'
+  | 'edit-treatment'
+  | 'complete-treatment'
+  | 'add-milestone'
+  | 'edit-milestone';
 
 @Component({
   selector: 'app-patient-treatments',
-  imports: [A11yModule, DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [A11yModule, DatePipe, ReactiveFormsModule, RouterLink, PatientRetention],
   providers: [TreatmentsStore],
   templateUrl: './patient-treatments.html',
   styleUrl: './patient-treatments.scss',
@@ -50,12 +60,15 @@ export class PatientTreatments {
   private readonly permissions = inject(PermissionService);
   private readonly clinicalVisitsApi = inject(ClinicalVisitsApiService);
   private readonly followUpsApi = inject(FollowUpsApiService);
+  private readonly mediaApi = inject(PatientMediaApiService);
+  private readonly consentsApi = inject(ConsentsApiService);
   protected readonly store = inject(TreatmentsStore);
 
   readonly patientId = input.required<string>();
   protected readonly treatmentTypes = TREATMENT_TYPES;
   protected readonly milestoneTypes = MANUAL_MILESTONE_TYPES;
   protected readonly canManage = this.permissions.can(PERMISSIONS.TREATMENTS_MANAGE);
+  protected readonly canViewConsents = this.permissions.can(PERMISSIONS.CONSENTS_VIEW);
   protected readonly drawerMode = signal<DrawerMode | null>(null);
   protected readonly drawerTreatment = signal<TreatmentWithMilestones | null>(null);
   protected readonly editingMilestone = signal<TreatmentMilestone | null>(null);
@@ -63,6 +76,9 @@ export class PatientTreatments {
   protected readonly cancelling = signal<string | null>(null);
   protected readonly clinicalVisits = signal<ClinicalVisitSummary[]>([]);
   protected readonly followUps = signal<FollowUpRow[]>([]);
+  protected readonly completionMedia = signal<PatientMedia[]>([]);
+  protected readonly selectedFinalMediaIds = signal<string[]>([]);
+  protected readonly consents = signal<SignedConsent[]>([]);
   protected readonly clinicalLabel = clinicalLabel;
 
   protected readonly current = computed(
@@ -89,6 +105,10 @@ export class PatientTreatments {
     return treatmentId
       ? (this.followUps().find((row) => row.treatment?.id === treatmentId) ?? null)
       : null;
+  });
+  protected readonly currentTreatmentConsents = computed(() => {
+    const treatmentId = this.current()?.id;
+    return treatmentId ? this.consents().filter((item) => item.treatmentId === treatmentId) : [];
   });
 
   protected readonly treatmentForm = new FormGroup({
@@ -125,6 +145,16 @@ export class PatientTreatments {
     validators: [Validators.required, Validators.maxLength(500)],
   });
 
+  protected readonly completionForm = new FormGroup({
+    completionDate: new FormControl(this.todayIso(), {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    debondPerformed: new FormControl(false, { nonNullable: true }),
+    debondDate: new FormControl('', { nonNullable: true }),
+    retentionRequired: new FormControl(true, { nonNullable: true }),
+  });
+
   constructor() {
     effect(() => {
       const patientId = this.patientId();
@@ -132,6 +162,7 @@ export class PatientTreatments {
         void this.store.load(patientId);
         void this.loadClinicalVisits(patientId);
         void this.loadFollowUps(patientId);
+        if (this.canViewConsents) void this.loadConsents(patientId);
       }
     });
   }
@@ -296,8 +327,48 @@ export class PatientTreatments {
     void this.store.resume(treatmentId);
   }
 
-  protected complete(treatmentId: string): void {
-    void this.store.complete(treatmentId);
+  protected async openComplete(treatment: TreatmentWithMilestones): Promise<void> {
+    this.drawerTreatment.set(treatment);
+    this.selectedFinalMediaIds.set(treatment.finalMediaIds ?? []);
+    this.completionForm.reset({
+      completionDate: this.todayIso(),
+      debondPerformed: false,
+      debondDate: '',
+      retentionRequired: true,
+    });
+    this.drawerMode.set('complete-treatment');
+    try {
+      const result = await firstValueFrom(
+        this.mediaApi.listForPatient(this.patientId(), { status: 'ACTIVE', page: 1, limit: 100 }),
+      );
+      this.completionMedia.set(result.items);
+    } catch {
+      this.completionMedia.set([]);
+    }
+  }
+
+  protected toggleFinalMedia(mediaId: string, checked: boolean): void {
+    this.selectedFinalMediaIds.update((ids) =>
+      checked ? [...new Set([...ids, mediaId])] : ids.filter((id) => id !== mediaId),
+    );
+  }
+
+  protected async confirmComplete(): Promise<void> {
+    const treatment = this.drawerTreatment();
+    const value = this.completionForm.getRawValue();
+    if (!treatment || this.completionForm.invalid) return;
+    if (value.debondPerformed && !value.debondDate) {
+      this.completionForm.controls.debondDate.setErrors({ required: true });
+      return;
+    }
+    const saved = await this.store.complete(treatment.id, {
+      completionDate: value.completionDate,
+      debondPerformed: value.debondPerformed,
+      debondDate: value.debondPerformed ? value.debondDate : null,
+      retentionRequired: value.retentionRequired,
+      finalMediaIds: this.selectedFinalMediaIds(),
+    });
+    if (saved) this.drawerMode.set(null);
   }
 
   protected openCancel(treatmentId: string): void {
@@ -345,6 +416,14 @@ export class PatientTreatments {
       // Treatment management remains usable if the read-only clinical history
       // is temporarily unavailable; the canonical Visits tab offers retry UX.
       this.clinicalVisits.set([]);
+    }
+  }
+
+  private async loadConsents(patientId: string): Promise<void> {
+    try {
+      this.consents.set(await firstValueFrom(this.consentsApi.listPatientConsents(patientId)));
+    } catch {
+      this.consents.set([]);
     }
   }
 

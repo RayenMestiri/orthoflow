@@ -48,6 +48,7 @@ export interface ClinicalVisitAttributes {
   patientId: Types.ObjectId;
   appointmentId: Types.ObjectId;
   treatmentId: Types.ObjectId | null;
+  retentionPlanId?: Types.ObjectId | null;
   status: ClinicalVisitStatus;
   reasonCode: ClinicalReasonCode | null;
   reasonOther: string | null;
@@ -70,6 +71,7 @@ export type ClinicalVisitRecord = ClinicalVisitAttributes & { _id: Types.ObjectI
 
 export interface ClinicalVisitWriteFields {
   treatmentId?: string | null;
+  retentionPlanId?: string | null;
   reasonCode?: ClinicalReasonCode | null;
   reasonOther?: string | null;
   observations?: string | null;
@@ -87,6 +89,7 @@ export interface ClinicalVisitDto {
   patientId: string;
   appointmentId: string;
   treatmentId: string | null;
+  retentionPlanId: string | null;
   status: ClinicalVisitStatus;
   reasonCode: ClinicalReasonCode | null;
   reasonOther: string | null;
@@ -107,6 +110,7 @@ export interface ClinicalVisitDto {
     patient: { id: string; fullName: string };
     appointment: { id: string; startAt: string; endAt: string; status: string };
     treatment: { id: string; label: string; status: string } | null;
+    retention: { id: string; status: string } | null;
     previousVisit: ClinicalVisitSummaryDto | null;
   };
 }
@@ -115,6 +119,7 @@ export interface ClinicalVisitSummaryDto {
   id: string;
   appointmentId: string;
   treatmentId: string | null;
+  retentionPlanId: string | null;
   status: ClinicalVisitStatus;
   reasonCode: ClinicalReasonCode | null;
   reasonOther: string | null;

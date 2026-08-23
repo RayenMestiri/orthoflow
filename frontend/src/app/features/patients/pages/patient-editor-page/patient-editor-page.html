@@ -157,7 +157,7 @@
           </div>
 
           <!-- Date of Birth with Live Age Calculator -->
-          <div class="input-field">
+          <div class="input-field" [class.has-error]="form.controls.birthDate.touched && form.controls.birthDate.invalid">
             <div class="label-with-badge">
               <label for="birthDate">Date of birth</label>
               @if (computedAge(); as age) {
@@ -171,6 +171,13 @@
               <span class="material-icons input-icon">calendar_today</span>
               <input id="birthDate" type="date" formControlName="birthDate" />
             </div>
+            @if (form.controls.birthDate.touched && form.controls.birthDate.errors?.['futureDate']) {
+              <small class="error-msg">Birth date must be in the past.</small>
+            } @else if (form.controls.birthDate.touched && form.controls.birthDate.errors?.['tooOld']) {
+              <small class="error-msg">Please enter a valid birth date.</small>
+            } @else if (form.controls.birthDate.touched && form.controls.birthDate.errors?.['serverValidation']; as msg) {
+              <small class="error-msg">{{ msg }}</small>
+            }
           </div>
 
           <!-- Gender Pill Selector -->
@@ -210,12 +217,17 @@
           </div>
 
           <!-- Phone -->
-          <div class="input-field">
+          <div class="input-field" [class.has-error]="form.controls.phone.touched && form.controls.phone.invalid">
             <label for="phone">Phone number</label>
             <div class="input-wrapper">
               <span class="material-icons input-icon">call</span>
               <input id="phone" type="tel" formControlName="phone" autocomplete="tel" placeholder="+33 6 12 34 56 78" />
             </div>
+            @if (form.controls.phone.touched && form.controls.phone.errors?.['pattern']) {
+              <small class="error-msg">Please enter a valid phone number (at least 6 digits).</small>
+            } @else if (form.controls.phone.touched && form.controls.phone.errors?.['serverValidation']; as msg) {
+              <small class="error-msg">{{ msg }}</small>
+            }
           </div>
 
           <!-- Email -->
@@ -225,7 +237,9 @@
               <span class="material-icons input-icon">email</span>
               <input id="email" type="email" formControlName="email" autocomplete="email" placeholder="patient@example.com" />
             </div>
-            @if (form.controls.email.touched && form.controls.email.invalid) {
+            @if (form.controls.email.touched && form.controls.email.errors?.['serverValidation']; as msg) {
+              <small class="error-msg">{{ msg }}</small>
+            } @else if (form.controls.email.touched && form.controls.email.invalid) {
               <small class="error-msg">Please enter a valid email address.</small>
             }
           </div>
@@ -375,21 +389,27 @@
               </div>
 
               <!-- Guardian Phone -->
-              <div class="input-field">
+              <div class="input-field" [class.has-error]="form.controls.guardian.controls.phone.touched && form.controls.guardian.controls.phone.invalid">
                 <label for="guardianPhone">Guardian phone</label>
                 <div class="input-wrapper">
                   <span class="material-icons input-icon">call</span>
                   <input id="guardianPhone" type="tel" formControlName="phone" autocomplete="off" placeholder="+33 6 ..." />
                 </div>
+                @if (form.controls.guardian.controls.phone.touched && form.controls.guardian.controls.phone.errors?.['pattern']) {
+                  <small class="error-msg">Please enter a valid phone number (at least 6 digits).</small>
+                }
               </div>
 
               <!-- Guardian Email -->
-              <div class="input-field">
+              <div class="input-field" [class.has-error]="form.controls.guardian.controls.email.touched && form.controls.guardian.controls.email.invalid">
                 <label for="guardianEmail">Guardian email</label>
                 <div class="input-wrapper">
                   <span class="material-icons input-icon">email</span>
                   <input id="guardianEmail" type="email" formControlName="email" autocomplete="off" placeholder="guardian@example.com" />
                 </div>
+                @if (form.controls.guardian.controls.email.touched && form.controls.guardian.controls.email.invalid) {
+                  <small class="error-msg">Please enter a valid email address.</small>
+                }
               </div>
 
               <!-- Contact Preference Pills -->

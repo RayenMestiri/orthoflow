@@ -412,7 +412,153 @@ export class PatientActivityService {
       }
     }
 
-    // 4. Cash Records Normalization
+    // 4. Retention plan and retainer lifecycle normalization
+    if (
+      visibility.clinical &&
+      (filter === PATIENT_ACTIVITY_FILTERS.ALL || filter === PATIENT_ACTIVITY_FILTERS.CLINICAL)
+    ) {
+      for (const plan of records.retentionPlans ?? []) {
+        const planId = plan._id.toString();
+        const treatment = context.treatments.get(plan.treatmentId.toString());
+        const treatmentLabel = treatment
+          ? treatment.customTypeLabel || TREATMENT_TYPE_LABELS[treatment.type] || 'Traitement'
+          : 'Traitement';
+        const actorId = (plan.updatedBy ?? plan.createdBy).toString();
+        const actor = this.formatActor(actorId, context);
+        const base = {
+          category: PATIENT_ACTIVITY_CATEGORIES.TREATMENT,
+          actor,
+          treatment: treatment ? { id: treatment._id.toString(), label: treatmentLabel } : null,
+          appointmentId: null,
+          clinicalVisitId: null,
+          cashRecordId: null,
+          receiptId: null,
+          mediaId: null,
+          amountMinor: null,
+          currency: null,
+          receiptNumber: null,
+          scheduledAt: null,
+          cancellationReason: null,
+          targetType: PATIENT_ACTIVITY_TARGETS.RETENTION_PLAN,
+          targetId: planId,
+        } as const;
+        allItems.push({
+          ...base,
+          id: `${planId}_retention_created`,
+          type: PATIENT_ACTIVITY_TYPES.RETENTION_CREATED,
+          occurredAt: plan.createdAt.toISOString(),
+          title: 'Contention planifiée',
+          subtitle: treatmentLabel,
+          detail: null,
+          recommendedAt: plan.initialControlRecommendedAt?.toISOString() ?? null,
+        });
+        if (plan.startedAt) {
+          allItems.push({
+            ...base,
+            id: `${planId}_retention_started`,
+            type: PATIENT_ACTIVITY_TYPES.RETENTION_ACTIVATED,
+            occurredAt: plan.startedAt.toISOString(),
+            title: 'Contention démarrée',
+            subtitle: treatmentLabel,
+            detail: null,
+            recommendedAt: null,
+          });
+        }
+        if (plan.status === 'COMPLETED' && plan.completedAt) {
+          allItems.push({
+            ...base,
+            id: `${planId}_retention_completed`,
+            type: PATIENT_ACTIVITY_TYPES.RETENTION_COMPLETED,
+            occurredAt: plan.completedAt.toISOString(),
+            title: 'Contention terminée',
+            subtitle: treatmentLabel,
+            detail: visibility.clinicalDetails ? plan.completionReason : null,
+            recommendedAt: null,
+          });
+        }
+        if (plan.status === 'CANCELLED' && plan.cancelledAt) {
+          allItems.push({
+            ...base,
+            id: `${planId}_retention_cancelled`,
+            type: PATIENT_ACTIVITY_TYPES.RETENTION_CANCELLED,
+            occurredAt: plan.cancelledAt.toISOString(),
+            title: 'Contention annulée',
+            subtitle: treatmentLabel,
+            detail: visibility.clinicalDetails ? plan.cancellationReason : null,
+            recommendedAt: null,
+            cancellationReason: visibility.clinicalDetails ? plan.cancellationReason : null,
+          });
+        }
+      }
+
+      for (const device of records.retainerDevices ?? []) {
+        const deviceId = device._id.toString();
+        const treatment = context.treatments.get(device.treatmentId.toString());
+        const treatmentLabel = treatment
+          ? treatment.customTypeLabel || TREATMENT_TYPE_LABELS[treatment.type] || 'Traitement'
+          : 'Traitement';
+        const deviceLabel = device.customTypeLabel ?? device.type.toLowerCase().replaceAll('_', ' ');
+        const actor = this.formatActor(
+          (device.updatedBy ?? device.createdBy).toString(),
+          context,
+        );
+        const base = {
+          category: PATIENT_ACTIVITY_CATEGORIES.TREATMENT,
+          actor,
+          treatment: treatment ? { id: treatment._id.toString(), label: treatmentLabel } : null,
+          appointmentId: null,
+          clinicalVisitId: null,
+          cashRecordId: null,
+          receiptId: null,
+          mediaId: null,
+          amountMinor: null,
+          currency: null,
+          receiptNumber: null,
+          scheduledAt: null,
+          recommendedAt: null,
+          cancellationReason: null,
+          targetType: PATIENT_ACTIVITY_TARGETS.RETAINER_DEVICE,
+          targetId: deviceId,
+        } as const;
+        allItems.push({
+          ...base,
+          id: `${deviceId}_delivered`,
+          type: PATIENT_ACTIVITY_TYPES.RETAINER_DELIVERED,
+          occurredAt: device.deliveredAt.toISOString(),
+          title: 'Appareil de contention remis',
+          subtitle: `${deviceLabel} · ${device.arch.toLowerCase()}`,
+          detail: null,
+        });
+        if (device.status !== 'ACTIVE' && device.endedAt) {
+          const event =
+            device.status === 'REPLACED'
+              ? {
+                  type: PATIENT_ACTIVITY_TYPES.RETAINER_REPLACED,
+                  title: 'Appareil de contention remplacé',
+                }
+              : device.status === 'LOST'
+                ? {
+                    type: PATIENT_ACTIVITY_TYPES.RETAINER_LOST,
+                    title: 'Appareil de contention perdu',
+                  }
+                : {
+                    type: PATIENT_ACTIVITY_TYPES.RETAINER_DISCONTINUED,
+                    title: 'Appareil de contention arrêté',
+                  };
+          allItems.push({
+            ...base,
+            id: `${deviceId}_${device.status.toLowerCase()}`,
+            type: event.type,
+            occurredAt: device.endedAt.toISOString(),
+            title: event.title,
+            subtitle: deviceLabel,
+            detail: null,
+          });
+        }
+      }
+    }
+
+    // 5. Cash Records Normalization
     if (
       visibility.payments &&
       (filter === PATIENT_ACTIVITY_FILTERS.ALL ||
@@ -519,13 +665,13 @@ export class PatientActivityService {
       }
     }
 
-    // 5. Patient Media Normalization
+    // 6. Patient Media Normalization
     if (
-      visibility.documents &&
+      (visibility.documents || visibility.consents) &&
       (filter === PATIENT_ACTIVITY_FILTERS.ALL ||
         filter === PATIENT_ACTIVITY_FILTERS.DOCUMENTS)
     ) {
-      for (const item of records.media) {
+      for (const item of visibility.documents ? records.media : []) {
         const mediaId = item._id.toString();
         const treatment = item.treatmentId ? context.treatments.get(item.treatmentId.toString()) : null;
         const treatmentLabel = treatment
@@ -596,6 +742,76 @@ export class PatientActivityService {
           });
         }
       }
+
+      for (const consent of visibility.consents ? (records.signedConsents ?? []) : []) {
+        const consentId = consent._id.toString();
+        const treatment = consent.treatmentId
+          ? context.treatments.get(consent.treatmentId.toString())
+          : null;
+        const treatmentLabel = treatment
+          ? treatment.customTypeLabel || TREATMENT_TYPE_LABELS[treatment.type] || 'Traitement'
+          : null;
+        const baseEvent = {
+          category: PATIENT_ACTIVITY_CATEGORIES.DOCUMENT,
+          treatment: treatment ? { id: treatment._id.toString(), label: treatmentLabel! } : null,
+          appointmentId: null,
+          clinicalVisitId: null,
+          cashRecordId: null,
+          receiptId: null,
+          mediaId: null,
+          amountMinor: null,
+          currency: null,
+          receiptNumber: null,
+          scheduledAt: null,
+          recommendedAt: null,
+          targetType: PATIENT_ACTIVITY_TARGETS.CONSENT,
+          targetId: consentId,
+        };
+
+        allItems.push({
+          ...baseEvent,
+          id: `${consentId}_signed`,
+          type: PATIENT_ACTIVITY_TYPES.CONSENT_SIGNED,
+          occurredAt: consent.signedAt.toISOString(),
+          title: 'Consentement signé',
+          subtitle: consent.titleSnapshot,
+          detail: `${consent.consentRef} · ${consent.signerNameSnapshot}`,
+          actor: this.formatActor(consent.presentedByUserId.toString(), context),
+          cancellationReason: null,
+        });
+
+        if (consent.revokedAt) {
+          allItems.push({
+            ...baseEvent,
+            id: `${consentId}_revoked`,
+            type: PATIENT_ACTIVITY_TYPES.CONSENT_REVOKED,
+            occurredAt: consent.revokedAt.toISOString(),
+            title: 'Consentement révoqué',
+            subtitle: consent.titleSnapshot,
+            detail: consent.revocationReason,
+            actor: consent.revokedByUserId
+              ? this.formatActor(consent.revokedByUserId.toString(), context)
+              : null,
+            cancellationReason: consent.revocationReason,
+          });
+        }
+
+        if (consent.voidedAt) {
+          allItems.push({
+            ...baseEvent,
+            id: `${consentId}_voided`,
+            type: PATIENT_ACTIVITY_TYPES.CONSENT_VOIDED,
+            occurredAt: consent.voidedAt.toISOString(),
+            title: 'Consentement invalidé',
+            subtitle: consent.titleSnapshot,
+            detail: consent.voidReason,
+            actor: consent.voidedByUserId
+              ? this.formatActor(consent.voidedByUserId.toString(), context)
+              : null,
+            cancellationReason: consent.voidReason,
+          });
+        }
+      }
     }
 
     // Deterministic chronological ordering (newest first)
@@ -643,6 +859,7 @@ export class PatientActivityService {
     const followUps = hasPermission(tenant, PERMISSIONS.FOLLOW_UP_READ);
     const payments = hasPermission(tenant, PERMISSIONS.CASH_RECORD_READ);
     const documents = hasPermission(tenant, PERMISSIONS.PATIENT_MEDIA_READ);
+    const consents = hasPermission(tenant, PERMISSIONS.CONSENT_READ);
 
     return {
       appointments,
@@ -651,6 +868,7 @@ export class PatientActivityService {
       followUps,
       payments,
       documents,
+      consents,
     };
   }
 }

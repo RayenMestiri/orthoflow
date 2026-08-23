@@ -109,14 +109,9 @@ describe('PatientMediaWorkspace', () => {
 
   it('opens a preview and archive confirmation for an active image', async () => {
     const element = await render([media()]);
-    (element.querySelector('.media-card') as HTMLButtonElement).click();
+    (element.querySelector('.media-card__menu-btn--danger') as HTMLButtonElement).click();
     fixture.detectChanges();
-    expect(element.textContent).toContain('Open original');
-    (
-      element.querySelector('.media-preview__actions .media-btn--danger') as HTMLButtonElement
-    ).click();
-    fixture.detectChanges();
-    expect(element.textContent).toContain('Archive “Progress month 6”?');
+    expect(element.textContent).toContain('Archive "Progress month 6"?');
     const submit = new Event('submit', { bubbles: true, cancelable: true });
     const allowed = (element.querySelector('.media-dialog') as HTMLFormElement).dispatchEvent(
       submit,
@@ -130,11 +125,7 @@ describe('PatientMediaWorkspace', () => {
     // The full workflow the archive bug broke: confirm, wait for the request,
     // and land on a list that reflects the new state — all without a reload.
     const element = await render([media()]);
-    (element.querySelector('.media-card') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    (
-      element.querySelector('.media-preview__actions .media-btn--danger') as HTMLButtonElement
-    ).click();
+    (element.querySelector('.media-card__menu-btn--danger') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     (element.querySelector('.media-dialog') as HTMLFormElement).dispatchEvent(

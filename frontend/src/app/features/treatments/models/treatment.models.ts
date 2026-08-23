@@ -73,6 +73,11 @@ export interface Treatment {
   startDate: string | null;
   expectedEndDate: string | null;
   completedAt: string | null;
+  completionDate?: string | null;
+  debondPerformed?: boolean;
+  debondDate?: string | null;
+  retentionRequired?: boolean;
+  finalMediaIds?: string[];
   agreedPrice: number | null;
   notes: string | null;
   cancellationReason: string | null;
@@ -104,6 +109,14 @@ export interface UpdateTreatmentInput {
   expectedEndDate?: string | null;
   agreedPrice?: number | null;
   notes?: string | null;
+}
+
+export interface CompleteTreatmentInput {
+  completionDate: string;
+  debondPerformed: boolean;
+  debondDate: string | null;
+  retentionRequired: boolean;
+  finalMediaIds: string[];
 }
 
 export interface CreateMilestoneInput {

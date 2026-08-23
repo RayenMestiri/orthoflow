@@ -27,6 +27,7 @@ export const PERMISSIONS = {
   GUARDIAN_READ: 'guardian:read',
   GUARDIAN_CREATE: 'guardian:create',
   GUARDIAN_UPDATE: 'guardian:update',
+  GUARDIAN_DELETE: 'guardian:delete',
 
   APPOINTMENT_READ: 'appointment:read',
   APPOINTMENT_CREATE: 'appointment:create',
@@ -49,6 +50,15 @@ export const PERMISSIONS = {
   /** Starting, pausing, resuming and completing care is a clinical decision. */
   TREATMENT_MANAGE_LIFECYCLE: 'treatment:manage-lifecycle',
 
+  RETENTION_READ: 'retention:read',
+  RETENTION_MANAGE: 'retention:manage',
+
+  CONSENT_READ: 'consent:read',
+  CONSENT_CAPTURE: 'consent:capture',
+  CONSENT_REVOKE: 'consent:revoke',
+  CONSENT_VOID: 'consent:void',
+  CONSENT_TEMPLATE_MANAGE: 'consent-template:manage',
+
   CLINICAL_VISIT_READ: 'clinical-visit:read',
   CLINICAL_VISIT_MANAGE: 'clinical-visit:manage',
   /** Amendments after sign-off are exceptional and owner-audited. */
@@ -67,6 +77,12 @@ export const PERMISSIONS = {
   /** Accepting more money than the treatment still owes is an owner decision. */
   CASH_RECORD_APPROVE_OVERPAYMENT: 'cash-record:approve-overpayment',
   RECEIPT_READ: 'receipt:read',
+
+  TASK_READ: 'task:read',
+  TASK_CREATE: 'task:create',
+  TASK_UPDATE: 'task:update',
+  TASK_CANCEL: 'task:cancel',
+  TASK_MANAGE_ALL: 'task:manage-all',
 
   AUDIT_LOG_READ: 'audit-log:read',
 } as const;
@@ -87,6 +103,7 @@ const PRACTITIONER_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.GUARDIAN_READ,
   PERMISSIONS.GUARDIAN_CREATE,
   PERMISSIONS.GUARDIAN_UPDATE,
+  PERMISSIONS.GUARDIAN_DELETE,
   PERMISSIONS.APPOINTMENT_READ,
   PERMISSIONS.APPOINTMENT_CREATE,
   PERMISSIONS.APPOINTMENT_UPDATE,
@@ -101,6 +118,11 @@ const PRACTITIONER_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.TREATMENT_CREATE,
   PERMISSIONS.TREATMENT_UPDATE,
   PERMISSIONS.TREATMENT_MANAGE_LIFECYCLE,
+  PERMISSIONS.RETENTION_READ,
+  PERMISSIONS.RETENTION_MANAGE,
+  PERMISSIONS.CONSENT_READ,
+  PERMISSIONS.CONSENT_CAPTURE,
+  PERMISSIONS.CONSENT_REVOKE,
   PERMISSIONS.CLINICAL_VISIT_READ,
   PERMISSIONS.CLINICAL_VISIT_MANAGE,
   PERMISSIONS.FOLLOW_UP_READ,
@@ -109,6 +131,10 @@ const PRACTITIONER_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.CASH_RECORD_READ,
   PERMISSIONS.CASH_RECORD_CREATE,
   PERMISSIONS.RECEIPT_READ,
+  PERMISSIONS.TASK_READ,
+  PERMISSIONS.TASK_CREATE,
+  PERMISSIONS.TASK_UPDATE,
+  PERMISSIONS.TASK_CANCEL,
 ];
 
 const SECRETARY_PERMISSIONS: readonly Permission[] = [
@@ -124,6 +150,7 @@ const SECRETARY_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.GUARDIAN_READ,
   PERMISSIONS.GUARDIAN_CREATE,
   PERMISSIONS.GUARDIAN_UPDATE,
+  PERMISSIONS.GUARDIAN_DELETE,
   // The front desk runs the diary: it may book, move and cancel appointments.
   PERMISSIONS.APPOINTMENT_READ,
   PERMISSIONS.APPOINTMENT_CREATE,
@@ -132,12 +159,19 @@ const SECRETARY_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.APPOINTMENT_TYPE_READ,
   // The front desk sees the treatment plan but never decides clinical care.
   PERMISSIONS.TREATMENT_READ,
+  PERMISSIONS.RETENTION_READ,
+  PERMISSIONS.CONSENT_READ,
+  PERMISSIONS.CONSENT_CAPTURE,
   PERMISSIONS.FOLLOW_UP_READ,
   // The front desk is who physically takes the money, so it records payments
   // and prints receipts — but cancelling a record is an owner decision.
   PERMISSIONS.CASH_RECORD_READ,
   PERMISSIONS.CASH_RECORD_CREATE,
   PERMISSIONS.RECEIPT_READ,
+  PERMISSIONS.TASK_READ,
+  PERMISSIONS.TASK_CREATE,
+  PERMISSIONS.TASK_UPDATE,
+  PERMISSIONS.TASK_CANCEL,
 ];
 
 const ASSISTANT_PERMISSIONS: readonly Permission[] = [
@@ -150,6 +184,8 @@ const ASSISTANT_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.APPOINTMENT_READ,
   PERMISSIONS.APPOINTMENT_TYPE_READ,
   PERMISSIONS.TREATMENT_READ,
+  PERMISSIONS.TASK_READ,
+  PERMISSIONS.TASK_UPDATE,
 ];
 
 export const ROLE_PERMISSIONS: Readonly<Record<ClinicRole, readonly Permission[]>> = {
