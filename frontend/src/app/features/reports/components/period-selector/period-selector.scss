@@ -1,0 +1,10 @@
+:host { display: flex; align-items: end; gap: .75rem; flex-wrap: wrap; }
+.period-control, .custom-range label { display: grid; gap: .3rem; }
+label, .custom-range span { font-size: .72rem; font-weight: 750; color: #586b66; }
+select, input { min-height: 2.75rem; border: 1px solid #cfdbd7; border-radius: .65rem; background: #fff; color: #153b32; padding: .55rem .75rem; font: inherit; }
+select { min-width: 12.5rem; }
+.custom-range { display: flex; align-items: end; gap: .5rem; flex-wrap: wrap; }
+button { min-height: 2.75rem; border: 0; border-radius: .65rem; padding: .55rem 1rem; background: #173f35; color: #fff; font-weight: 750; cursor: pointer; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+select:focus-visible, input:focus-visible, button:focus-visible { outline: 3px solid rgba(198, 103, 75, .25); outline-offset: 2px; }
+@media (max-width: 30rem) { :host, .period-control, select, .custom-range, .custom-range label, input, button { width: 100%; } }

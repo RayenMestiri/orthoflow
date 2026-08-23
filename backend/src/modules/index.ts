@@ -31,6 +31,7 @@ import {
 import { followUpRoutes } from './follow-ups/follow-up.routes.js';
 import { globalSearchRoutes } from './global-search/global-search.routes.js';
 import { dashboardRoutes } from './dashboard/dashboard.routes.js';
+import { reportsRoutes } from './reports/reports.routes.js';
 import { taskRoutes } from './tasks/task.routes.js';
 import {
   patientRetentionRoutes,
@@ -91,6 +92,7 @@ export const registerModules: FastifyPluginAsyncZod = async (app) => {
   await app.register(auditLogRoutes, { prefix: `${API_PREFIX}/audit-logs` });
   await app.register(globalSearchRoutes, { prefix: `${API_PREFIX}/search` });
   await app.register(dashboardRoutes, { prefix: `${API_PREFIX}/dashboard` });
+  await app.register(reportsRoutes, { prefix: `${API_PREFIX}/reports` });
   await app.register(taskRoutes, { prefix: `${API_PREFIX}/tasks` });
   await app.register(consentTemplateRoutes, { prefix: `${API_PREFIX}/consent-templates` });
   await app.register(consentRoutes, { prefix: `${API_PREFIX}/consents` });

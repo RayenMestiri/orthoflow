@@ -4,6 +4,7 @@ import { CLINIC_ROLES, PLATFORM_ROLES, type ClinicRole } from './auth.models';
 
 export const PERMISSIONS = {
   DASHBOARD_VIEW: 'dashboard.view',
+  REPORTS_VIEW: 'reports.view',
   PATIENTS_VIEW: 'patients.view',
   PATIENTS_CREATE: 'patients.create',
   PATIENTS_UPDATE: 'patients.update',
@@ -59,6 +60,7 @@ export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 const clinicalPermissions: Permission[] = [
   PERMISSIONS.DASHBOARD_VIEW,
+  PERMISSIONS.REPORTS_VIEW,
   PERMISSIONS.PATIENTS_VIEW,
   PERMISSIONS.PATIENTS_CREATE,
   PERMISSIONS.PATIENTS_UPDATE,
@@ -108,6 +110,7 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
   [CLINIC_ROLES.DENTIST]: clinicalPermissions,
   [CLINIC_ROLES.SECRETARY]: [
     PERMISSIONS.DASHBOARD_VIEW,
+    PERMISSIONS.REPORTS_VIEW,
     PERMISSIONS.PATIENTS_VIEW,
     PERMISSIONS.PATIENTS_CREATE,
     PERMISSIONS.PATIENTS_UPDATE,

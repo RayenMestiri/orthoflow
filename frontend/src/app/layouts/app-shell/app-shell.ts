@@ -127,6 +127,12 @@ export class AppShell {
       visible: this.permissions.can(PERMISSIONS.CASH_RECORDS_VIEW),
     },
     {
+      label: 'Rapports',
+      icon: 'monitoring',
+      route: '/app/reports',
+      visible: this.permissions.can(PERMISSIONS.REPORTS_VIEW),
+    },
+    {
       label: 'Settings',
       icon: 'tune',
       route: '/app/settings',

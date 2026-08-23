@@ -75,6 +75,33 @@ export class CareContinuityService {
       pagination: buildPaginationMeta(pagination, result.total[0]?.count ?? 0),
     };
   }
+
+  /** Aggregate-only reporting view; the repository facets avoid loading patient rows. */
+  async summarize(clinicId: string, now: Date = new Date()) {
+    const clinic = await this.clinics.findById(clinicId);
+    if (!clinic) {
+      throw new NotFoundError('Clinic not found', { code: ERROR_CODES.CLINIC_NOT_FOUND });
+    }
+    const thresholds = clinic.settings?.careContinuity ?? DEFAULT_CLINIC_SETTINGS.careContinuity;
+    const result = await this.continuity.list(
+      clinicId,
+      clinic.timezone,
+      now,
+      thresholds,
+      {},
+      { page: 1, limit: 1, skip: 0 },
+    );
+    return {
+      timezone: clinic.timezone,
+      summary: result.summary[0] ?? { needsAttention: 0, lostToFollowUp: 0 },
+      byCareType: result.byCareType.map((row) => ({
+        careType: row._id,
+        needsAttention: row.needsAttention,
+        lostToFollowUp: row.lostToFollowUp,
+      })),
+      byReason: result.byReason.map((row) => ({ reason: row._id, count: row.count })),
+    };
+  }
 }
 
 export const careContinuityService = new CareContinuityService();

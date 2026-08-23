@@ -80,6 +80,7 @@ cashRecordSchema.index({ clinicId: 1, treatmentId: 1, receivedAt: -1 });
 
 /** Status filters and the "cancelled records" view. */
 cashRecordSchema.index({ clinicId: 1, status: 1, receivedAt: -1 });
+cashRecordSchema.index({ clinicId: 1, status: 1, cancelledAt: -1 });
 
 /**
  * The idempotency guarantee.

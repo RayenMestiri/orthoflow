@@ -1,0 +1,24 @@
+<div class="period-control">
+  <label for="report-period">Période</label>
+  <select id="report-period" [ngModel]="query().preset ?? 'this-month'" (ngModelChange)="choose($event)">
+    @for (preset of presets; track preset.value) {
+      <option [value]="preset.value">{{ preset.label }}</option>
+    }
+  </select>
+</div>
+
+@if (customOpen() || query().preset === 'custom') {
+  <div class="custom-range" aria-label="Période personnalisée">
+    <label>
+      <span>Du</span>
+      <input type="date" [ngModel]="query().from ?? customFrom()" (ngModelChange)="customFrom.set($event)" />
+    </label>
+    <label>
+      <span>Au</span>
+      <input type="date" [ngModel]="query().to ?? customTo()" (ngModelChange)="customTo.set($event)" />
+    </label>
+    <button type="button" (click)="applyCustom()" [disabled]="!customFrom() || !customTo() || customFrom() > customTo()">
+      Appliquer
+    </button>
+  </div>
+}

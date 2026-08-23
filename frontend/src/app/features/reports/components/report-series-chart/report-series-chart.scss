@@ -1,0 +1,12 @@
+:host { display: block; min-width: 0; }
+.chart { color: #184a3e; }
+svg { display: block; width: 100%; height: auto; min-height: 12rem; overflow: visible; }
+line { stroke: #d8e4e0; stroke-width: 1; }
+rect { fill: #2c7563; rx: 4px; }
+.chart--coral rect { fill: #c76f55; }
+text { fill: #71827d; font: 13px Manrope, sans-serif; }
+details { margin-top: .25rem; font-size: .78rem; color: #52645f; }
+summary { cursor: pointer; font-weight: 700; }
+table { width: 100%; border-collapse: collapse; margin-top: .5rem; }
+th, td { padding: .4rem; border-bottom: 1px solid #e3eae8; text-align: left; }
+th:last-child, td:last-child { text-align: right; }

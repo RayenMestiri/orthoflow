@@ -31,6 +31,7 @@ const retentionPlanSchema = new Schema<RetentionPlanAttributes>(
 retentionPlanSchema.index({ clinicId: 1, treatmentId: 1 }, { unique: true });
 retentionPlanSchema.index({ clinicId: 1, patientId: 1, status: 1, createdAt: -1 });
 retentionPlanSchema.index({ clinicId: 1, status: 1, startedAt: -1 });
+retentionPlanSchema.index({ clinicId: 1, status: 1, completedAt: 1 });
 
 const retainerDeviceSchema = new Schema<RetainerDeviceAttributes>(
   {

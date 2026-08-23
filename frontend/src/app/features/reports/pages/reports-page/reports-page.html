@@ -1,0 +1,160 @@
+<div class="reports-page">
+  <header class="reports-header">
+    <div>
+      <p class="eyebrow">Lecture historique du cabinet</p>
+      <h1>Rapports</h1>
+      <p>Activité, évolution et continuité des soins à partir des données opérationnelles réelles.</p>
+    </div>
+    <app-report-period-selector [query]="query()" (queryChange)="selectPeriod($event)" />
+  </header>
+
+  @if (store.refreshing() && hasAnyData()) {
+    <div class="refresh-note" role="status"><span></span> Actualisation de la période…</div>
+  }
+
+  <section class="executive-summary" aria-labelledby="summary-title">
+    <div class="summary-intro">
+      <p class="eyebrow">Synthèse</p>
+      <h2 id="summary-title">Le cabinet sur la période</h2>
+      @if (store.appointments().data; as appointments) {
+        <p>{{ appointments.period.fromDate }} — {{ appointments.period.toDate }} · {{ appointments.period.timezone }}</p>
+      } @else {
+        <p>Les états actuels sont identifiés séparément des flux de période.</p>
+      }
+    </div>
+
+    <div class="summary-metrics">
+      @if (store.appointments().data; as appointments) {
+        <div class="summary-metric">
+          <span>Rendez-vous écoulés</span><strong>{{ appointments.booked.value }}</strong>
+          @if (comparison(appointments.booked); as change) { <small>{{ change }}</small> }
+        </div>
+      }
+      @if (store.overview().data; as overview) {
+        <div class="summary-metric">
+          <span>Visites cliniques terminées</span><strong>{{ overview.completedClinicalVisits.value }}</strong>
+          @if (comparison(overview.completedClinicalVisits); as change) { <small>{{ change }}</small> }
+        </div>
+      }
+      @if (store.treatments().data; as treatments) {
+        <div class="summary-metric">
+          <span>Traitements démarrés</span><strong>{{ treatments.treatments.started.value }}</strong>
+          @if (comparison(treatments.treatments.started); as change) { <small>{{ change }}</small> }
+        </div>
+      }
+      @if (store.finance().data; as finance) {
+        <div class="summary-metric summary-metric--money">
+          <span>Encaissements valides</span><strong>{{ formatMoney(finance.cashRecordedMinor.value, finance.currency) }}</strong>
+          @if (comparison(finance.cashRecordedMinor); as change) { <small>{{ change }}</small> }
+        </div>
+      }
+      @if (!hasAnyData()) {
+        @for (_ of [1, 2, 3, 4]; track $index) { <div class="summary-metric skeleton"></div> }
+      }
+    </div>
+  </section>
+
+  @if (hasAnyData() && !hasPeriodActivity() && !store.refreshing()) {
+    <div class="period-empty">
+      <span class="material-icons" aria-hidden="true">event_busy</span>
+      <div><h2>Aucune activité enregistrée pour cette période</h2><p>Choisissez une autre période pour consulter l’évolution du cabinet.</p></div>
+    </div>
+  }
+
+  @if (store.canViewAppointments) {
+    <section class="report-section" aria-labelledby="appointments-title">
+      <div class="section-heading">
+        <div><p class="eyebrow">Activité planifiée</p><h2 id="appointments-title">Rendez-vous</h2></div>
+        <p class="section-note">Cohorte selon l’heure prévue · les rendez-vous futurs sont exclus des taux.</p>
+      </div>
+      @if (store.appointments().error; as error) {
+        <div class="section-error"><div><strong>Rendez-vous indisponibles</strong><p>{{ error }}</p></div><button (click)="store.retry('appointments')">Réessayer</button></div>
+      } @else if (store.appointments().data; as report) {
+        <div class="appointment-layout" [class.is-refreshing]="store.appointments().loading">
+          <div class="chart-panel">
+            <h3>Volume des rendez-vous</h3>
+            <p>{{ report.booked.value }} créneaux écoulés, dont {{ report.completed.value }} terminés.</p>
+            <app-report-series-chart title="Volume des rendez-vous par période" [series]="report.volumeTrend" />
+          </div>
+          <div class="outcome-panel">
+            <div class="rate-feature"><span>Taux de présence</span><strong>{{ report.attendanceRate.value }}%</strong><small>{{ report.attended.value }} présences sur {{ report.eligible.value }} attendus</small></div>
+            <div class="rate-row"><span>No-show</span><strong>{{ report.noShowRate.value }}%</strong><small>{{ report.noShow.value }} cas</small></div>
+            <div class="rate-row"><span>Annulés</span><strong>{{ report.cancelled.value }}</strong><small>hors dénominateur</small></div>
+            <div class="rate-row"><span>Issue non résolue</span><strong>{{ report.unresolved.value }}</strong><small>créneaux passés</small></div>
+          </div>
+        </div>
+        <div class="secondary-chart">
+          <div><h3>Évolution des absences</h3><p>NO_SHOW uniquement, rapporté aux rendez-vous attendus de chaque intervalle.</p></div>
+          <app-report-series-chart title="Nombre de no-shows par période" tone="coral" [series]="report.noShowTrend" />
+        </div>
+      } @else {
+        <div class="section-skeleton"><span></span><span></span><span></span></div>
+      }
+    </section>
+  }
+
+  @if (store.canViewOverview && store.overview().data; as overview) {
+    <section class="clinical-strip" aria-label="Activité clinique">
+      <div><p class="eyebrow">Activité clinique</p><h2>Patients effectivement vus</h2></div>
+      <dl>
+        <div><dt>Visites terminées</dt><dd>{{ overview.completedClinicalVisits.value }}</dd></div>
+        <div><dt>Patients distincts vus</dt><dd>{{ overview.uniquePatientsSeen.value }}</dd></div>
+        <div><dt>Nouveaux dossiers créés</dt><dd>{{ overview.newPatients.value }}</dd></div>
+      </dl>
+      <p class="definition-note">Un nouveau dossier patient ne signifie pas une première visite clinique.</p>
+    </section>
+  }
+
+  @if (store.canViewTreatments) {
+    <section class="report-section" aria-labelledby="treatments-title">
+      <div class="section-heading"><div><p class="eyebrow">Parcours de soins</p><h2 id="treatments-title">Traitements & contention</h2></div><p class="section-note"><b>Flux</b> sur la période · <b>état actuel</b> clairement séparé.</p></div>
+      @if (store.treatments().error; as error) {
+        <div class="section-error"><div><strong>Traitements indisponibles</strong><p>{{ error }}</p></div><button (click)="store.retry('treatments')">Réessayer</button></div>
+      } @else if (store.treatments().data; as report) {
+        <div class="care-columns" [class.is-refreshing]="store.treatments().loading">
+          <article>
+            <div class="article-heading"><h3>Traitements</h3><span class="snapshot-label">État actuel</span></div>
+            <div class="snapshot-pair"><div><strong>{{ report.treatments.activeNow }}</strong><span>actifs</span></div><div><strong>{{ report.treatments.pausedNow }}</strong><span>en pause</span></div></div>
+            <dl class="flow-list"><div><dt>Démarrés</dt><dd>{{ report.treatments.started.value }}</dd></div><div><dt>Terminés</dt><dd>{{ report.treatments.completed.value }}</dd></div><div><dt>Annulés</dt><dd>{{ report.treatments.cancelled.value }}</dd></div></dl>
+            <app-report-series-chart title="Traitements démarrés par période" [series]="report.treatments.startedTrend" />
+          </article>
+          <article>
+            <div class="article-heading"><h3>Contention</h3><span class="snapshot-label">État actuel</span></div>
+            <div class="snapshot-pair"><div><strong>{{ report.retention.activePlansNow }}</strong><span>plans actifs</span></div><div><strong>{{ report.retention.activeDevicesNow }}</strong><span>dispositifs actifs</span></div></div>
+            <dl class="flow-list"><div><dt>Plans démarrés</dt><dd>{{ report.retention.started.value }}</dd></div><div><dt>Plans terminés</dt><dd>{{ report.retention.completed.value }}</dd></div><div><dt>Remplacements</dt><dd>{{ report.retention.replacements.value }}</dd></div></dl>
+            <p class="definition-note">Les contrôles en retard apparaissent dans la continuité des soins, selon les seuils du cabinet.</p>
+          </article>
+        </div>
+      } @else { <div class="section-skeleton"><span></span><span></span></div> }
+    </section>
+  }
+
+  @if (store.canViewFinance) {
+    <section class="report-section report-section--finance" aria-labelledby="finance-title">
+      <div class="section-heading"><div><p class="eyebrow">Mouvements financiers</p><h2 id="finance-title">Encaissements</h2></div><p class="section-note">Registre des paiements valides · les lignes annulées ne contribuent jamais au total.</p></div>
+      @if (store.finance().error; as error) {
+        <div class="section-error"><div><strong>Finance indisponible</strong><p>{{ error }}</p></div><button (click)="store.retry('finance')">Réessayer</button></div>
+      } @else if (store.finance().data; as report) {
+        <div class="finance-layout" [class.is-refreshing]="store.finance().loading">
+          <div class="chart-panel"><h3>Encaissements par période</h3><p>{{ report.paymentCount.value }} paiements enregistrés · {{ report.cancelledPaymentCount.value }} annulations pendant la période.</p><app-report-series-chart title="Encaissements valides par période" [series]="report.cashTrend" /></div>
+          <aside class="finance-snapshot"><span class="snapshot-label">État actuel</span><div class="money-feature"><small>Solde restant</small><strong>{{ formatMoney(report.currentSnapshot.outstandingMinor, report.currency) }}</strong><span>{{ report.currentSnapshot.outstandingPatientCount }} patients concernés</span></div><div class="collection-rail"><div><span>Valeur convenue encaissée</span><strong>{{ report.currentSnapshot.collectedPercent }}%</strong></div><progress max="100" [value]="report.currentSnapshot.collectedPercent">{{ report.currentSnapshot.collectedPercent }}%</progress></div><p>Le solde actuel est un instantané et ne varie pas avec le sélecteur de période.</p></aside>
+        </div>
+      } @else { <div class="section-skeleton"><span></span><span></span></div> }
+    </section>
+  }
+
+  @if (store.canViewContinuity) {
+    <section class="report-section continuity" aria-labelledby="continuity-title">
+      <div class="section-heading"><div><p class="eyebrow">État actuel</p><h2 id="continuity-title">Continuité des soins</h2></div><p class="section-note">Photographie calculée maintenant · aucun historique artificiel.</p></div>
+      @if (store.continuity().error; as error) {
+        <div class="section-error"><div><strong>Continuité indisponible</strong><p>{{ error }}</p></div><button (click)="store.retry('continuity')">Réessayer</button></div>
+      } @else if (store.continuity().data; as report) {
+        <div class="continuity-layout">
+          <div class="continuity-counts"><div><span>À surveiller</span><strong>{{ report.needsAttention }}</strong></div><div class="critical"><span>Perdus de vue</span><strong>{{ report.lostToFollowUp }}</strong></div></div>
+          <div><h3>Par parcours</h3><dl class="flow-list">@for (row of report.byCareType; track row.careType) { <div><dt>{{ row.careType === 'TREATMENT' ? 'Traitement' : 'Contention' }}</dt><dd>{{ row.needsAttention + row.lostToFollowUp }}</dd></div> }</dl></div>
+          <div><h3>Motifs observés</h3><dl class="flow-list">@for (row of report.byReason; track row.reason) { <div><dt>{{ reasonLabel(row.reason) }}</dt><dd>{{ row.count }}</dd></div> }</dl></div>
+        </div>
+      } @else { <div class="section-skeleton"><span></span><span></span></div> }
+    </section>
+  }
+</div>

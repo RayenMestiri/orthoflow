@@ -9,6 +9,12 @@ import type {
 
 interface CareContinuityFacetResult {
   summary: Array<{ needsAttention: number; lostToFollowUp: number }>;
+  byCareType: Array<{
+    _id: 'TREATMENT' | 'RETENTION';
+    needsAttention: number;
+    lostToFollowUp: number;
+  }>;
+  byReason: Array<{ _id: string; count: number }>;
   rows: CareContinuityAggregateRow[];
   total: Array<{ count: number }>;
 }
@@ -341,13 +347,32 @@ export class CareContinuityRepository {
               },
             },
           ],
+          byCareType: [
+            {
+              $group: {
+                _id: '$careType',
+                needsAttention: {
+                  $sum: { $cond: [{ $eq: ['$state', 'NEEDS_ATTENTION'] }, 1, 0] },
+                },
+                lostToFollowUp: {
+                  $sum: { $cond: [{ $eq: ['$state', 'LOST_TO_FOLLOW_UP'] }, 1, 0] },
+                },
+              },
+            },
+            { $sort: { _id: 1 } },
+          ],
+          byReason: [
+            { $unwind: '$reasons' },
+            { $group: { _id: '$reasons', count: { $sum: 1 } } },
+            { $sort: { count: -1, _id: 1 } },
+          ],
           rows: [{ $skip: pagination.skip }, { $limit: pagination.limit }],
           total: [{ $count: 'count' }],
         },
       },
     ]).exec();
 
-    return result ?? { summary: [], rows: [], total: [] };
+    return result ?? { summary: [], byCareType: [], byReason: [], rows: [], total: [] };
   }
 }
 

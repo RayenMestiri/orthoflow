@@ -37,4 +37,11 @@ describe('role permissions', () => {
     expect(ROLE_PERMISSIONS.SECRETARY).not.toContain(PERMISSIONS.CLINICAL_VISITS_VIEW);
     expect(ROLE_PERMISSIONS.ASSISTANT).not.toContain(PERMISSIONS.CLINICAL_VISITS_VIEW);
   });
+
+  it('opens Reports to practitioners and front desk while keeping assistants out', () => {
+    expect(ROLE_PERMISSIONS.CLINIC_OWNER).toContain(PERMISSIONS.REPORTS_VIEW);
+    expect(ROLE_PERMISSIONS.ORTHODONTIST).toContain(PERMISSIONS.REPORTS_VIEW);
+    expect(ROLE_PERMISSIONS.SECRETARY).toContain(PERMISSIONS.REPORTS_VIEW);
+    expect(ROLE_PERMISSIONS.ASSISTANT).not.toContain(PERMISSIONS.REPORTS_VIEW);
+  });
 });

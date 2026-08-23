@@ -155,6 +155,16 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'reports',
+        title: 'Rapports — OrthoFlow',
+        canActivate: [permissionGuard],
+        data: { permission: PERMISSIONS.REPORTS_VIEW },
+        loadComponent: () =>
+          import('./features/reports/pages/reports-page/reports-page').then(
+            (component) => component.ReportsPage,
+          ),
+      },
+      {
         path: 'settings',
         title: 'Settings — OrthoFlow',
         loadComponent: () =>

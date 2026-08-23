@@ -45,6 +45,7 @@ clinicalVisitSchema.index({ clinicId: 1, patientId: 1, startedAt: -1 });
 clinicalVisitSchema.index({ clinicId: 1, treatmentId: 1, startedAt: -1 });
 clinicalVisitSchema.index({ clinicId: 1, retentionPlanId: 1, status: 1, completedAt: -1 });
 clinicalVisitSchema.index({ clinicId: 1, status: 1, nextVisitRecommendedAt: 1, completedAt: -1 });
+clinicalVisitSchema.index({ clinicId: 1, status: 1, completedAt: 1, patientId: 1 });
 
 export const ClinicalVisitModel = model<ClinicalVisitAttributes>(
   'ClinicalVisit',

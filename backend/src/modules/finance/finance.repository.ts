@@ -60,6 +60,12 @@ export interface FinanceActivityAggregate {
   cancellationReason: string | null;
 }
 
+export interface RecordedCashReportAggregate {
+  totalMinor: number;
+  count: number;
+  series: Array<{ bucket: Date; value: number; count: number }>;
+}
+
 /**
  * Read-side aggregations for the clinic financial workspace.
  *
@@ -432,6 +438,68 @@ export class FinanceRepository {
       },
       { $project: { patient: 0 } },
     ]).exec();
+  }
+
+  /** Period reporting over the same authoritative RECORDED ledger rows as Finance. */
+  async aggregateRecordedBetween(
+    clinicId: string,
+    from: Date,
+    to: Date,
+    bucket: 'day' | 'week' | 'month',
+    timezone: string,
+  ): Promise<RecordedCashReportAggregate> {
+    const [result] = await CashRecordModel.aggregate<{
+      totals: Array<{ totalMinor: number; count: number }>;
+      series: Array<{ bucket: Date; value: number; count: number }>;
+    }>([
+      {
+        $match: {
+          clinicId: toObjectId(clinicId, 'clinicId'),
+          status: CASH_RECORD_STATUSES.RECORDED,
+          receivedAt: { $gte: from, $lt: to },
+        },
+      },
+      {
+        $facet: {
+          totals: [
+            { $group: { _id: null, totalMinor: { $sum: '$amountMinor' }, count: { $sum: 1 } } },
+            { $project: { _id: 0 } },
+          ],
+          series: [
+            {
+              $group: {
+                _id: {
+                  $dateTrunc: {
+                    date: '$receivedAt',
+                    unit: bucket,
+                    timezone,
+                    ...(bucket === 'week' ? { startOfWeek: 'monday' } : {}),
+                  },
+                },
+                value: { $sum: '$amountMinor' },
+                count: { $sum: 1 },
+              },
+            },
+            { $sort: { _id: 1 } },
+            { $project: { _id: 0, bucket: '$_id', value: 1, count: 1 } },
+          ],
+        },
+      },
+    ] as PipelineStage[]).exec();
+
+    return {
+      totalMinor: result?.totals[0]?.totalMinor ?? 0,
+      count: result?.totals[0]?.count ?? 0,
+      series: result?.series ?? [],
+    };
+  }
+
+  async countCancelledBetween(clinicId: string, from: Date, to: Date): Promise<number> {
+    return CashRecordModel.countDocuments({
+      clinicId: toObjectId(clinicId, 'clinicId'),
+      status: CASH_RECORD_STATUSES.CANCELLED,
+      cancelledAt: { $gte: from, $lt: to },
+    }).exec();
   }
 }
 

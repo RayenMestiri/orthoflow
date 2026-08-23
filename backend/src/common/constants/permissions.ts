@@ -92,6 +92,8 @@ export const PERMISSIONS = {
   TASK_MANAGE_ALL: 'task:manage-all',
 
   AUDIT_LOG_READ: 'audit-log:read',
+  /** Read-only clinic aggregate analytics. Domain permissions still gate each section. */
+  REPORT_READ: 'report:read',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -146,6 +148,7 @@ const PRACTITIONER_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.TASK_CREATE,
   PERMISSIONS.TASK_UPDATE,
   PERMISSIONS.TASK_CANCEL,
+  PERMISSIONS.REPORT_READ,
 ];
 
 const SECRETARY_PERMISSIONS: readonly Permission[] = [
@@ -186,6 +189,7 @@ const SECRETARY_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.TASK_CREATE,
   PERMISSIONS.TASK_UPDATE,
   PERMISSIONS.TASK_CANCEL,
+  PERMISSIONS.REPORT_READ,
 ];
 
 const ASSISTANT_PERMISSIONS: readonly Permission[] = [

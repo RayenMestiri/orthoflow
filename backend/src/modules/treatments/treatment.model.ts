@@ -53,6 +53,8 @@ const treatmentSchema = new Schema<TreatmentAttributes>(
 treatmentSchema.index({ clinicId: 1, patientId: 1, createdAt: -1 });
 treatmentSchema.index({ clinicId: 1, patientId: 1, status: 1, startDate: -1 });
 treatmentSchema.index({ clinicId: 1, status: 1, startDate: -1 });
+treatmentSchema.index({ clinicId: 1, startDate: 1 });
+treatmentSchema.index({ clinicId: 1, status: 1, completedAt: 1 });
 /** Database-level race protection for the one-active-treatment invariant. */
 treatmentSchema.index(
   { clinicId: 1, patientId: 1 },
