@@ -13,6 +13,7 @@ export const MEDIA_SCOPES = {
   PATIENT_DOCUMENTS: 'patient-documents',
   PROFILE_PHOTOS: 'profile-photos',
   CONSENT_ARTIFACTS: 'consent-artifacts',
+  GENERATED_DOCUMENTS: 'generated-documents',
 } as const;
 
 export type MediaScope = (typeof MEDIA_SCOPES)[keyof typeof MEDIA_SCOPES];
@@ -141,6 +142,7 @@ export class MediaService {
     publicId: string,
     resourceType: string,
     deliveryType: 'upload' | 'authenticated' = 'authenticated',
+    format = '',
   ): Promise<Buffer> {
     if (!this.isEnabled()) {
       throw new ServiceUnavailableError('Media storage is not configured', {
@@ -148,13 +150,31 @@ export class MediaService {
       });
     }
     const cloudinary = getCloudinary();
-    const signedUrl = cloudinary.url(publicId, {
-      resource_type: resourceType,
-      type: deliveryType,
-      secure: true,
-      sign_url: true,
-    });
-    const response = await fetch(signedUrl);
+
+    let downloadUrl = '';
+    if (deliveryType === 'authenticated') {
+      let resolvedFormat = format;
+      if (!resolvedFormat) {
+        if (resourceType === 'raw' || publicId.endsWith('.pdf')) {
+          resolvedFormat = 'pdf';
+        } else {
+          const extMatch = publicId.match(/\.([a-zA-Z0-9]+)$/);
+          resolvedFormat = extMatch?.[1] ?? '';
+        }
+      }
+      downloadUrl = cloudinary.utils.private_download_url(publicId, resolvedFormat, {
+        resource_type: resourceType,
+        type: deliveryType,
+      }) ?? '';
+    } else {
+      downloadUrl = cloudinary.url(publicId, {
+        resource_type: resourceType,
+        type: deliveryType,
+        secure: true,
+      }) ?? '';
+    }
+
+    const response = await fetch(downloadUrl);
     if (!response.ok) {
       throw new ServiceUnavailableError('Media download failed', {
         code: ERROR_CODES.MEDIA_STORAGE_UNAVAILABLE,
