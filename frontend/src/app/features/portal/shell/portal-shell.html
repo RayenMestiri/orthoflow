@@ -1,0 +1,35 @@
+<div class="portal-shell">
+  <header class="portal-header">
+    <a class="portal-brand" routerLink="/portal/home" aria-label="OrthoFlow parent portal"
+      ><span class="portal-brand__mark">O</span
+      ><span>OrthoFlow<small>Family portal</small></span></a
+    >
+    <div class="portal-header__clinic">
+      <span>{{ auth.profile()?.clinic?.name }}</span
+      ><button type="button" (click)="logout()">Sign out</button>
+    </div>
+  </header>
+  <div class="portal-layout">
+    <nav class="portal-nav" aria-label="Family portal">
+      <a routerLink="/portal/home" routerLinkActive="active"
+        ><span class="material-icons" aria-hidden="true">home</span>Home</a
+      >
+      <a routerLink="/portal/children" routerLinkActive="active"
+        ><span class="material-icons" aria-hidden="true">family_restroom</span>My children</a
+      >
+      <a routerLink="/portal/appointments" routerLinkActive="active"
+        ><span class="material-icons" aria-hidden="true">calendar_month</span>Appointments</a
+      >
+      <a routerLink="/portal/payments" routerLinkActive="active"
+        ><span class="material-icons" aria-hidden="true">receipt_long</span>Payments</a
+      >
+      <a routerLink="/portal/documents" routerLinkActive="active"
+        ><span class="material-icons" aria-hidden="true">folder_open</span>Documents</a
+      >
+      <a routerLink="/portal/profile" routerLinkActive="active"
+        ><span class="material-icons" aria-hidden="true">person</span>Profile</a
+      >
+    </nav>
+    <main class="portal-main"><router-outlet /></main>
+  </div>
+</div>

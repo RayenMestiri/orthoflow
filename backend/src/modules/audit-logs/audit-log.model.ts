@@ -9,6 +9,13 @@ const auditLogSchema = new Schema<AuditLogAttributes>(
   {
     clinicId: { type: Schema.Types.ObjectId, ref: 'Clinic', default: null },
     actorUserId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    actorPortalUserId: { type: Schema.Types.ObjectId, ref: 'PortalUser', default: null },
+    actorKind: {
+      type: String,
+      enum: ['STAFF', 'PORTAL', 'SYSTEM'],
+      default: 'SYSTEM',
+      required: true,
+    },
     action: { type: String, required: true, enum: AUDIT_ACTION_VALUES },
     resourceType: { type: String, required: true, enum: AUDIT_RESOURCE_TYPE_VALUES },
     resourceId: { type: Schema.Types.ObjectId, default: null },

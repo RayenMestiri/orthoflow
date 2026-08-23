@@ -11,3 +11,6 @@ export const CLINIC_HEADER = 'x-clinic-id';
 export const REFRESH_COOKIE_NAME = 'orthoflow_refresh_token';
 
 export const REFRESH_COOKIE_PATH = `${API_PREFIX}/auth`;
+
+export const PORTAL_REFRESH_COOKIE_NAME = 'orthoflow_portal_refresh_token';
+export const PORTAL_REFRESH_COOKIE_PATH = `${API_PREFIX}/portal/auth`;

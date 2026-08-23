@@ -15,6 +15,9 @@ const PUBLIC_AUTH_PATHS = [
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const store = inject(AuthStore);
+  if (request.url.includes('/portal/')) {
+    return next(request.clone({ withCredentials: true }));
+  }
   const isPublicAuthRequest = PUBLIC_AUTH_PATHS.some((path) => request.url.endsWith(path));
   const token = store.accessToken();
   const clinicId = store.activeClinicId();

@@ -16,6 +16,12 @@ export class AuditLogRepository {
         {
           clinicId: input.clinicId ? toObjectId(input.clinicId, 'clinicId') : null,
           actorUserId: input.actorUserId ? toObjectId(input.actorUserId, 'actorUserId') : null,
+          actorPortalUserId: input.actorPortalUserId
+            ? toObjectId(input.actorPortalUserId, 'actorPortalUserId')
+            : null,
+          actorKind:
+            input.actorKind ??
+            (input.actorPortalUserId ? 'PORTAL' : input.actorUserId ? 'STAFF' : 'SYSTEM'),
           action: input.action,
           resourceType: input.resourceType,
           resourceId: input.resourceId ? toObjectId(input.resourceId, 'resourceId') : null,

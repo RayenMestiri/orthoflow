@@ -16,6 +16,8 @@ const auditLogDtoSchema = z.object({
   id: objectIdSchema,
   clinicId: objectIdSchema.nullable(),
   actorUserId: objectIdSchema.nullable(),
+  actorPortalUserId: objectIdSchema.nullable(),
+  actorKind: z.enum(['STAFF', 'PORTAL', 'SYSTEM']),
   action: z.enum(AUDIT_ACTION_VALUES),
   resourceType: z.enum(AUDIT_RESOURCE_TYPE_VALUES),
   resourceId: objectIdSchema.nullable(),

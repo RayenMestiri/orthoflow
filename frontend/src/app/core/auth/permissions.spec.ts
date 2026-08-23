@@ -15,6 +15,13 @@ describe('role permissions', () => {
     expect(ROLE_PERMISSIONS.ORTHODONTIST).not.toContain(PERMISSIONS.CLINIC_SETTINGS_MANAGE);
   });
 
+  it('keeps guardian portal administration restricted to the clinic owner', () => {
+    expect(ROLE_PERMISSIONS.CLINIC_OWNER).toContain(PERMISSIONS.PORTAL_ACCESS_MANAGE);
+    expect(ROLE_PERMISSIONS.ORTHODONTIST).not.toContain(PERMISSIONS.PORTAL_ACCESS_MANAGE);
+    expect(ROLE_PERMISSIONS.SECRETARY).not.toContain(PERMISSIONS.PORTAL_ACCESS_MANAGE);
+    expect(ROLE_PERMISSIONS.ASSISTANT).not.toContain(PERMISSIONS.PORTAL_ACCESS_MANAGE);
+  });
+
   it('gives front-desk roles read-only treatment and cash-record visibility', () => {
     expect(ROLE_PERMISSIONS.SECRETARY).toContain(PERMISSIONS.CASH_RECORDS_VIEW);
     expect(ROLE_PERMISSIONS.SECRETARY).toContain(PERMISSIONS.TREATMENTS_VIEW);

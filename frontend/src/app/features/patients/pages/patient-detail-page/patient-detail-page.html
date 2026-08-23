@@ -584,6 +584,7 @@
           [treatmentOptions]="mediaTreatmentOptions()"
           [canGenerate]="canGenerateDocuments"
           [canVoid]="canVoidDocuments"
+          [canShare]="canManagePortalAccess"
         />
       }
       <app-patient-media-workspace
@@ -718,6 +719,33 @@
                   </div>
                 </dl>
               </section>
+
+              @if (canManagePortalAccess) {
+                <section class="guardian-section">
+                  <h3 class="guardian-section__title">Espace parent sécurisé</h3>
+                  @if (portalAccessLoading()) {
+                    <p class="text-muted small">Vérification de l'accès…</p>
+                  } @else if (portalAccess(); as access) {
+                    <div class="primary-promotion-banner">
+                      <div>
+                        <strong>Statut : {{ access.status.replaceAll('_', ' ').toLowerCase() }}</strong>
+                        @if (!g.email) {
+                          <p>Ajoutez une adresse email au responsable avant d'envoyer une invitation.</p>
+                        } @else if (access.status === 'ACTIVE') {
+                          <p>{{ access.email }} peut consulter uniquement les enfants liés et les documents explicitement partagés.</p>
+                        } @else {
+                          <p>L'invitation est personnelle, expire après 48 heures et ne donne aucun droit staff.</p>
+                        }
+                      </div>
+                      @if (access.status === 'ACTIVE') {
+                        <button type="button" class="btn-make-primary" [disabled]="portalAccessBusy()" (click)="revokePortal(g)">Révoquer l'accès</button>
+                      } @else {
+                        <button type="button" class="btn-make-primary" [disabled]="portalAccessBusy() || !g.email" (click)="invitePortal(g)">{{ access.status === 'INVITED' ? 'Renvoyer' : 'Inviter' }}</button>
+                      }
+                    </div>
+                  }
+                </section>
+              }
 
               <!-- Sibling Children Section -->
               <section class="guardian-section">

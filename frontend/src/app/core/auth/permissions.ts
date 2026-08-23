@@ -53,6 +53,7 @@ export const PERMISSIONS = {
   TASKS_MANAGE: 'tasks.manage',
   STAFF_MANAGE: 'staff.manage',
   CLINIC_SETTINGS_MANAGE: 'clinic-settings.manage',
+  PORTAL_ACCESS_MANAGE: 'portal-access.manage',
   PLATFORM_ADMIN: 'platform.admin',
 } as const;
 
@@ -105,6 +106,7 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
     PERMISSIONS.CONSENT_TEMPLATES_MANAGE,
     PERMISSIONS.GENERATED_DOCUMENTS_VOID,
     PERMISSIONS.DOCUMENT_TEMPLATES_MANAGE,
+    PERMISSIONS.PORTAL_ACCESS_MANAGE,
   ],
   [CLINIC_ROLES.ORTHODONTIST]: clinicalPermissions,
   [CLINIC_ROLES.DENTIST]: clinicalPermissions,

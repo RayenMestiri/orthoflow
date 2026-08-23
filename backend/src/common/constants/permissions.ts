@@ -28,6 +28,7 @@ export const PERMISSIONS = {
   GUARDIAN_CREATE: 'guardian:create',
   GUARDIAN_UPDATE: 'guardian:update',
   GUARDIAN_DELETE: 'guardian:delete',
+  PORTAL_ACCESS_MANAGE: 'portal-access:manage',
 
   APPOINTMENT_READ: 'appointment:read',
   APPOINTMENT_CREATE: 'appointment:create',

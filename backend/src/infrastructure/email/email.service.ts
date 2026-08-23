@@ -12,6 +12,13 @@ export interface AuthCodeEmail {
 
 export interface EmailServiceContract {
   sendAuthCode(message: AuthCodeEmail): Promise<boolean>;
+  sendPortalInvitation?(message: {
+    recipient: string;
+    recipientName: string;
+    activationUrl: string;
+    expiresInHours: number;
+    clinicName: string;
+  }): Promise<boolean>;
 }
 
 function escapeHtml(value: string): string {
@@ -176,6 +183,27 @@ export class SmtpEmailService implements EmailServiceContract {
       html: htmlContent,
     });
 
+    return true;
+  }
+
+  async sendPortalInvitation(message: {
+    recipient: string;
+    recipientName: string;
+    activationUrl: string;
+    expiresInHours: number;
+    clinicName: string;
+  }): Promise<boolean> {
+    if (!this.transporter || env.SMTP_FROM_ADDRESS === '') return false;
+    const name = escapeHtml(message.recipientName);
+    const clinic = escapeHtml(message.clinicName);
+    const url = escapeHtml(message.activationUrl);
+    await this.transporter.sendMail({
+      from: { name: env.SMTP_FROM_NAME, address: env.SMTP_FROM_ADDRESS },
+      to: message.recipient,
+      subject: `${message.clinicName} vous invite sur OrthoFlow`,
+      text: `Bonjour ${message.recipientName},\n\n${message.clinicName} vous invite à consulter le suivi de votre enfant. Activez votre accès: ${message.activationUrl}\n\nCe lien expire dans ${message.expiresInHours} heures.`,
+      html: `<div style="font-family:Manrope,Arial,sans-serif;max-width:560px;margin:auto;background:#fffefb;color:#17201e;padding:32px;border:1px solid #dce2de;border-radius:16px"><h1 style="color:#0d2925">Votre espace parent</h1><p>Bonjour <strong>${name}</strong>,</p><p><strong>${clinic}</strong> vous invite à consulter le suivi de votre enfant dans un espace privé OrthoFlow.</p><p><a href="${url}" style="display:inline-block;background:#173f38;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none">Activer mon accès</a></p><p style="color:#56635f;font-size:13px">Ce lien personnel expire dans ${message.expiresInHours} heures. Ne le transférez pas.</p></div>`,
+    });
     return true;
   }
 }

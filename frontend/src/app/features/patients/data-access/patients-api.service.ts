@@ -15,6 +15,7 @@ import type {
   PatientActivityFilter,
   PatientInput,
   PatientListQuery,
+  PortalAccessStatus,
 } from '../models/patient.models';
 
 interface PaginatedEnvelope<T> {
@@ -75,10 +76,7 @@ export class PatientsApiService {
       .pipe(map((response) => response.data));
   }
 
-  linkExistingGuardian(
-    patientId: string,
-    input: LinkExistingGuardianInput,
-  ): Observable<Guardian> {
+  linkExistingGuardian(patientId: string, input: LinkExistingGuardianInput): Observable<Guardian> {
     return this.http
       .post<ApiEnvelope<Guardian>>(
         `${this.patientsUrl}/${patientId}/guardians/link-existing`,
@@ -125,9 +123,33 @@ export class PatientsApiService {
 
   searchGuardians(query = ''): Observable<GuardianSearchResult[]> {
     const params = new HttpParams().set('query', query.trim());
-    return this.getData<GuardianSearchResult[]>(
-      `${this.guardiansUrl}/search?${params.toString()}`,
+    return this.getData<GuardianSearchResult[]>(`${this.guardiansUrl}/search?${params.toString()}`);
+  }
+
+  portalAccessStatus(guardianId: string): Observable<PortalAccessStatus> {
+    return this.getData<PortalAccessStatus>(
+      `${this.baseUrl}/portal-management/guardians/${guardianId}`,
     );
+  }
+
+  invitePortalAccess(
+    guardianId: string,
+  ): Observable<{ status: string; delivery: 'SENT' | 'UNAVAILABLE'; expiresAt: string }> {
+    return this.http
+      .post<ApiEnvelope<{ status: string; delivery: 'SENT' | 'UNAVAILABLE'; expiresAt: string }>>(
+        `${this.baseUrl}/portal-management/guardians/${guardianId}/invite`,
+        {},
+      )
+      .pipe(map((response) => response.data));
+  }
+
+  revokePortalAccess(guardianId: string, reason: string): Observable<{ revoked: true }> {
+    return this.http
+      .post<ApiEnvelope<{ revoked: true }>>(
+        `${this.baseUrl}/portal-management/guardians/${guardianId}/revoke`,
+        { reason },
+      )
+      .pipe(map((response) => response.data));
   }
 
   activity(
@@ -148,4 +170,3 @@ export class PatientsApiService {
     return this.http.get<ApiEnvelope<T>>(url).pipe(map((response) => response.data));
   }
 }
-

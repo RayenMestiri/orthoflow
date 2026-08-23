@@ -3,8 +3,77 @@ import { authGuard, guestGuard, permissionGuard, roleGuard } from './core/auth/a
 import { CLINIC_ROLES } from './core/auth/auth.models';
 import { PERMISSIONS } from './core/auth/permissions';
 import { clinicalVisitPendingChangesGuard } from './features/clinical-visits/pages/clinical-visit-page/clinical-visit-page';
+import { portalAuthGuard, portalGuestGuard } from './features/portal/data-access/portal.guards';
 
 export const routes: Routes = [
+  {
+    path: 'portal/login',
+    title: 'Family portal sign in — OrthoFlow',
+    canActivate: [portalGuestGuard],
+    loadComponent: () =>
+      import('./features/portal/pages/portal-login-page').then((c) => c.PortalLoginPage),
+  },
+  {
+    path: 'portal/activate',
+    title: 'Activate family portal — OrthoFlow',
+    canActivate: [portalGuestGuard],
+    loadComponent: () =>
+      import('./features/portal/pages/portal-activate-page').then((c) => c.PortalActivatePage),
+  },
+  {
+    path: 'portal',
+    canActivate: [portalAuthGuard],
+    loadComponent: () => import('./features/portal/shell/portal-shell').then((c) => c.PortalShell),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'home' },
+      {
+        path: 'home',
+        title: 'Family overview — OrthoFlow',
+        loadComponent: () =>
+          import('./features/portal/pages/portal-home-page').then((c) => c.PortalHomePage),
+      },
+      {
+        path: 'children',
+        title: 'My children — OrthoFlow',
+        loadComponent: () =>
+          import('./features/portal/pages/portal-children-page').then((c) => c.PortalChildrenPage),
+      },
+      {
+        path: 'children/:patientId',
+        title: 'Care overview — OrthoFlow',
+        loadComponent: () =>
+          import('./features/portal/pages/portal-child-page').then((c) => c.PortalChildPage),
+      },
+      {
+        path: 'appointments',
+        title: 'Appointments — OrthoFlow',
+        loadComponent: () =>
+          import('./features/portal/pages/portal-appointments-page').then(
+            (c) => c.PortalAppointmentsPage,
+          ),
+      },
+      {
+        path: 'payments',
+        title: 'Payments and receipts — OrthoFlow',
+        loadComponent: () =>
+          import('./features/portal/pages/portal-payments-page').then((c) => c.PortalPaymentsPage),
+      },
+      {
+        path: 'documents',
+        title: 'Shared documents — OrthoFlow',
+        loadComponent: () =>
+          import('./features/portal/pages/portal-documents-page').then(
+            (c) => c.PortalDocumentsPage,
+          ),
+      },
+      {
+        path: 'profile',
+        title: 'Portal profile — OrthoFlow',
+        loadComponent: () =>
+          import('./features/portal/pages/portal-profile-page').then((c) => c.PortalProfilePage),
+      },
+    ],
+  },
   {
     path: 'login',
     title: 'Sign in — OrthoFlow',

@@ -16,6 +16,8 @@ export function toAuditLogDto(record: AuditLogRecord): AuditLogDto {
     id: record._id.toString(),
     clinicId: record.clinicId?.toString() ?? null,
     actorUserId: record.actorUserId?.toString() ?? null,
+    actorPortalUserId: record.actorPortalUserId?.toString() ?? null,
+    actorKind: record.actorKind ?? (record.actorUserId ? 'STAFF' : 'SYSTEM'),
     action: record.action,
     resourceType: record.resourceType,
     resourceId: record.resourceId?.toString() ?? null,

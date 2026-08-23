@@ -8,6 +8,7 @@ import {
 import { env, isProduction } from './config/env.js';
 import { loggerOptions } from './config/logger.js';
 import { authPlugin } from './plugins/auth.plugin.js';
+import { portalAuthPlugin } from './plugins/portal-auth.plugin.js';
 import { databasePlugin } from './plugins/database.plugin.js';
 import { errorHandlerPlugin } from './plugins/error-handler.plugin.js';
 import { securityPlugin } from './plugins/security.plugin.js';
@@ -86,6 +87,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   }
 
   await app.register(authPlugin);
+  await app.register(portalAuthPlugin);
   await app.register(swaggerPlugin);
   await app.withTypeProvider<ZodTypeProvider>().register(registerModules);
 

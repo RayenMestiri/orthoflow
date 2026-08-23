@@ -150,3 +150,9 @@ export interface LinkExistingGuardianInput {
   financiallyResponsible?: boolean;
   contactPreference?: ContactPreference;
 }
+
+export interface PortalAccessStatus {
+  status: 'NOT_INVITED' | 'INVITED' | 'ACTIVE' | 'REVOKED';
+  email: string | null;
+  expiresAt: string | null;
+}

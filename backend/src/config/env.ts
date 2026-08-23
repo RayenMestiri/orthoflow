@@ -44,6 +44,18 @@ export const envSchema = z
       .default('30d'),
     JWT_ISSUER: z.string().min(1).default('orthoflow-api'),
     JWT_AUDIENCE: z.string().min(1).default('orthoflow-app'),
+    PORTAL_JWT_ACCESS_SECRET: z
+      .string()
+      .min(32, 'must be at least 32 characters')
+      .default('portal-access-development-secret-32chars'),
+    PORTAL_JWT_REFRESH_SECRET: z
+      .string()
+      .min(32, 'must be at least 32 characters')
+      .default('portal-refresh-development-secret-32chars'),
+    PORTAL_JWT_ACCESS_EXPIRES_IN: z.string().regex(durationPattern).default('15m'),
+    PORTAL_JWT_REFRESH_EXPIRES_IN: z.string().regex(durationPattern).default('30d'),
+    PORTAL_JWT_AUDIENCE: z.string().min(1).default('orthoflow-portal'),
+    PORTAL_INVITATION_EXPIRES_IN: z.string().regex(durationPattern).default('48h'),
 
     // --- Media storage ---------------------------------------------------
     CLOUDINARY_CLOUD_NAME: z.string().default(''),
@@ -95,6 +107,25 @@ export const envSchema = z
         message: 'must be different from JWT_ACCESS_SECRET',
       });
     }
+    if (value.PORTAL_JWT_ACCESS_SECRET === value.PORTAL_JWT_REFRESH_SECRET) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PORTAL_JWT_REFRESH_SECRET'],
+        message: 'must be different from PORTAL_JWT_ACCESS_SECRET',
+      });
+    }
+    if (
+      [value.JWT_ACCESS_SECRET, value.JWT_REFRESH_SECRET].includes(
+        value.PORTAL_JWT_ACCESS_SECRET,
+      ) ||
+      [value.JWT_ACCESS_SECRET, value.JWT_REFRESH_SECRET].includes(value.PORTAL_JWT_REFRESH_SECRET)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PORTAL_JWT_ACCESS_SECRET'],
+        message: 'portal JWT secrets must be distinct from staff JWT secrets',
+      });
+    }
 
     if (value.NODE_ENV === 'production') {
       if (value.MONGODB_URI.includes('localhost') || value.MONGODB_URI.includes('127.0.0.1')) {
@@ -106,6 +137,18 @@ export const envSchema = z
       }
       for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const) {
         if (value[key].toLowerCase().includes('change-me')) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: 'placeholder secret detected — set a real random secret in production',
+          });
+        }
+      }
+      for (const key of ['PORTAL_JWT_ACCESS_SECRET', 'PORTAL_JWT_REFRESH_SECRET'] as const) {
+        if (
+          value[key].toLowerCase().includes('development') ||
+          value[key].toLowerCase().includes('change-me')
+        ) {
           ctx.addIssue({
             code: 'custom',
             path: [key],

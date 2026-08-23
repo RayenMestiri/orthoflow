@@ -2,6 +2,7 @@ import type { Permission } from '../constants/permissions.js';
 import type { PlatformRole } from '../constants/roles.js';
 import type { AuthenticatedUser, TenantContext } from './auth.types.js';
 import type { RequireClinicOptions, RouteGuard } from './guard.types.js';
+import type { AuthenticatedPortalUser } from '../../modules/portal/portal.types.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -9,6 +10,7 @@ declare module 'fastify' {
     authUser: AuthenticatedUser | null;
     /** Resolved clinic scope for this request, or `null` before `requireClinic`. */
     tenant: TenantContext | null;
+    portalUser: AuthenticatedPortalUser | null;
   }
 
   interface FastifyInstance {
@@ -26,6 +28,7 @@ declare module 'fastify' {
     requirePermission: (...permissions: Permission[]) => RouteGuard;
     /** Asserts a platform-level role (e.g. SUPER_ADMIN). */
     requirePlatformRole: (role: PlatformRole) => RouteGuard;
+    authenticatePortal: RouteGuard;
   }
 }
 

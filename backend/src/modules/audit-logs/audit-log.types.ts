@@ -13,6 +13,17 @@ export const AUDIT_ACTIONS = {
   AUTH_REFRESH_REUSE_DETECTED: 'auth.refresh_reuse_detected',
   AUTH_EMAIL_VERIFIED: 'auth.email_verified',
   AUTH_PASSWORD_RESET: 'auth.password_reset',
+  PORTAL_INVITED: 'portal.invited',
+  PORTAL_ACTIVATED: 'portal.activated',
+  PORTAL_LOGIN: 'portal.login',
+  PORTAL_LOGOUT: 'portal.logout',
+  PORTAL_REFRESH_REUSE_DETECTED: 'portal.refresh_reuse_detected',
+  PORTAL_ACCESS_REVOKED: 'portal.access_revoked',
+  PORTAL_DOCUMENT_SHARED: 'portal.document_shared',
+  PORTAL_DOCUMENT_SHARE_REVOKED: 'portal.document_share_revoked',
+  PORTAL_DOCUMENT_DOWNLOADED: 'portal.document_downloaded',
+  PORTAL_CONSENT_DOWNLOADED: 'portal.consent_downloaded',
+  PORTAL_RECEIPT_VIEWED: 'portal.receipt_viewed',
 
   CLINIC_CREATED: 'clinic.created',
   CLINIC_UPDATED: 'clinic.updated',
@@ -137,6 +148,8 @@ export const AUDIT_RESOURCE_TYPES = {
   RECEIPT: 'receipt',
   TASK: 'task',
   AUTH_SESSION: 'auth_session',
+  PORTAL_USER: 'portal_user',
+  PORTAL_SESSION: 'portal_session',
 } as const;
 
 export type AuditResourceType = (typeof AUDIT_RESOURCE_TYPES)[keyof typeof AUDIT_RESOURCE_TYPES];
@@ -157,6 +170,8 @@ export interface AuditLogAttributes {
   clinicId: Types.ObjectId | null;
   /** `null` for system-originated events (jobs, migrations). */
   actorUserId: Types.ObjectId | null;
+  actorPortalUserId: Types.ObjectId | null;
+  actorKind: 'STAFF' | 'PORTAL' | 'SYSTEM';
   action: AuditAction;
   resourceType: AuditResourceType;
   resourceId: Types.ObjectId | null;
@@ -172,6 +187,8 @@ export type AuditLogRecord = AuditLogAttributes & { _id: Types.ObjectId };
 export interface RecordAuditEventInput {
   clinicId?: string | null;
   actorUserId?: string | null;
+  actorPortalUserId?: string | null;
+  actorKind?: 'STAFF' | 'PORTAL' | 'SYSTEM';
   action: AuditAction;
   resourceType: AuditResourceType;
   resourceId?: string | null;
@@ -193,6 +210,8 @@ export interface AuditLogDto {
   id: string;
   clinicId: string | null;
   actorUserId: string | null;
+  actorPortalUserId: string | null;
+  actorKind: 'STAFF' | 'PORTAL' | 'SYSTEM';
   action: AuditAction;
   resourceType: AuditResourceType;
   resourceId: string | null;

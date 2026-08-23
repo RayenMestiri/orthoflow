@@ -32,6 +32,7 @@ import type {
   GuardianInput,
   GuardianRelationship,
   GuardianSearchResult,
+  PortalAccessStatus,
   Patient,
   PatientActivityTargetType,
 } from '../../models/patient.models';
@@ -135,6 +136,7 @@ export class PatientDetailPage {
   readonly canCaptureConsents = this.permissions.can(PERMISSIONS.CONSENTS_CAPTURE);
   readonly canRevokeConsents = this.permissions.can(PERMISSIONS.CONSENTS_REVOKE);
   readonly canVoidConsents = this.permissions.can(PERMISSIONS.CONSENTS_VOID);
+  readonly canManagePortalAccess = this.permissions.can(PERMISSIONS.PORTAL_ACCESS_MANAGE);
   readonly manageableMediaCategories: readonly PatientMediaCategory[] = this.permissions.can(
     PERMISSIONS.PATIENT_MEDIA_MANAGE_CLINICAL,
   )
@@ -161,6 +163,9 @@ export class PatientDetailPage {
   readonly unlinkTargetGuardian = signal<Guardian | null>(null);
   readonly unlinking = signal(false);
   readonly makingPrimary = signal(false);
+  readonly portalAccess = signal<PortalAccessStatus | null>(null);
+  readonly portalAccessLoading = signal(false);
+  readonly portalAccessBusy = signal(false);
 
   readonly addMode = signal<'NEW' | 'EXISTING'>('NEW');
   readonly guardianSearchQuery = signal('');
@@ -212,10 +217,13 @@ export class PatientDetailPage {
       const tab = params.get('tab');
       if (
         tab &&
-        ['overview', 'activity', 'treatments', 'visits', 'payments', 'media', 'consents'].includes(tab)
+        ['overview', 'activity', 'treatments', 'visits', 'payments', 'media', 'consents'].includes(
+          tab,
+        )
       ) {
         this.activeView.set(
-          tab as 'overview' | 'activity' | 'treatments' | 'visits' | 'payments' | 'media' | 'consents',
+          tab as
+            'overview' | 'activity' | 'treatments' | 'visits' | 'payments' | 'media' | 'consents',
         );
       }
       this.selectedTreatmentId.set(params.get('treatmentId'));
@@ -330,6 +338,7 @@ export class PatientDetailPage {
     this.guardianError.set(null);
     this.guardianPanelOpen.set(true);
     void this.loadGuardianChildren(guardian.id);
+    if (this.canManagePortalAccess) void this.loadPortalAccess(guardian.id);
   }
 
   openAddGuardian(): void {
@@ -384,18 +393,71 @@ export class PatientDetailPage {
   }
 
   closeGuardian(): void {
-    if (!this.guardianSaving() && !this.unlinking() && !this.makingPrimary() && !this.existingLinking()) {
+    if (
+      !this.guardianSaving() &&
+      !this.unlinking() &&
+      !this.makingPrimary() &&
+      !this.existingLinking()
+    ) {
       this.guardianPanelOpen.set(false);
       this.viewingGuardian.set(null);
       this.editingGuardian.set(null);
       this.guardianChildren.set([]);
+      this.portalAccess.set(null);
+    }
+  }
+
+  async loadPortalAccess(guardianId: string): Promise<void> {
+    this.portalAccessLoading.set(true);
+    try {
+      this.portalAccess.set(await firstValueFrom(this.api.portalAccessStatus(guardianId)));
+    } catch {
+      this.portalAccess.set(null);
+    } finally {
+      this.portalAccessLoading.set(false);
+    }
+  }
+
+  async invitePortal(guardian: Guardian): Promise<void> {
+    this.portalAccessBusy.set(true);
+    this.guardianError.set(null);
+    try {
+      const result = await firstValueFrom(this.api.invitePortalAccess(guardian.id));
+      await this.loadPortalAccess(guardian.id);
+      this.notice.set(
+        result.delivery === 'SENT'
+          ? `Invitation portail envoyée à ${guardian.email}.`
+          : 'Invitation créée, mais le service email est indisponible.',
+      );
+    } catch (error) {
+      this.guardianError.set(getApiProblem(error).message);
+    } finally {
+      this.portalAccessBusy.set(false);
+    }
+  }
+
+  async revokePortal(guardian: Guardian): Promise<void> {
+    this.portalAccessBusy.set(true);
+    this.guardianError.set(null);
+    try {
+      await firstValueFrom(
+        this.api.revokePortalAccess(guardian.id, 'Access revoked by clinic owner'),
+      );
+      await this.loadPortalAccess(guardian.id);
+      this.notice.set(`Accès portail révoqué pour ${guardian.fullName}.`);
+    } catch (error) {
+      this.guardianError.set(getApiProblem(error).message);
+    } finally {
+      this.portalAccessBusy.set(false);
     }
   }
 
   async loadGuardianChildren(guardianId: string): Promise<void> {
     this.guardianChildrenLoading.set(true);
     try {
-      const children = await firstValueFrom(this.api.getGuardianChildren(this.patientId, guardianId));
+      const children = await firstValueFrom(
+        this.api.getGuardianChildren(this.patientId, guardianId),
+      );
       this.guardianChildren.set(children.filter((c) => c.patientId !== this.patientId));
     } catch {
       this.guardianChildren.set([]);
@@ -538,7 +600,7 @@ export class PatientDetailPage {
     try {
       this.patient.set(await firstValueFrom(this.api.archive(this.patientId)));
       this.archiveOpen.set(false);
-      this.notice.set('Patient archivé. Le dossier reste accessible dans les filtres d\'archives.');
+      this.notice.set("Patient archivé. Le dossier reste accessible dans les filtres d'archives.");
     } catch (error) {
       this.error.set(getApiProblem(error).message);
       this.archiveOpen.set(false);
@@ -560,7 +622,9 @@ export class PatientDetailPage {
     if (target === 'GENERATED_DOCUMENT' && this.canViewGeneratedDocuments) this.openMedia();
   }
 
-  onActivityItemSelected(event: import('../../components/patient-activity/patient-activity').ActivityNavigationEvent): void {
+  onActivityItemSelected(
+    event: import('../../components/patient-activity/patient-activity').ActivityNavigationEvent,
+  ): void {
     if (event.targetType === 'CLINICAL_VISIT' && this.canViewClinicalVisits) {
       this.activeView.set('visits');
     } else if (event.targetType === 'CASH_RECORD' && this.canViewPayments) {
