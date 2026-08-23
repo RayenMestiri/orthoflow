@@ -111,6 +111,10 @@ describe('permissions', () => {
     expect(hasPermission(tenant, PERMISSIONS.PATIENT_CREATE)).toBe(true);
     expect(hasPermission(tenant, PERMISSIONS.AUDIT_LOG_READ)).toBe(false);
     expect(hasPermission(tenant, PERMISSIONS.PATIENT_ARCHIVE)).toBe(false);
+    expect(hasPermission(tenant, PERMISSIONS.GENERATED_DOCUMENT_GENERATE_ADMINISTRATIVE)).toBe(true);
+    expect(hasPermission(tenant, PERMISSIONS.GENERATED_DOCUMENT_GENERATE_FINANCIAL)).toBe(true);
+    expect(hasPermission(tenant, PERMISSIONS.GENERATED_DOCUMENT_GENERATE_CLINICAL)).toBe(false);
+    expect(hasPermission(tenant, PERMISSIONS.GENERATED_DOCUMENT_VOID)).toBe(false);
   });
 
   it('limits an assistant to read-only access', () => {

@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { getApiProblem } from '../../../../core/http/api-error';
+import { openAuthenticatedPdf } from '../../../../core/http/authenticated-pdf';
 import { RetentionApiService } from '../../../treatments/data-access/retention-api.service';
 import { TreatmentsApiService } from '../../../treatments/data-access/treatments-api.service';
 import { treatmentTypeLabel } from '../../../treatments/models/treatment.models';
@@ -218,15 +219,9 @@ export class PatientConsents implements OnInit {
   }
 
   async openPdf(item: SignedConsent): Promise<void> {
-    const target = window.open('about:blank', '_blank');
     try {
-      const blob = await firstValueFrom(this.api.downloadPdf(item.id));
-      const url = URL.createObjectURL(blob);
-      if (target) target.location.href = url;
-      else window.open(url, '_blank', 'noopener');
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      await openAuthenticatedPdf(this.api.downloadPdf(item.id));
     } catch (error) {
-      target?.close();
       this.error.set(getApiProblem(error).message);
     }
   }

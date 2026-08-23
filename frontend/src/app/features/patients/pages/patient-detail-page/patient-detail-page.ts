@@ -22,6 +22,7 @@ import { treatmentTypeLabel } from '../../../treatments/models/treatment.models'
 import { PatientActivityTimeline } from '../../components/patient-activity/patient-activity';
 import { CreateTaskDrawerComponent } from '../../../tasks/components/create-task-drawer/create-task-drawer.component';
 import { PatientConsents } from '../../../consents/components/patient-consents/patient-consents';
+import { PatientGeneratedDocuments } from '../../../generated-documents/components/patient-generated-documents/patient-generated-documents';
 import { TasksStore } from '../../../tasks/data-access/tasks.store';
 import { PatientsApiService } from '../../data-access/patients-api.service';
 import type {
@@ -47,6 +48,7 @@ import type {
     PatientActivityTimeline,
     CreateTaskDrawerComponent,
     PatientConsents,
+    PatientGeneratedDocuments,
     ReactiveFormsModule,
     RouterLink,
   ],
@@ -122,6 +124,12 @@ export class PatientDetailPage {
   /** Assistants follow the chair, not the till. */
   readonly canViewPayments = this.permissions.can(PERMISSIONS.CASH_RECORDS_VIEW);
   readonly canViewMedia = this.permissions.can(PERMISSIONS.PATIENT_MEDIA_VIEW);
+  readonly canViewGeneratedDocuments = this.permissions.can(PERMISSIONS.GENERATED_DOCUMENTS_VIEW);
+  readonly canGenerateDocuments =
+    this.permissions.can(PERMISSIONS.GENERATED_DOCUMENTS_GENERATE_ADMIN) ||
+    this.permissions.can(PERMISSIONS.GENERATED_DOCUMENTS_GENERATE_CLINICAL) ||
+    this.permissions.can(PERMISSIONS.GENERATED_DOCUMENTS_GENERATE_FINANCIAL);
+  readonly canVoidDocuments = this.permissions.can(PERMISSIONS.GENERATED_DOCUMENTS_VOID);
   readonly canManageMedia = this.permissions.can(PERMISSIONS.PATIENT_MEDIA_MANAGE_ADMIN);
   readonly canViewConsents = this.permissions.can(PERMISSIONS.CONSENTS_VIEW);
   readonly canCaptureConsents = this.permissions.can(PERMISSIONS.CONSENTS_CAPTURE);
@@ -549,6 +557,7 @@ export class PatientDetailPage {
     if (target === 'CASH_RECORD' && this.canViewPayments) this.activeView.set('payments');
     if (target === 'MEDIA' && this.canViewMedia) void this.openMedia();
     if (target === 'CONSENT' && this.canViewConsents) this.activeView.set('consents');
+    if (target === 'GENERATED_DOCUMENT' && this.canViewGeneratedDocuments) this.openMedia();
   }
 
   onActivityItemSelected(event: import('../../components/patient-activity/patient-activity').ActivityNavigationEvent): void {
@@ -575,6 +584,8 @@ export class PatientDetailPage {
       this.activeView.set('treatments');
     } else if (event.targetType === 'CONSENT' && this.canViewConsents) {
       this.activeView.set('consents');
+    } else if (event.targetType === 'GENERATED_DOCUMENT' && this.canViewGeneratedDocuments) {
+      this.openMedia();
     }
   }
 

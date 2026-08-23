@@ -107,5 +107,6 @@ export const SETTINGS_SECTIONS = [
   'scheduling',
   'care-continuity',
   'consents',
+  'documents',
 ] as const;
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];

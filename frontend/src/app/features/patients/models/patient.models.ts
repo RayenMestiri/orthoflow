@@ -50,7 +50,13 @@ export interface Guardian {
 export type PatientActivityFilter = 'ALL' | 'CLINICAL' | 'APPOINTMENTS' | 'PAYMENTS' | 'DOCUMENTS';
 
 export type PatientActivityTargetType =
-  'APPOINTMENT' | 'TREATMENT' | 'CLINICAL_VISIT' | 'CASH_RECORD' | 'MEDIA' | 'CONSENT';
+  | 'APPOINTMENT'
+  | 'TREATMENT'
+  | 'CLINICAL_VISIT'
+  | 'CASH_RECORD'
+  | 'MEDIA'
+  | 'CONSENT'
+  | 'GENERATED_DOCUMENT';
 
 export interface PatientActivity {
   id: string;

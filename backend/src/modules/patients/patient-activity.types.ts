@@ -62,6 +62,8 @@ export const PATIENT_ACTIVITY_TYPES = {
   CONSENT_SIGNED: 'CONSENT_SIGNED',
   CONSENT_REVOKED: 'CONSENT_REVOKED',
   CONSENT_VOIDED: 'CONSENT_VOIDED',
+  GENERATED_DOCUMENT_FINALIZED: 'GENERATED_DOCUMENT_FINALIZED',
+  GENERATED_DOCUMENT_VOIDED: 'GENERATED_DOCUMENT_VOIDED',
 } as const;
 
 export type PatientActivityType =
@@ -81,6 +83,7 @@ export const PATIENT_ACTIVITY_TARGETS = {
   RETENTION_PLAN: 'RETENTION_PLAN',
   RETAINER_DEVICE: 'RETAINER_DEVICE',
   CONSENT: 'CONSENT',
+  GENERATED_DOCUMENT: 'GENERATED_DOCUMENT',
 } as const;
 
 export type PatientActivityTargetType =
@@ -123,5 +126,6 @@ export interface PatientActivityVisibility {
   followUps: boolean;
   payments: boolean;
   documents: boolean;
+  generatedDocuments: boolean;
   consents: boolean;
 }

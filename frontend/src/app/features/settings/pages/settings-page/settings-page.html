@@ -32,7 +32,7 @@
     <!-- Sub Navigation Tabs Sidebar -->
     <nav class="settings-nav" aria-label="Settings sections">
       @for (tab of tabs; track tab.id) {
-        @if (tab.id !== 'consents' || canViewConsentTemplates) {
+        @if ((tab.id !== 'consents' || canViewConsentTemplates) && (tab.id !== 'documents' || canViewDocumentTemplates)) {
         <button
           type="button"
           class="settings-nav__item"
@@ -79,6 +79,11 @@
           @case ('consents') {
             @if (canViewConsentTemplates) {
               <app-settings-consent-templates [canEdit]="canEdit()" />
+            }
+          }
+          @case ('documents') {
+            @if (canViewDocumentTemplates) {
+              <app-settings-document-templates [canEdit]="canEditDocumentTemplates" />
             }
           }
         }

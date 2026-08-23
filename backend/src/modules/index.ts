@@ -42,6 +42,11 @@ import {
   consentTemplateRoutes,
   patientConsentRoutes,
 } from './consents/consent.routes.js';
+import {
+  documentTemplateRoutes,
+  generatedDocumentRoutes,
+  patientGeneratedDocumentRoutes,
+} from './generated-documents/generated-document.routes.js';
 
 /**
  * The API surface, in one place.
@@ -89,4 +94,7 @@ export const registerModules: FastifyPluginAsyncZod = async (app) => {
   await app.register(taskRoutes, { prefix: `${API_PREFIX}/tasks` });
   await app.register(consentTemplateRoutes, { prefix: `${API_PREFIX}/consent-templates` });
   await app.register(consentRoutes, { prefix: `${API_PREFIX}/consents` });
+  await app.register(documentTemplateRoutes, { prefix: `${API_PREFIX}/document-templates` });
+  await app.register(patientGeneratedDocumentRoutes, { prefix: `${API_PREFIX}/patients` });
+  await app.register(generatedDocumentRoutes, { prefix: `${API_PREFIX}/generated-documents` });
 };

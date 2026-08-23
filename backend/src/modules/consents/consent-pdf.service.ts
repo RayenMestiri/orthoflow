@@ -1,15 +1,9 @@
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import type PDFDocumentType from 'pdfkit';
-
-const require = createRequire(import.meta.url);
-// PDFKit 0.20 exposes its Node build through `require`; ESM's default export is
-// intentionally browser-only and cannot load fonts from the server filesystem.
-const PDFDocument = require('pdfkit') as typeof PDFDocumentType;
-const MANROPE_FONT_PATH = require.resolve(
-  '@fontsource-variable/manrope/files/manrope-latin-ext-wght-normal.woff2',
-);
-const MANROPE_FONT = readFileSync(MANROPE_FONT_PATH);
+import {
+  createOrthoFlowPdf,
+  finalizePdf,
+  renderClinicHeader,
+  renderDocumentFooters,
+} from '../../infrastructure/pdf/pdf-runtime.js';
 
 export interface FinalizedConsentPdfInput {
   clinicName: string;
@@ -30,33 +24,18 @@ export interface FinalizedConsentPdfInput {
 /** Server-side authoritative rendering; the browser never supplies HTML. */
 export class ConsentPdfService {
   async generate(input: FinalizedConsentPdfInput): Promise<Buffer> {
-    const document = new PDFDocument({
-      size: 'A4',
-      margin: 54,
-      info: {
-        Title: `${input.consentRef} — ${input.title}`,
-        Author: input.clinicName,
-        Subject: 'Finalized signed consent',
-        Creator: 'OrthoFlow',
-      },
-      compress: true,
+    const document = createOrthoFlowPdf({
+      Title: `${input.consentRef} — ${input.title}`,
+      Author: input.clinicName,
+      Subject: 'Finalized signed consent',
     });
-    document.registerFont('Manrope', MANROPE_FONT);
-    document.font('Manrope');
-
-    const chunks: Buffer[] = [];
-    document.on('data', (chunk: Buffer) => chunks.push(chunk));
-    const complete = new Promise<Buffer>((resolve, reject) => {
-      document.once('end', () => resolve(Buffer.concat(chunks)));
-      document.once('error', reject);
+    renderClinicHeader(document, {
+      clinicName: input.clinicName,
+      doctorName: null,
+      address: input.clinicAddress,
+      phone: input.clinicPhone,
+      email: null,
     });
-
-    document.fillColor('#173F38').fontSize(18).text(input.clinicName, { continued: false });
-    const clinicLine = [input.clinicAddress, input.clinicPhone].filter(Boolean).join(' · ');
-    if (clinicLine) document.fillColor('#56635F').fontSize(9).text(clinicLine);
-    document.moveDown(0.8);
-    document.strokeColor('#DCE2DE').moveTo(54, document.y).lineTo(541, document.y).stroke();
-    document.moveDown(1.1);
 
     document.fillColor('#C86445').fontSize(9).text('SIGNED CONSENT', { characterSpacing: 1.2 });
     document.fillColor('#17201E').fontSize(20).text(input.title);
@@ -103,8 +82,9 @@ export class ConsentPdfService {
       .fontSize(8)
       .text('This document records a captured handwritten signature. It is not described as a qualified or certified digital signature.');
 
-    document.end();
-    return complete;
+    return finalizePdf(document, () => {
+      renderDocumentFooters(document, input.consentRef, input.signedAtLabel);
+    });
   }
 }
 

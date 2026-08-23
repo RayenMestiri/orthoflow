@@ -10,6 +10,8 @@ import { ClinicalVisitModel } from '../clinical-visits/clinical-visit.model.js';
 import type { ClinicalVisitRecord } from '../clinical-visits/clinical-visit.types.js';
 import { SignedConsentModel } from '../consents/consent.model.js';
 import type { SignedConsentRecord } from '../consents/consent.types.js';
+import { GeneratedDocumentModel } from '../generated-documents/generated-document.model.js';
+import type { GeneratedDocumentRecord } from '../generated-documents/generated-document.types.js';
 import { ClinicMembershipModel } from '../memberships/membership.model.js';
 import type { MembershipRecord } from '../memberships/membership.types.js';
 import { PatientMediaModel } from '../patient-media/patient-media.model.js';
@@ -40,6 +42,7 @@ export interface DomainRecordsResult {
   retentionPlans?: RetentionPlanRecord[];
   retainerDevices?: RetainerDeviceRecord[];
   signedConsents?: SignedConsentRecord[];
+  generatedDocuments?: GeneratedDocumentRecord[];
 }
 
 export interface PatientActivityContext {
@@ -96,6 +99,10 @@ export class PatientActivityRepository {
       (filter === PATIENT_ACTIVITY_FILTERS.ALL ||
         filter === PATIENT_ACTIVITY_FILTERS.DOCUMENTS);
 
+    const shouldFetchGeneratedDocuments =
+      visibility.generatedDocuments &&
+      (filter === PATIENT_ACTIVITY_FILTERS.ALL || filter === PATIENT_ACTIVITY_FILTERS.DOCUMENTS);
+
     const shouldFetchRetention =
       visibility.clinical &&
       (filter === PATIENT_ACTIVITY_FILTERS.ALL || filter === PATIENT_ACTIVITY_FILTERS.CLINICAL);
@@ -109,6 +116,7 @@ export class PatientActivityRepository {
       retentionPlans,
       retainerDevices,
       signedConsents,
+      generatedDocuments,
     ] =
       await Promise.all([
       shouldFetchAppointments
@@ -171,6 +179,13 @@ export class PatientActivityRepository {
             .lean<SignedConsentRecord[]>()
             .exec()
         : Promise.resolve([]),
+      shouldFetchGeneratedDocuments
+        ? GeneratedDocumentModel.find({ clinicId: clinicObjectId, patientId: patientObjectId })
+            .sort({ generatedAt: -1 })
+            .limit(candidateLimit)
+            .lean<GeneratedDocumentRecord[]>()
+            .exec()
+        : Promise.resolve([]),
     ]);
 
     return {
@@ -182,6 +197,7 @@ export class PatientActivityRepository {
       retentionPlans,
       retainerDevices,
       signedConsents,
+      generatedDocuments,
     };
   }
 
@@ -233,6 +249,11 @@ export class PatientActivityRepository {
       if (consent.revokedByUserId) userIds.add(consent.revokedByUserId.toString());
       if (consent.voidedByUserId) userIds.add(consent.voidedByUserId.toString());
       if (consent.treatmentId) treatmentIds.add(consent.treatmentId.toString());
+    }
+
+    for (const document of records.generatedDocuments ?? []) {
+      userIds.add(document.generatedByUserId.toString());
+      if (document.voidedByUserId) userIds.add(document.voidedByUserId.toString());
     }
 
     for (const plan of records.retentionPlans ?? []) {

@@ -19,6 +19,11 @@ export function sha256(value: string): string {
   return createHash('sha256').update(value, 'utf8').digest('hex');
 }
 
+/** SHA-256 for immutable binary artifacts such as finalized PDFs. */
+export function sha256Bytes(value: Buffer): string {
+  return createHash('sha256').update(value).digest('hex');
+}
+
 /** Constant-time comparison of two hex digests of equal length. */
 export function safeCompareHex(a: string, b: string): boolean {
   if (a.length !== b.length) {

@@ -13,6 +13,7 @@ import { SettingsWorkingHours } from '../../components/settings-working-hours/se
 import { SettingsCareContinuity } from '../../components/settings-care-continuity/settings-care-continuity';
 import { ClinicSettingsStore } from '../../data-access/clinic-settings.store';
 import { SettingsConsentTemplates } from '../../../consents/components/settings-consent-templates/settings-consent-templates';
+import { SettingsDocumentTemplates } from '../../../generated-documents/components/settings-document-templates/settings-document-templates';
 import {
   DEFAULT_CARE_CONTINUITY_SETTINGS,
   type SettingsSection,
@@ -37,6 +38,7 @@ interface SectionTab {
     SettingsScheduling,
     SettingsCareContinuity,
     SettingsConsentTemplates,
+    SettingsDocumentTemplates,
   ],
   templateUrl: './settings-page.html',
   styleUrl: './settings-page.scss',
@@ -51,6 +53,8 @@ export class SettingsPage implements OnInit {
     this.permissions.can(PERMISSIONS.CLINIC_SETTINGS_MANAGE),
   );
   protected readonly canViewConsentTemplates = this.permissions.can(PERMISSIONS.CONSENTS_VIEW);
+  protected readonly canViewDocumentTemplates = this.permissions.can(PERMISSIONS.GENERATED_DOCUMENTS_VIEW);
+  protected readonly canEditDocumentTemplates = this.permissions.can(PERMISSIONS.DOCUMENT_TEMPLATES_MANAGE);
 
   protected readonly activeSection = signal<SettingsSection>('general');
   protected readonly careContinuityDefaults = DEFAULT_CARE_CONTINUITY_SETTINGS;
@@ -85,6 +89,12 @@ export class SettingsPage implements OnInit {
       label: 'Consent templates',
       icon: 'verified_user',
       description: 'Versioned documents for patient signatures',
+    },
+    {
+      id: 'documents',
+      label: 'Document templates',
+      icon: 'description',
+      description: 'Versioned certificates, summaries and statements',
     },
   ];
 

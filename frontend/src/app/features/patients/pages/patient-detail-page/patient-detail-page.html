@@ -577,6 +577,15 @@
       <app-patient-clinical-visits [patientId]="current.id" />
     } @else if (activeView() === 'media') {
       <!-- Patient media workspace — photos, radiographs, documents -->
+      @if (canViewGeneratedDocuments) {
+        <app-patient-generated-documents
+          [patientId]="current.id"
+          [guardians]="cashRecordGuardians()"
+          [treatmentOptions]="mediaTreatmentOptions()"
+          [canGenerate]="canGenerateDocuments"
+          [canVoid]="canVoidDocuments"
+        />
+      }
       <app-patient-media-workspace
         [patientId]="current.id"
         [canManage]="canManageMedia"

@@ -667,7 +667,7 @@ export class PatientActivityService {
 
     // 6. Patient Media Normalization
     if (
-      (visibility.documents || visibility.consents) &&
+      (visibility.documents || visibility.consents || visibility.generatedDocuments) &&
       (filter === PATIENT_ACTIVITY_FILTERS.ALL ||
         filter === PATIENT_ACTIVITY_FILTERS.DOCUMENTS)
     ) {
@@ -812,6 +812,52 @@ export class PatientActivityService {
           });
         }
       }
+
+      for (const document of visibility.generatedDocuments ? (records.generatedDocuments ?? []) : []) {
+        const documentId = document._id.toString();
+        const baseEvent = {
+          category: PATIENT_ACTIVITY_CATEGORIES.DOCUMENT,
+          treatment: null,
+          appointmentId: null,
+          clinicalVisitId: null,
+          cashRecordId: null,
+          receiptId: null,
+          mediaId: null,
+          amountMinor: null,
+          currency: null,
+          receiptNumber: null,
+          scheduledAt: null,
+          recommendedAt: null,
+          targetType: PATIENT_ACTIVITY_TARGETS.GENERATED_DOCUMENT,
+          targetId: documentId,
+        };
+        allItems.push({
+          ...baseEvent,
+          id: `${documentId}_finalized`,
+          type: PATIENT_ACTIVITY_TYPES.GENERATED_DOCUMENT_FINALIZED,
+          occurredAt: document.generatedAt.toISOString(),
+          title: 'Document finalisé',
+          subtitle: document.titleSnapshot,
+          detail: `${document.documentRef} · v${document.templateVersion}`,
+          actor: this.formatActor(document.generatedByUserId.toString(), context),
+          cancellationReason: null,
+        });
+        if (document.voidedAt) {
+          allItems.push({
+            ...baseEvent,
+            id: `${documentId}_voided`,
+            type: PATIENT_ACTIVITY_TYPES.GENERATED_DOCUMENT_VOIDED,
+            occurredAt: document.voidedAt.toISOString(),
+            title: 'Document invalidé',
+            subtitle: document.titleSnapshot,
+            detail: document.voidReason,
+            actor: document.voidedByUserId
+              ? this.formatActor(document.voidedByUserId.toString(), context)
+              : null,
+            cancellationReason: document.voidReason,
+          });
+        }
+      }
     }
 
     // Deterministic chronological ordering (newest first)
@@ -860,6 +906,7 @@ export class PatientActivityService {
     const payments = hasPermission(tenant, PERMISSIONS.CASH_RECORD_READ);
     const documents = hasPermission(tenant, PERMISSIONS.PATIENT_MEDIA_READ);
     const consents = hasPermission(tenant, PERMISSIONS.CONSENT_READ);
+    const generatedDocuments = hasPermission(tenant, PERMISSIONS.GENERATED_DOCUMENT_READ);
 
     return {
       appointments,
@@ -868,6 +915,7 @@ export class PatientActivityService {
       followUps,
       payments,
       documents,
+      generatedDocuments,
       consents,
     };
   }

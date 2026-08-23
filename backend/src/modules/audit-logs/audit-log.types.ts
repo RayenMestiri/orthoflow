@@ -81,6 +81,13 @@ export const AUDIT_ACTIONS = {
   CONSENT_REVOKED: 'consent.revoked',
   CONSENT_VOIDED: 'consent.voided',
 
+  DOCUMENT_TEMPLATE_CREATED: 'document_template.created',
+  DOCUMENT_TEMPLATE_UPDATED: 'document_template.updated',
+  DOCUMENT_TEMPLATE_ACTIVATED: 'document_template.activated',
+  DOCUMENT_TEMPLATE_ARCHIVED: 'document_template.archived',
+  GENERATED_DOCUMENT_FINALIZED: 'generated_document.finalized',
+  GENERATED_DOCUMENT_VOIDED: 'generated_document.voided',
+
   CLINICAL_VISIT_CREATED: 'clinical_visit.created',
   CLINICAL_VISIT_UPDATED: 'clinical_visit.updated',
   CLINICAL_VISIT_COMPLETED: 'clinical_visit.completed',
@@ -123,6 +130,8 @@ export const AUDIT_RESOURCE_TYPES = {
   RETAINER_DEVICE: 'retainer_device',
   CONSENT_TEMPLATE: 'consent_template',
   CONSENT: 'consent',
+  DOCUMENT_TEMPLATE: 'document_template',
+  GENERATED_DOCUMENT: 'generated_document',
   CLINICAL_VISIT: 'clinical_visit',
   CASH_RECORD: 'cash_record',
   RECEIPT: 'receipt',

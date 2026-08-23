@@ -1,0 +1,52 @@
+<section class="templates" aria-labelledby="document-template-title">
+  <header class="templates__header">
+    <div><span class="eyebrow">Generated PDFs</span><h2 id="document-template-title">Document templates</h2><p>Build clinic-approved PDFs from safe structured blocks and whitelisted variables.</p></div>
+    @if (canEdit()) { <button type="button" class="button button--primary" (click)="openCreate()"><span class="material-icons" aria-hidden="true">add</span>New template</button> }
+  </header>
+  <aside class="policy-note"><span class="material-icons" aria-hidden="true">shield</span><div><strong>Structured content only</strong><p>Templates cannot contain HTML, scripts or arbitrary database fields. Activation freezes the version used for future documents.</p></div></aside>
+  @if (notice(); as message) { <div class="notice" role="status">{{ message }}</div> }
+  @if (error(); as message) { <div class="alert" role="alert">{{ message }}<button type="button" (click)="error.set(null)" aria-label="Dismiss">×</button></div> }
+  @if (loading()) {
+    <div class="state" role="status">Loading document templates…</div>
+  } @else if (!families().length) {
+    <div class="empty"><span class="material-icons" aria-hidden="true">description</span><h3>No document templates</h3><p>Create a draft with safe blocks, review it, then activate it for patient documents.</p>@if (canEdit()) { <button type="button" class="button button--primary" (click)="openCreate()">Create first draft</button> }</div>
+  } @else {
+    <div class="families">
+      @for (family of families(); track family.code) {
+        <article class="family"><header><div><span class="family__code">{{ family.code }}</span><h3>{{ family.latest.title }}</h3><p>{{ categoryLabels[family.latest.category] }} · {{ family.versions.length }} version{{ family.versions.length === 1 ? '' : 's' }}</p></div>@if (canEdit()) { <button type="button" class="icon-button" (click)="requestAction(family.latest, 'version')" aria-label="Create new version"><span class="material-icons" aria-hidden="true">difference</span></button> }</header>
+          <div class="versions">@for (version of family.versions; track version.id) { <div class="version-row"><span class="version-row__index">{{ version.versionLabel }}</span><div><strong>{{ version.title }}</strong><small>{{ version.definition.length }} blocks · Updated {{ version.updatedAt | date: 'mediumDate' }}</small></div><span class="badge" [attr.data-status]="version.status">{{ version.status }}</span>@if (canEdit()) { <div class="version-row__actions">@if (version.status === 'DRAFT') { <button type="button" (click)="openEdit(version)">Edit</button><button type="button" (click)="requestAction(version, 'activate')">Activate</button> } @if (version.status !== 'ARCHIVED') { <button type="button" class="danger" (click)="requestAction(version, 'archive')">Archive</button> }</div> }</div> }</div>
+        </article>
+      }
+    </div>
+  }
+</section>
+
+@if (editorOpen()) {
+  <div class="overlay" role="presentation" (click)="closeEditor()" (keydown.escape)="closeEditor()">
+    <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="document-template-editor" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+      <header class="drawer__header"><div><span class="eyebrow">Safe block editor</span><h2 id="document-template-editor">{{ editing() ? 'Edit document template' : 'Create document template' }}</h2></div><button type="button" class="icon-button" (click)="closeEditor()" aria-label="Close"><span class="material-icons" aria-hidden="true">close</span></button></header>
+      <div class="drawer__body">
+        <label class="field"><span>Template code</span><input maxlength="48" [value]="code()" [disabled]="!!editing()" (input)="setText(code, $event)" /></label>
+        <label class="field"><span>Title</span><input maxlength="160" [value]="title()" (input)="setText(title, $event)" /></label>
+        <label class="field"><span>Category</span><select [value]="category()" (change)="setCategory($event)">@for (item of categories; track item) { <option [value]="item">{{ categoryLabels[item] }}</option> }</select></label>
+        <div class="policy-note"><div><strong>Available variables</strong><div>@for (variable of availableVariables(); track variable) { <code>{{ '{{' + variable + '}}' }}</code>{{ !$last ? ' · ' : '' }} }</div></div></div>
+        <div class="versions">
+          @for (block of definition(); track $index; let index = $index) {
+            <article class="family"><header><span class="family__code">{{ block.kind }}</span><div class="version-row__actions"><button type="button" (click)="moveBlock(index, -1)" [disabled]="$first" aria-label="Move up">↑</button><button type="button" (click)="moveBlock(index, 1)" [disabled]="$last" aria-label="Move down">↓</button><button type="button" class="danger" (click)="removeBlock(index)">Remove</button></div></header>
+              @if (block.kind === 'HEADING' || block.kind === 'PARAGRAPH') { <label class="field"><span>Text</span><textarea [rows]="block.kind === 'PARAGRAPH' ? 4 : 2" [value]="block.text" (input)="updateBlock(index, 'text', $event)"></textarea></label> }
+              @if (block.kind === 'KEY_VALUE') { <label class="field"><span>Label</span><input [value]="block.label" (input)="updateBlock(index, 'label', $event)" /></label><label class="field"><span>Value</span><input [value]="block.value" (input)="updateBlock(index, 'value', $event)" /></label> }
+              @if (block.kind === 'SIGNATURE_LINE') { <label class="field"><span>Signature label</span><input [value]="block.label" (input)="updateBlock(index, 'label', $event)" /></label> }
+              @if (block.kind === 'DATA_TABLE') { <p>{{ block.source }} · {{ block.columns?.length || 0 }} columns</p> }
+            </article>
+          }
+        </div>
+        <div class="version-row__actions"><button type="button" (click)="addBlock('HEADING')">Heading</button><button type="button" (click)="addBlock('PARAGRAPH')">Paragraph</button><button type="button" (click)="addBlock('KEY_VALUE')">Key/value</button><button type="button" (click)="addBlock('DIVIDER')">Divider</button><button type="button" (click)="addBlock('SIGNATURE_LINE')">Signature</button>@if (canAddTable()) { <button type="button" (click)="addTable()">Data table</button> }</div>
+      </div>
+      <footer class="drawer__footer"><button type="button" class="button button--secondary" (click)="closeEditor()">Cancel</button><button type="button" class="button button--primary" [disabled]="saving()" (click)="save()">{{ saving() ? 'Saving…' : 'Save draft' }}</button></footer>
+    </section>
+  </div>
+}
+
+@if (actionTarget(); as target) {
+  <div class="overlay overlay--confirm" role="presentation" (click)="closeAction()" (keydown.escape)="closeAction()"><section class="confirm" role="alertdialog" aria-modal="true" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()"><span class="material-icons" aria-hidden="true">{{ action() === 'activate' ? 'verified' : action() === 'archive' ? 'archive' : 'difference' }}</span><h2>{{ action() === 'activate' ? 'Activate this version?' : action() === 'archive' ? 'Archive this version?' : 'Create a new draft version?' }}</h2><p>{{ target.title }} · {{ target.versionLabel }}</p><div><button type="button" class="button button--secondary" (click)="closeAction()">Cancel</button><button type="button" class="button" [class.button--primary]="action() !== 'archive'" [class.button--danger]="action() === 'archive'" [disabled]="saving()" (click)="confirmAction()">Confirm</button></div></section></div>
+}
