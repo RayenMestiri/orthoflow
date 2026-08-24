@@ -25,9 +25,14 @@ interface ActionSuggestion {
   imports: [CommonModule, FormsModule],
   template: `
     @if (store.activeDrawer() === 'CREATE') {
-      <div class="drawer-overlay" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+      <div
+        class="drawer-overlay"
+        aria-labelledby="slide-over-title"
+        role="dialog"
+        aria-modal="true"
+      >
         <!-- Backdrop -->
-        <div class="drawer-backdrop" (click)="store.closeDrawer()"></div>
+        <div class="drawer-backdrop" aria-hidden="true"></div>
 
         <div class="drawer-panel">
           <!-- Header -->
@@ -41,11 +46,12 @@ interface ActionSuggestion {
                 <p>Délégation interne & coordination</p>
               </div>
             </div>
-            <button 
-              type="button" 
+            <button
+              type="button"
               class="drawer-close-btn"
               (click)="store.closeDrawer()"
-              title="Fermer">
+              title="Fermer"
+            >
               <span class="material-icons" aria-hidden="true">close</span>
             </button>
           </div>
@@ -71,12 +77,15 @@ interface ActionSuggestion {
               </div>
               <div class="suggestions-scroll-container">
                 @for (sug of actionSuggestions; track sug.label) {
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     class="suggestion-chip"
                     [class.is-active]="title === sug.label"
-                    (click)="selectSuggestion(sug)">
-                    <span class="material-icons" style="font-size: 0.8rem;" aria-hidden="true">{{ sug.icon }}</span>
+                    (click)="selectSuggestion(sug)"
+                  >
+                    <span class="material-icons" style="font-size: 0.8rem;" aria-hidden="true">{{
+                      sug.icon
+                    }}</span>
                     <span>{{ sug.label }}</span>
                   </button>
                 }
@@ -85,13 +94,11 @@ interface ActionSuggestion {
 
             <!-- Title -->
             <div class="form-group">
-              <label for="task-title">
-                Action à réaliser <span class="req">*</span>
-              </label>
-              <input 
+              <label for="task-title"> Action à réaliser <span class="req">*</span> </label>
+              <input
                 id="task-title"
-                type="text" 
-                [(ngModel)]="title" 
+                type="text"
+                [(ngModel)]="title"
                 name="title"
                 required
                 maxlength="140"
@@ -101,14 +108,13 @@ interface ActionSuggestion {
 
             <!-- Assignee -->
             <div class="form-group">
-              <label for="task-assignee">
-                Assigner à <span class="req">*</span>
-              </label>
-              <select 
+              <label for="task-assignee"> Assigner à <span class="req">*</span> </label>
+              <select
                 id="task-assignee"
-                [(ngModel)]="assignedToUserId" 
+                [(ngModel)]="assignedToUserId"
                 name="assignedToUserId"
-                required>
+                required
+              >
                 @for (staff of staffOptions(); track staff.userId) {
                   <option [value]="staff.userId">
                     {{ staff.name }} ({{ staff.role }}) {{ staff.isSelf ? '— Moi-même' : '' }}
@@ -119,31 +125,34 @@ interface ActionSuggestion {
 
             <!-- Priority -->
             <div class="form-group">
-              <label>Priorité</label>
+              <span class="form-label">Priorité</span>
               <div class="priority-toggle-group">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   class="priority-btn is-normal"
                   [class.is-selected]="priority === 'NORMAL'"
-                  (click)="priority = 'NORMAL'">
+                  (click)="priority = 'NORMAL'"
+                >
                   <span class="dot"></span>
                   <span>Normale</span>
                 </button>
 
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   class="priority-btn is-high"
                   [class.is-selected]="priority === 'HIGH'"
-                  (click)="priority = 'HIGH'">
+                  (click)="priority = 'HIGH'"
+                >
                   <span class="dot"></span>
                   <span>Haute</span>
                 </button>
 
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   class="priority-btn is-urgent"
                   [class.is-selected]="priority === 'URGENT'"
-                  (click)="priority = 'URGENT'">
+                  (click)="priority = 'URGENT'"
+                >
                   <span class="dot"></span>
                   <span>Urgente</span>
                 </button>
@@ -152,66 +161,68 @@ interface ActionSuggestion {
 
             <!-- Quick Due Date -->
             <div class="form-group">
-              <label>Échéance</label>
+              <span class="form-label">Échéance</span>
               <div class="due-presets">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   class="due-preset-btn"
                   [class.is-selected]="duePreset() === 'TODAY'"
-                  (click)="setDuePreset('TODAY')">
+                  (click)="setDuePreset('TODAY')"
+                >
                   Aujourd'hui
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   class="due-preset-btn"
                   [class.is-selected]="duePreset() === 'TOMORROW'"
-                  (click)="setDuePreset('TOMORROW')">
+                  (click)="setDuePreset('TOMORROW')"
+                >
                   Demain
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   class="due-preset-btn"
                   [class.is-selected]="duePreset() === 'IN_3_DAYS'"
-                  (click)="setDuePreset('IN_3_DAYS')">
+                  (click)="setDuePreset('IN_3_DAYS')"
+                >
                   Dans 3 jours
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   class="due-preset-btn"
                   [class.is-selected]="duePreset() === 'NONE'"
-                  (click)="setDuePreset('NONE')">
+                  (click)="setDuePreset('NONE')"
+                >
                   Sans date
                 </button>
               </div>
 
               @if (duePreset() !== 'NONE') {
-                <input 
-                  type="date" 
-                  [(ngModel)]="dueDate" 
-                  name="dueDate"
-                />
+                <input type="date" [(ngModel)]="dueDate" name="dueDate" />
               }
             </div>
 
             <!-- Document Attachments (Images, PDF, Radios...) -->
             <div class="attachments-section">
-              <label style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-slate);">
+              <span
+                style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-slate);"
+              >
                 Pièces jointes & Images / PDF
-              </label>
+              </span>
 
               <!-- Upload trigger -->
-              <input 
-                #fileInput 
-                type="file" 
-                multiple 
+              <input
+                #fileInput
+                type="file"
+                multiple
                 accept="image/*,application/pdf"
-                (change)="onFileSelected($event)" 
-                style="display: none;" 
+                (change)="onFileSelected($event)"
+                style="display: none;"
               />
-              <div class="upload-zone" (click)="fileInput.click()">
+              <button type="button" class="upload-zone" (click)="fileInput.click()">
                 <span class="material-icons" aria-hidden="true">cloud_upload</span>
                 <span>Joindre une image, radiographie ou document PDF</span>
-              </div>
+              </button>
 
               <!-- Attachments Image Thumbnail Previews -->
               @if (attachments().length > 0) {
@@ -231,11 +242,12 @@ interface ActionSuggestion {
                           <small>{{ formatBytes(att.sizeBytes) }}</small>
                         }
                       </div>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         class="btn-remove-preview"
                         (click)="removeAttachment(i)"
-                        title="Supprimer">
+                        title="Supprimer"
+                      >
                         <span class="material-icons" aria-hidden="true">close</span>
                       </button>
                     </div>
@@ -247,9 +259,9 @@ interface ActionSuggestion {
             <!-- Notes / Description -->
             <div class="form-group">
               <label for="task-desc">Détails / Instructions (Optionnel)</label>
-              <textarea 
+              <textarea
                 id="task-desc"
-                [(ngModel)]="description" 
+                [(ngModel)]="description"
                 name="description"
                 rows="2"
                 maxlength="1000"
@@ -268,16 +280,14 @@ interface ActionSuggestion {
 
             <!-- Actions Footer -->
             <div class="drawer-footer">
-              <button 
-                type="button" 
-                class="btn-secondary"
-                (click)="store.closeDrawer()">
+              <button type="button" class="btn-secondary" (click)="store.closeDrawer()">
                 Annuler
               </button>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 class="btn-primary"
-                [disabled]="isSubmitting() || !title.trim()">
+                [disabled]="isSubmitting() || !title.trim()"
+              >
                 @if (isSubmitting()) {
                   Création...
                 } @else {
@@ -310,7 +320,11 @@ export class CreateTaskDrawerComponent {
   readonly actionSuggestions: ActionSuggestion[] = [
     { label: 'Appeler le tuteur pour accord financier', priority: 'HIGH', icon: 'phone' },
     { label: 'Vérifier la radio panoramique / CBCT', priority: 'NORMAL', icon: 'visibility' },
-    { label: 'Relancer le patient pour RDV de contrôle', priority: 'NORMAL', icon: 'calendar_today' },
+    {
+      label: 'Relancer le patient pour RDV de contrôle',
+      priority: 'NORMAL',
+      icon: 'calendar_today',
+    },
     { label: 'Préparer entente financière & échéancier', priority: 'HIGH', icon: 'request_quote' },
     { label: 'Valider le plan de traitement aligneurs', priority: 'URGENT', icon: 'check_circle' },
     { label: 'Commander bagues & arcs orthodontiques', priority: 'HIGH', icon: 'shopping_cart' },
@@ -412,7 +426,12 @@ export class CreateTaskDrawerComponent {
   isImage(att: TaskAttachment): boolean {
     if (att.mimeType?.startsWith('image/')) return true;
     const lower = (att.name || '').toLowerCase();
-    return lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp');
+    return (
+      lower.endsWith('.jpg') ||
+      lower.endsWith('.jpeg') ||
+      lower.endsWith('.png') ||
+      lower.endsWith('.webp')
+    );
   }
 
   onFileSelected(event: Event): void {
@@ -475,8 +494,8 @@ export class CreateTaskDrawerComponent {
 
     try {
       await this.store.createTask(payload);
-    } catch (err: any) {
-      this.errorMessage.set(err?.message || 'Impossible de créer la tâche');
+    } catch (err: unknown) {
+      this.errorMessage.set(err instanceof Error ? err.message : 'Impossible de créer la tâche');
     } finally {
       this.isSubmitting.set(false);
     }

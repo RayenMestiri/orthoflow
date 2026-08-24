@@ -77,6 +77,7 @@ describe('PatientMediaService', () => {
     isEnabled: ReturnType<typeof vi.fn>;
     upload: ReturnType<typeof vi.fn>;
     remove: ReturnType<typeof vi.fn>;
+    createPrivateDownloadUrl: ReturnType<typeof vi.fn>;
   };
   let audit: { record: ReturnType<typeof vi.fn> };
   let service: PatientMediaService;
@@ -125,13 +126,19 @@ describe('PatientMediaService', () => {
         uploadedAt: new Date('2026-08-09T09:00:00.000Z'),
       })),
       remove: vi.fn(async () => undefined),
+      createPrivateDownloadUrl: vi.fn(
+        () => 'https://res.cloudinary.com/demo/private/short-lived.jpg',
+      ),
     };
     audit = { record: vi.fn(async () => undefined) };
     service = new PatientMediaService(
       mediaRepository as unknown as PatientMediaRepository,
       patientRepository as unknown as PatientRepository,
       treatmentRepository as unknown as TreatmentRepository,
-      storage as unknown as Pick<MediaService, 'isEnabled' | 'upload' | 'remove'>,
+      storage as unknown as Pick<
+        MediaService,
+        'isEnabled' | 'upload' | 'remove' | 'createPrivateDownloadUrl'
+      >,
       audit as unknown as PatientMediaAuditPort,
     );
   });
@@ -151,6 +158,8 @@ describe('PatientMediaService', () => {
     );
 
     expect(result.patientId).toBe(PATIENT_ID);
+    expect(result.contentUrl).toContain('/private/');
+    expect(result).not.toHaveProperty('secureUrl');
     expect(storage.upload).toHaveBeenCalledWith(
       expect.objectContaining({ clinicId: CLINIC_ID, subfolders: [PATIENT_ID] }),
     );

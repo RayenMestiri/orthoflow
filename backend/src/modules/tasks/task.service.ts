@@ -443,11 +443,9 @@ export class TaskService {
       this.patients.findManyByIdsInClinic(Array.from(patientIds), clinicId),
     ]);
 
-    const userMap = new Map(userDocs.map((u) => [(u as any)._id?.toString() ?? (u as any).id, u]));
+    const userMap = new Map(userDocs.map((user) => [user._id.toString(), user]));
     const membershipMap = new Map(memberships.map((m) => [m.userId.toString(), m]));
-    const patientMap = new Map(
-      patientDocs.map((p) => [(p as any)._id?.toString() ?? (p as any).id, p]),
-    );
+    const patientMap = new Map(patientDocs.map((patient) => [patient._id.toString(), patient]));
 
     const formatActor = (userIdStr: string): TaskActorSummary => {
       const u = userMap.get(userIdStr);
@@ -470,7 +468,7 @@ export class TaskService {
         const p = patientMap.get(record.context.patientId.toString());
         if (p) {
           patientSummary = {
-            id: (p as any)._id?.toString() ?? (p as any).id,
+            id: p._id.toString(),
             fullName: `${p.firstName} ${p.lastName}`.trim(),
             referenceNumber: p.referenceNumber ?? null,
           };

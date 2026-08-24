@@ -45,13 +45,30 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
      * which would make both rate limiting and audit trails describe the wrong
      * client.
      */
-    trustProxy: isProduction,
+    trustProxy: isProduction && env.TRUST_PROXY_HOPS > 0 ? env.TRUST_PROXY_HOPS : false,
     bodyLimit: env.BODY_LIMIT_BYTES,
     genReqId: () => randomUUID(),
   });
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+
+  app.addHook('onRequest', async (request, reply) => {
+    reply.header('x-request-id', request.id);
+  });
+  app.addHook('onResponse', async (request, reply) => {
+    if (reply.elapsedTime >= env.SLOW_REQUEST_THRESHOLD_MS) {
+      request.log.warn(
+        {
+          route: request.routeOptions.url,
+          method: request.method,
+          statusCode: reply.statusCode,
+          durationMs: Math.round(reply.elapsedTime),
+        },
+        'Slow HTTP request',
+      );
+    }
+  });
 
   /**
    * Treat an empty `application/json` body as `{}`.

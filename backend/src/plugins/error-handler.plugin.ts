@@ -160,7 +160,10 @@ export const errorHandlerPlugin = fp(
         );
       }
 
-      const body = failure(normalized.code, normalized.message, normalized.details);
+      const body = failure(normalized.code, normalized.message, {
+        ...normalized.details,
+        requestId: request.id,
+      });
 
       // Stack traces are never serialized. In development the full error is
       // still in the logs, which is where a developer should be looking.
@@ -172,11 +175,11 @@ export const errorHandlerPlugin = fp(
     });
 
     app.setNotFoundHandler((request: FastifyRequest, reply: FastifyReply) => {
-      return reply
-        .status(404)
-        .send(
-          failure(ERROR_CODES.NOT_FOUND, `Route ${request.method} ${request.url} does not exist`),
-        );
+      return reply.status(404).send(
+        failure(ERROR_CODES.NOT_FOUND, `Route ${request.method} ${request.url} does not exist`, {
+          requestId: request.id,
+        }),
+      );
     });
   },
   { name: 'error-handler-plugin' },

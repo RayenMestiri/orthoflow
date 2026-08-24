@@ -31,7 +31,7 @@ function buildMockData(): { records: DomainRecordsResult; context: PatientActivi
     _id: new Types.ObjectId(APPT_ID),
     clinicId: new Types.ObjectId(CLINIC_ID),
     patientId: new Types.ObjectId(PATIENT_ID),
-    typeId: new Types.ObjectId(),
+    appointmentTypeId: new Types.ObjectId(),
     treatmentId: new Types.ObjectId(TREATMENT_ID),
     startAt: new Date('2026-08-20T10:00:00.000Z'),
     durationMinutes: 30,
@@ -137,17 +137,34 @@ function buildMockData(): { records: DomainRecordsResult; context: PatientActivi
 
   const context: PatientActivityContext = {
     appointmentTypes: new Map([
-      [appointment.typeId!.toString(), { _id: appointment.typeId, name: 'Contrôle régulier', code: 'CTRL' } as never],
+      [
+        appointment.appointmentTypeId.toString(),
+        { _id: appointment.appointmentTypeId, name: 'Contrôle régulier', code: 'CTRL' } as never,
+      ],
     ]),
     treatments: new Map([[TREATMENT_ID, treatment]]),
     receipts: new Map([
-      [cashRecord.receiptId!.toString(), { _id: cashRecord.receiptId, receiptNumber: 'REC-2026-000058' } as never],
+      [
+        cashRecord.receiptId!.toString(),
+        { _id: cashRecord.receiptId, receiptNumber: 'REC-2026-000058' } as never,
+      ],
     ]),
     users: new Map([
-      [ACTOR_ID, { _id: new Types.ObjectId(ACTOR_ID), firstName: 'Amine', lastName: 'Ben Salah', email: 'doctor@orthoflow.test' } as never],
+      [
+        ACTOR_ID,
+        {
+          _id: new Types.ObjectId(ACTOR_ID),
+          firstName: 'Amine',
+          lastName: 'Ben Salah',
+          email: 'doctor@orthoflow.test',
+        } as never,
+      ],
     ]),
     memberships: new Map([
-      [ACTOR_ID, { userId: new Types.ObjectId(ACTOR_ID), role: CLINIC_ROLES.CLINIC_OWNER } as never],
+      [
+        ACTOR_ID,
+        { userId: new Types.ObjectId(ACTOR_ID), role: CLINIC_ROLES.CLINIC_OWNER } as never,
+      ],
     ]),
   };
 
@@ -164,7 +181,7 @@ function buildService(data = buildMockData()) {
   };
 
   return {
-    service: new PatientActivityService(repository as never, patients as never),
+    service: new PatientActivityService(repository, patients as never),
     repository,
     patients,
     data,
@@ -192,7 +209,9 @@ describe('PatientActivityService', () => {
 
     // Verify categories are populated
     for (const item of result.result.items) {
-      expect(['CLINICAL', 'APPOINTMENT', 'PAYMENT', 'DOCUMENT', 'TREATMENT']).toContain(item.category);
+      expect(['CLINICAL', 'APPOINTMENT', 'PAYMENT', 'DOCUMENT', 'TREATMENT']).toContain(
+        item.category,
+      );
     }
   });
 

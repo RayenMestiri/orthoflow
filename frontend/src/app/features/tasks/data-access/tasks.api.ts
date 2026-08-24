@@ -21,6 +21,13 @@ interface TaskListEnvelope {
   pagination: TaskPaginationMeta;
 }
 
+interface ClinicMemberSummary {
+  id: string;
+  userId: string;
+  role: string;
+  user?: { firstName: string; lastName: string; email: string };
+}
+
 @Injectable({ providedIn: 'root' })
 export class TasksApiService {
   private readonly http = inject(HttpClient);
@@ -65,9 +72,7 @@ export class TasksApiService {
   }
 
   create(input: CreateTaskInput): Observable<TaskDto> {
-    return this.http
-      .post<ApiEnvelope<TaskDto>>(this.tasksUrl, input)
-      .pipe(map((res) => res.data));
+    return this.http.post<ApiEnvelope<TaskDto>>(this.tasksUrl, input).pipe(map((res) => res.data));
   }
 
   update(taskId: string, input: UpdateTaskInput): Observable<TaskDto> {
@@ -94,16 +99,11 @@ export class TasksApiService {
       .pipe(map((res) => res.data));
   }
 
-  getClinicMembers(clinicId: string): Observable<
-    {
-      id: string;
-      userId: string;
-      role: string;
-      user?: { firstName: string; lastName: string; email: string };
-    }[]
-  > {
+  getClinicMembers(clinicId: string): Observable<ClinicMemberSummary[]> {
     return this.http
-      .get<{ success: true; data: any[] }>(`${this.baseUrl}/clinics/${clinicId}/members`)
+      .get<{ success: true; data: ClinicMemberSummary[] }>(
+        `${this.baseUrl}/clinics/${clinicId}/members`,
+      )
       .pipe(
         map((res) => res.data),
         catchError(() => of([])),

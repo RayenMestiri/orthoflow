@@ -1,12 +1,263 @@
-:host { display: block; min-width: 0; }
-.chart { color: #184a3e; }
-svg { display: block; width: 100%; height: auto; min-height: 12rem; overflow: visible; }
-line { stroke: #d8e4e0; stroke-width: 1; }
-rect { fill: #2c7563; rx: 4px; }
-.chart--coral rect { fill: #c76f55; }
-text { fill: #71827d; font: 13px Manrope, sans-serif; }
-details { margin-top: .25rem; font-size: .78rem; color: #52645f; }
-summary { cursor: pointer; font-weight: 700; }
-table { width: 100%; border-collapse: collapse; margin-top: .5rem; }
-th, td { padding: .4rem; border-bottom: 1px solid #e3eae8; text-align: left; }
-th:last-child, td:last-child { text-align: right; }
+:host {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+
+.chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 14rem;
+  overflow: visible;
+  font-family: inherit;
+}
+
+/* ==========================================================================
+   Grid & Axis Ticks
+   ========================================================================== */
+
+.grid-line {
+  stroke: #d8e5e0;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+
+  &--zero {
+    stroke: #7e9d94;
+    stroke-width: 1.5;
+    stroke-dasharray: none;
+  }
+}
+
+.y-axis-label {
+  fill: #536b64;
+  font-size: 11px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.x-axis-tick {
+  stroke: #7e9d94;
+  stroke-width: 1.5;
+}
+
+.bar-date-label {
+  fill: #173f36;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.bar-weekday-label {
+  fill: #718680;
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ==========================================================================
+   Bars & Data Values
+   ========================================================================== */
+
+.bar-group {
+  cursor: pointer;
+  transition: transform 0.15s ease-out;
+
+  .bar-hit-area {
+    fill: transparent;
+  }
+
+  .bar-rect {
+    fill: url(#pineBarGradient);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .bar-value-label {
+    fill: #0c2b24;
+    font-size: 12px;
+    font-weight: 850;
+    font-variant-numeric: tabular-nums;
+    transition: transform 0.15s ease;
+  }
+
+  .zero-marker {
+    fill: #a9beba;
+    transition: all 0.15s ease;
+  }
+
+  .bar-zero-label {
+    fill: #92a8a3;
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+
+  &:hover {
+    .bar-rect {
+      fill: url(#hoverBarGradient);
+      transform: scaleY(1.02);
+      transform-origin: bottom;
+      filter: drop-shadow(0 4px 8px rgba(24, 74, 62, 0.25));
+    }
+
+    .bar-value-label {
+      fill: #041a15;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .zero-marker {
+      fill: #173f36;
+      r: 4.5;
+    }
+
+    .bar-date-label {
+      fill: #041a15;
+      font-weight: 850;
+    }
+  }
+}
+
+/* Coral Tone for No-shows / Absences */
+.chart--coral {
+  .bar-group {
+    .bar-rect {
+      fill: url(#coralBarGradient);
+    }
+
+    .bar-value-label {
+      fill: #852a16;
+    }
+
+    &:hover {
+      .bar-rect {
+        fill: url(#hoverCoralGradient);
+        filter: drop-shadow(0 4px 8px rgba(180, 76, 53, 0.28));
+      }
+
+      .bar-value-label {
+        fill: #5a1708;
+      }
+    }
+  }
+}
+
+.empty-text {
+  fill: #788e88;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Active Hover Pill
+   ========================================================================== */
+
+.chart-active-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.85rem;
+  background: #0d2925;
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  box-shadow: 0 4px 12px rgba(13, 41, 37, 0.18);
+  align-self: flex-start;
+  animation: fadeIn 0.15s ease-out;
+
+  .active-date {
+    color: #cadad5;
+    font-weight: 600;
+  }
+
+  .active-divider {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .active-val {
+    color: #ffffff;
+    font-weight: 800;
+  }
+
+  .active-sub {
+    color: #f7b49f;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+}
+
+/* ==========================================================================
+   Accessible Data Table
+   ========================================================================== */
+
+.chart-data-details {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: #4b625b;
+
+  summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-weight: 750;
+    color: #1a4a3e;
+    padding: 0.25rem 0.45rem;
+    border-radius: 4px;
+    user-select: none;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: #e6edea;
+    }
+
+    .material-icons {
+      font-size: 1rem;
+    }
+  }
+
+  .chart-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.65rem;
+    background: #ffffff;
+    border: 1px solid #dbe5e1;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+    th, td {
+      padding: 0.55rem 0.85rem;
+      border-bottom: 1px solid #e7ecea;
+      font-size: 0.85rem;
+    }
+
+    th {
+      background: #f1f6f4;
+      font-weight: 800;
+      color: #173f36;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+    }
+
+    tbody tr:hover {
+      background: #f8fbfa;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}

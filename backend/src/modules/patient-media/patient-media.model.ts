@@ -24,6 +24,12 @@ const patientMediaSchema = new Schema<PatientMediaAttributes>(
     },
     publicId: { type: String, required: true, unique: true },
     resourceType: { type: String, required: true },
+    deliveryType: {
+      type: String,
+      enum: ['upload', 'authenticated'],
+      default: 'upload',
+      required: true,
+    },
     secureUrl: { type: String, required: true },
     originalFileName: { type: String, required: true, maxlength: 255 },
     mimeType: { type: String, required: true, maxlength: 100 },

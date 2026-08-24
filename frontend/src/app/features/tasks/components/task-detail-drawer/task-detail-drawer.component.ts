@@ -5,7 +5,12 @@ import { Router } from '@angular/router';
 import { AuthStore } from '../../../../core/auth/auth.store';
 import { TasksApiService } from '../../data-access/tasks.api';
 import { TasksStore } from '../../data-access/tasks.store';
-import type { TaskAttachment, TaskDto, TaskPriority, UpdateTaskInput } from '../../models/task.models';
+import type {
+  TaskAttachment,
+  TaskDto,
+  TaskPriority,
+  UpdateTaskInput,
+} from '../../models/task.models';
 
 interface StaffOption {
   userId: string;
@@ -19,9 +24,14 @@ interface StaffOption {
   imports: [CommonModule, FormsModule],
   template: `
     @if (store.activeDrawer() === 'DETAIL' && store.selectedTask(); as task) {
-      <div class="drawer-overlay" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+      <div
+        class="drawer-overlay"
+        aria-labelledby="slide-over-title"
+        role="dialog"
+        aria-modal="true"
+      >
         <!-- Backdrop -->
-        <div class="drawer-backdrop" (click)="close()"></div>
+        <div class="drawer-backdrop" aria-hidden="true"></div>
 
         <div class="drawer-panel">
           <!-- Header -->
@@ -45,35 +55,44 @@ interface StaffOption {
 
               <!-- Priority Pill -->
               @if (task.priority === 'URGENT') {
-                <span class="badge-tag badge-urgent" style="font-size:0.68rem; font-weight:800; text-transform:uppercase; padding:0.15rem 0.5rem; border-radius:999px; background:#fee2e2; color:var(--color-danger); border:1px solid #fca5a5;">Urgente</span>
+                <span
+                  class="badge-tag badge-urgent"
+                  style="font-size:0.68rem; font-weight:800; text-transform:uppercase; padding:0.15rem 0.5rem; border-radius:999px; background:#fee2e2; color:var(--color-danger); border:1px solid #fca5a5;"
+                  >Urgente</span
+                >
               } @else if (task.priority === 'HIGH') {
-                <span class="badge-tag badge-high" style="font-size:0.68rem; font-weight:800; text-transform:uppercase; padding:0.15rem 0.5rem; border-radius:999px; background:#fef3c7; color:#92400e; border:1px solid #fde68a;">Haute</span>
+                <span
+                  class="badge-tag badge-high"
+                  style="font-size:0.68rem; font-weight:800; text-transform:uppercase; padding:0.15rem 0.5rem; border-radius:999px; background:#fef3c7; color:#92400e; border:1px solid #fde68a;"
+                  >Haute</span
+                >
               }
 
               <!-- Overdue Badge -->
               @if (task.isOverdue) {
-                <span class="badge-tag badge-overdue" style="font-size:0.68rem; font-weight:800; text-transform:uppercase; padding:0.15rem 0.5rem; border-radius:999px; background:var(--color-danger); color:var(--color-white);">En retard</span>
+                <span
+                  class="badge-tag badge-overdue"
+                  style="font-size:0.68rem; font-weight:800; text-transform:uppercase; padding:0.15rem 0.5rem; border-radius:999px; background:var(--color-danger); color:var(--color-white);"
+                  >En retard</span
+                >
               }
             </div>
 
             <div class="drawer-header__actions">
               <!-- Edit Task Button (if not completed or cancelled) -->
               @if (!isEditing() && (task.status === 'TODO' || task.status === 'IN_PROGRESS')) {
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   class="btn-header-action"
                   (click)="startEditing(task)"
-                  title="Modifier cette tâche">
+                  title="Modifier cette tâche"
+                >
                   <span class="material-icons" aria-hidden="true">edit</span>
                   <span>Modifier</span>
                 </button>
               }
 
-              <button 
-                type="button" 
-                class="drawer-close-btn"
-                (click)="close()"
-                title="Fermer">
+              <button type="button" class="drawer-close-btn" (click)="close()" title="Fermer">
                 <span class="material-icons" aria-hidden="true">close</span>
               </button>
             </div>
@@ -86,23 +105,24 @@ interface StaffOption {
               <form (ngSubmit)="saveEdit(task.id)" class="edit-mode-form">
                 <div class="form-group">
                   <label for="edit-task-title">Action à réaliser <span class="req">*</span></label>
-                  <input 
+                  <input
                     id="edit-task-title"
-                    type="text" 
-                    [(ngModel)]="editTitle" 
-                    name="editTitle" 
-                    required 
+                    type="text"
+                    [(ngModel)]="editTitle"
+                    name="editTitle"
+                    required
                     maxlength="140"
                   />
                 </div>
 
                 <div class="form-group">
                   <label for="edit-task-assignee">Responsable <span class="req">*</span></label>
-                  <select 
+                  <select
                     id="edit-task-assignee"
-                    [(ngModel)]="editAssignedToUserId" 
+                    [(ngModel)]="editAssignedToUserId"
                     name="editAssignedToUserId"
-                    required>
+                    required
+                  >
                     @for (staff of staffOptions(); track staff.userId) {
                       <option [value]="staff.userId">{{ staff.name }} ({{ staff.role }})</option>
                     }
@@ -110,29 +130,32 @@ interface StaffOption {
                 </div>
 
                 <div class="form-group">
-                  <label>Priorité</label>
+                  <span class="form-label">Priorité</span>
                   <div class="priority-toggle-group">
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       class="priority-btn is-normal"
                       [class.is-selected]="editPriority === 'NORMAL'"
-                      (click)="editPriority = 'NORMAL'">
+                      (click)="editPriority = 'NORMAL'"
+                    >
                       <span class="dot"></span>
                       <span>Normale</span>
                     </button>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       class="priority-btn is-high"
                       [class.is-selected]="editPriority === 'HIGH'"
-                      (click)="editPriority = 'HIGH'">
+                      (click)="editPriority = 'HIGH'"
+                    >
                       <span class="dot"></span>
                       <span>Haute</span>
                     </button>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       class="priority-btn is-urgent"
                       [class.is-selected]="editPriority === 'URGENT'"
-                      (click)="editPriority = 'URGENT'">
+                      (click)="editPriority = 'URGENT'"
+                    >
                       <span class="dot"></span>
                       <span>Urgente</span>
                     </button>
@@ -140,62 +163,62 @@ interface StaffOption {
                 </div>
 
                 <div class="form-group">
-                  <label>Échéance</label>
+                  <span class="form-label">Échéance</span>
                   <div class="due-presets">
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       class="due-preset-btn"
                       [class.is-selected]="editDuePreset() === 'TODAY'"
-                      (click)="setEditDuePreset('TODAY')">
+                      (click)="setEditDuePreset('TODAY')"
+                    >
                       Aujourd'hui
                     </button>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       class="due-preset-btn"
                       [class.is-selected]="editDuePreset() === 'TOMORROW'"
-                      (click)="setEditDuePreset('TOMORROW')">
+                      (click)="setEditDuePreset('TOMORROW')"
+                    >
                       Demain
                     </button>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       class="due-preset-btn"
                       [class.is-selected]="editDuePreset() === 'IN_3_DAYS'"
-                      (click)="setEditDuePreset('IN_3_DAYS')">
+                      (click)="setEditDuePreset('IN_3_DAYS')"
+                    >
                       Dans 3 jours
                     </button>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       class="due-preset-btn"
                       [class.is-selected]="editDuePreset() === 'NONE'"
-                      (click)="setEditDuePreset('NONE')">
+                      (click)="setEditDuePreset('NONE')"
+                    >
                       Sans date
                     </button>
                   </div>
 
                   @if (editDuePreset() !== 'NONE') {
-                    <input 
-                      type="date" 
-                      [(ngModel)]="editDueDate" 
-                      name="editDueDate"
-                    />
+                    <input type="date" [(ngModel)]="editDueDate" name="editDueDate" />
                   }
                 </div>
 
                 <!-- Edit Attachments -->
                 <div class="form-group">
-                  <label>Pièces jointes & Documents</label>
-                  <input 
-                    #editFileInput 
-                    type="file" 
-                    multiple 
+                  <span class="form-label">Pièces jointes & Documents</span>
+                  <input
+                    #editFileInput
+                    type="file"
+                    multiple
                     accept="image/*,application/pdf"
-                    (change)="onEditFileSelected($event)" 
-                    style="display: none;" 
+                    (change)="onEditFileSelected($event)"
+                    style="display: none;"
                   />
-                  <div class="upload-zone-compact" (click)="editFileInput.click()">
+                  <button type="button" class="upload-zone-compact" (click)="editFileInput.click()">
                     <span class="material-icons" aria-hidden="true">add_photo_alternate</span>
                     <span>Ajouter une image, radio ou PDF</span>
-                  </div>
+                  </button>
 
                   @if (editAttachments().length > 0) {
                     <div class="attachments-grid" style="margin-top: 0.5rem;">
@@ -212,11 +235,12 @@ interface StaffOption {
                             <strong [title]="att.name">{{ att.name }}</strong>
                             <small>{{ isImage(att) ? 'Image' : 'PDF' }}</small>
                           </div>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             class="btn-remove-att-icon"
                             (click)="removeEditAttachment(i)"
-                            title="Supprimer">
+                            title="Supprimer"
+                          >
                             <span class="material-icons" aria-hidden="true">close</span>
                           </button>
                         </div>
@@ -227,9 +251,9 @@ interface StaffOption {
 
                 <div class="form-group">
                   <label for="edit-task-desc">Détails / Instructions</label>
-                  <textarea 
+                  <textarea
                     id="edit-task-desc"
-                    [(ngModel)]="editDescription" 
+                    [(ngModel)]="editDescription"
                     name="editDescription"
                     rows="3"
                     maxlength="1000"
@@ -242,9 +266,17 @@ interface StaffOption {
                   </div>
                 }
 
-                <div style="display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 0.5rem;">
-                  <button type="button" class="btn-secondary" (click)="cancelEditing()">Annuler</button>
-                  <button type="submit" class="btn-primary" [disabled]="isActionRunning() || !editTitle.trim()">
+                <div
+                  style="display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 0.5rem;"
+                >
+                  <button type="button" class="btn-secondary" (click)="cancelEditing()">
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    class="btn-primary"
+                    [disabled]="isActionRunning() || !editTitle.trim()"
+                  >
                     Enregistrer
                   </button>
                 </div>
@@ -265,10 +297,11 @@ interface StaffOption {
                   <div class="context-header">
                     <small>Élément rattaché</small>
                     @if (task.context.patientId) {
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         class="link-patient"
-                        (click)="goToPatient(task.context.patientId)">
+                        (click)="goToPatient(task.context.patientId)"
+                      >
                         Ouvrir le dossier patient →
                       </button>
                     }
@@ -278,7 +311,9 @@ interface StaffOption {
                       <span class="material-icons" aria-hidden="true">person</span>
                     </div>
                     <div>
-                      <strong>{{ task.context.label || (task.patient ? task.patient.fullName : 'Contexte') }}</strong>
+                      <strong>{{
+                        task.context.label || (task.patient ? task.patient.fullName : 'Contexte')
+                      }}</strong>
                       @if (task.patient?.referenceNumber) {
                         <small>Dossier {{ task.patient?.referenceNumber }}</small>
                       }
@@ -295,10 +330,12 @@ interface StaffOption {
                   </span>
                   <div class="attachments-grid">
                     @for (att of task.attachments; track $index) {
-                      <div 
+                      <button
+                        type="button"
                         class="attachment-card"
                         (click)="handleAttachmentClick(att)"
-                        title="Cliquer pour afficher">
+                        title="Cliquer pour afficher"
+                      >
                         <div class="attachment-thumb">
                           @if (isImage(att)) {
                             <img [src]="att.url" [alt]="att.name" />
@@ -322,7 +359,7 @@ interface StaffOption {
                             <small>{{ isImage(att) ? 'Image' : 'PDF' }}</small>
                           }
                         </div>
-                      </div>
+                      </button>
                     }
                   </div>
                 </div>
@@ -346,10 +383,12 @@ interface StaffOption {
                 <div class="meta-item">
                   <span class="meta-label">Créée par</span>
                   <div class="meta-user">
-                    <div class="avatar-sm" style="background: var(--color-slate);">{{ getInitials(task.createdBy.displayName) }}</div>
+                    <div class="avatar-sm" style="background: var(--color-slate);">
+                      {{ getInitials(task.createdBy.displayName) }}
+                    </div>
                     <div>
                       <strong>{{ task.createdBy.displayName }}</strong>
-                      <small>{{ task.createdAt | date:'short' }}</small>
+                      <small>{{ task.createdAt | date: 'short' }}</small>
                     </div>
                   </div>
                 </div>
@@ -358,7 +397,7 @@ interface StaffOption {
                 <div class="meta-item">
                   <span class="meta-label">Échéance</span>
                   <span class="meta-date" [class.is-overdue]="task.isOverdue">
-                    {{ task.dueAt ? (task.dueAt | date:'mediumDate') : 'Aucune date limite' }}
+                    {{ task.dueAt ? (task.dueAt | date: 'mediumDate') : 'Aucune date limite' }}
                   </span>
                 </div>
 
@@ -366,19 +405,30 @@ interface StaffOption {
                 <div class="meta-item">
                   @if (task.completedAt) {
                     <span class="meta-label">Terminée</span>
-                    <span class="meta-date" style="color: var(--color-success);">{{ task.completedAt | date:'short' }}</span>
+                    <span class="meta-date" style="color: var(--color-success);">{{
+                      task.completedAt | date: 'short'
+                    }}</span>
                     @if (task.completedBy) {
-                      <small style="color: var(--color-slate); font-size: 0.72rem;">Par {{ task.completedBy.displayName }}</small>
+                      <small style="color: var(--color-slate); font-size: 0.72rem;"
+                        >Par {{ task.completedBy.displayName }}</small
+                      >
                     }
                   } @else if (task.cancelledAt) {
                     <span class="meta-label">Annulée</span>
-                    <span class="meta-date" style="color: var(--color-muted);">{{ task.cancelledAt | date:'short' }}</span>
+                    <span class="meta-date" style="color: var(--color-muted);">{{
+                      task.cancelledAt | date: 'short'
+                    }}</span>
                     @if (task.cancellationReason) {
-                      <small style="color: var(--color-slate); font-size: 0.72rem; font-style: italic;">« {{ task.cancellationReason }} »</small>
+                      <small
+                        style="color: var(--color-slate); font-size: 0.72rem; font-style: italic;"
+                        >« {{ task.cancellationReason }} »</small
+                      >
                     }
                   } @else if (task.startedAt) {
                     <span class="meta-label">Démarrée</span>
-                    <span class="meta-date" style="color: #1d4ed8;">{{ task.startedAt | date:'short' }}</span>
+                    <span class="meta-date" style="color: #1d4ed8;">{{
+                      task.startedAt | date: 'short'
+                    }}</span>
                   } @else {
                     <span class="meta-label">Statut</span>
                     <span class="meta-date" style="color: var(--color-slate);">Non démarrée</span>
@@ -388,37 +438,71 @@ interface StaffOption {
 
               <!-- Reassign box -->
               @if (isReassigning()) {
-                <div style="background: var(--color-porcelain); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--color-line); display: flex; flex-direction: column; gap: 0.75rem;">
-                  <label style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--color-pine-900);">
+                <div
+                  style="background: var(--color-porcelain); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--color-line); display: flex; flex-direction: column; gap: 0.75rem;"
+                >
+                  <label
+                    for="task-reassign-select"
+                    style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--color-pine-900);"
+                  >
                     Sélectionner le nouveau responsable
                   </label>
-                  <select [(ngModel)]="newAssigneeId" style="padding: 0.5rem; border: 1px solid var(--color-mist); border-radius: var(--radius-sm); font-size: var(--font-size-sm);">
+                  <select
+                    id="task-reassign-select"
+                    [(ngModel)]="newAssigneeId"
+                    style="padding: 0.5rem; border: 1px solid var(--color-mist); border-radius: var(--radius-sm); font-size: var(--font-size-sm);"
+                  >
                     @for (staff of staffOptions(); track staff.userId) {
                       <option [value]="staff.userId">{{ staff.name }} ({{ staff.role }})</option>
                     }
                   </select>
                   <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
-                    <button type="button" class="btn-secondary" (click)="isReassigning.set(false)">Annuler</button>
-                    <button type="button" class="btn-primary" [disabled]="!newAssigneeId || isActionRunning()" (click)="confirmReassign(task.id)">Confirmer</button>
+                    <button type="button" class="btn-secondary" (click)="isReassigning.set(false)">
+                      Annuler
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-primary"
+                      [disabled]="!newAssigneeId || isActionRunning()"
+                      (click)="confirmReassign(task.id)"
+                    >
+                      Confirmer
+                    </button>
                   </div>
                 </div>
               }
 
               <!-- Cancel reason box -->
               @if (isCancelling()) {
-                <div style="background: #fef2f2; padding: 1rem; border-radius: var(--radius-md); border: 1px solid #fca5a5; display: flex; flex-direction: column; gap: 0.75rem;">
-                  <label style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--color-danger);">
+                <div
+                  style="background: #fef2f2; padding: 1rem; border-radius: var(--radius-md); border: 1px solid #fca5a5; display: flex; flex-direction: column; gap: 0.75rem;"
+                >
+                  <label
+                    for="task-cancel-reason"
+                    style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--color-danger);"
+                  >
                     Motif d'annulation
                   </label>
-                  <input 
-                    type="text" 
-                    [(ngModel)]="cancellationReason" 
+                  <input
+                    id="task-cancel-reason"
+                    type="text"
+                    [(ngModel)]="cancellationReason"
                     placeholder="Ex: Rendez-vous annulé, Action déjà faite..."
                     style="padding: 0.5rem; border: 1px solid #fca5a5; border-radius: var(--radius-sm); font-size: var(--font-size-sm);"
                   />
                   <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
-                    <button type="button" class="btn-secondary" (click)="isCancelling.set(false)">Retour</button>
-                    <button type="button" class="btn-danger-ghost" style="background: var(--color-danger); color: var(--color-white);" [disabled]="isActionRunning()" (click)="confirmCancel(task.id)">Annuler la tâche</button>
+                    <button type="button" class="btn-secondary" (click)="isCancelling.set(false)">
+                      Retour
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-danger-ghost"
+                      style="background: var(--color-danger); color: var(--color-white);"
+                      [disabled]="isActionRunning()"
+                      (click)="confirmCancel(task.id)"
+                    >
+                      Annuler la tâche
+                    </button>
                   </div>
                 </div>
               }
@@ -429,36 +513,40 @@ interface StaffOption {
           @if (!isEditing() && (task.status === 'TODO' || task.status === 'IN_PROGRESS')) {
             <div class="drawer-footer">
               <div style="display: flex; gap: 0.5rem;">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   class="btn-danger-ghost"
-                  (click)="isCancelling.set(true); isReassigning.set(false)">
+                  (click)="isCancelling.set(true); isReassigning.set(false)"
+                >
                   Annuler
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   class="btn-secondary"
-                  (click)="isReassigning.set(true); isCancelling.set(false)">
+                  (click)="isReassigning.set(true); isCancelling.set(false)"
+                >
                   Réassigner
                 </button>
               </div>
 
               <div style="display: flex; gap: 0.5rem;">
                 @if (task.status === 'TODO') {
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     class="btn-start"
                     [disabled]="isActionRunning()"
-                    (click)="startTask(task.id)">
+                    (click)="startTask(task.id)"
+                  >
                     Démarrer
                   </button>
                 }
 
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   class="btn-complete"
                   [disabled]="isActionRunning()"
-                  (click)="completeTask(task.id)">
+                  (click)="completeTask(task.id)"
+                >
                   <span class="material-icons" aria-hidden="true">check</span>
                   <span>Terminer</span>
                 </button>
@@ -470,8 +558,8 @@ interface StaffOption {
 
       <!-- Clinical Lightbox Fullscreen Modal -->
       @if (activeLightboxImage(); as img) {
-        <div class="lightbox-overlay" (click)="closeLightbox()">
-          <div class="lightbox-header" (click)="$event.stopPropagation()">
+        <div class="lightbox-overlay">
+          <div class="lightbox-header">
             <div class="lightbox-title-box">
               <span class="material-icons" style="color: var(--color-pine-100);">image</span>
               <div>
@@ -482,25 +570,23 @@ interface StaffOption {
               </div>
             </div>
             <div class="lightbox-actions">
-              <button 
-                type="button" 
-                class="lightbox-btn" 
-                (click)="openInNewTab(img)">
+              <button type="button" class="lightbox-btn" (click)="openInNewTab(img)">
                 <span class="material-icons">open_in_new</span>
                 <span>Plein écran</span>
               </button>
-              <button 
-                type="button" 
-                class="lightbox-btn" 
+              <button
+                type="button"
+                class="lightbox-btn"
                 style="background: rgba(255, 255, 255, 0.2);"
-                (click)="closeLightbox()">
+                (click)="closeLightbox()"
+              >
                 <span class="material-icons">close</span>
                 <span>Fermer</span>
               </button>
             </div>
           </div>
-          <div class="lightbox-body" (click)="closeLightbox()">
-            <img [src]="img.url" [alt]="img.name" (click)="$event.stopPropagation()" />
+          <div class="lightbox-body">
+            <img [src]="img.url" [alt]="img.name" />
           </div>
         </div>
       }
@@ -675,8 +761,8 @@ export class TaskDetailDrawerComponent {
     try {
       await this.store.updateTask(taskId, payload);
       this.isEditing.set(false);
-    } catch (err: any) {
-      this.errorMessage.set(err?.message || 'Erreur lors de la modification');
+    } catch (err: unknown) {
+      this.errorMessage.set(err instanceof Error ? err.message : 'Erreur lors de la modification');
     } finally {
       this.isActionRunning.set(false);
     }
@@ -694,7 +780,12 @@ export class TaskDetailDrawerComponent {
   isImage(att: TaskAttachment): boolean {
     if (att.mimeType?.startsWith('image/')) return true;
     const lower = (att.name || '').toLowerCase();
-    return lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp');
+    return (
+      lower.endsWith('.jpg') ||
+      lower.endsWith('.jpeg') ||
+      lower.endsWith('.png') ||
+      lower.endsWith('.webp')
+    );
   }
 
   formatBytes(bytes: number): string {
@@ -720,9 +811,13 @@ export class TaskDetailDrawerComponent {
       const win = window.open();
       if (win) {
         if (this.isImage(att)) {
-          win.document.write(`<img src="${att.url}" style="max-width:100%;height:auto;display:block;margin:auto;" />`);
+          win.document.write(
+            `<img src="${att.url}" style="max-width:100%;height:auto;display:block;margin:auto;" />`,
+          );
         } else {
-          win.document.write(`<iframe src="${att.url}" frameborder="0" style="border:0; top:0; left:0; bottom:0; right:0; width:100%; height:100%;" allowfullscreen></iframe>`);
+          win.document.write(
+            `<iframe src="${att.url}" frameborder="0" style="border:0; top:0; left:0; bottom:0; right:0; width:100%; height:100%;" allowfullscreen></iframe>`,
+          );
         }
       }
     } else {

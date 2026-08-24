@@ -217,7 +217,10 @@ import type { TaskAttachment, TaskDto, TaskScope, TaskStatus } from '../../model
               class="task-card"
               [class.is-overdue]="task.isOverdue"
               [class.is-completed]="task.status === 'COMPLETED'"
+              role="button"
+              tabindex="0"
               (click)="store.openDetailDrawer(task)"
+              (keydown.enter)="store.openDetailDrawer(task)"
             >
               <!-- Quick check button -->
               <button

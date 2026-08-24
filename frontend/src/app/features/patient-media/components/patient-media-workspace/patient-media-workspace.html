@@ -101,7 +101,7 @@
             <div class="media-card" [attr.data-status]="media.status">
               <a
                 class="media-card__image-btn"
-                [href]="media.secureUrl"
+                [href]="media.contentUrl"
                 target="_blank"
                 rel="noopener noreferrer"
                 [attr.aria-label]="'Open ' + media.title + ' in Cloudinary'"
@@ -122,7 +122,7 @@
               <div class="media-card__copy">
                 <span class="media-card__category">{{ categoryLabel(media.category) }}</span>
                 <strong>{{ media.title }}</strong>
-                <small>{{ (media.capturedAt ?? media.uploadedAt) | date: 'mediumDate' }}</small>
+                <small>{{ media.capturedAt ?? media.uploadedAt | date: 'mediumDate' }}</small>
                 @if (treatmentLabel(media.treatmentId); as treatment) {
                   <span class="media-treatment">{{ treatment }}</span>
                 }
@@ -131,7 +131,7 @@
                 <div class="media-card__actions">
                   <a
                     class="media-card__menu-btn"
-                    [href]="media.secureUrl"
+                    [href]="media.contentUrl"
                     target="_blank"
                     rel="noopener noreferrer"
                     [attr.aria-label]="'Open ' + media.title + ' in Cloudinary'"
@@ -140,11 +140,7 @@
                     View
                   </a>
                   @if (media.status === 'ACTIVE') {
-                    <button
-                      type="button"
-                      class="media-card__menu-btn"
-                      (click)="openEdit(media)"
-                    >
+                    <button type="button" class="media-card__menu-btn" (click)="openEdit(media)">
                       <span class="material-icons" aria-hidden="true">edit</span>
                       Edit
                     </button>
@@ -167,15 +163,6 @@
                       <span class="material-icons" aria-hidden="true">inventory_2</span>
                       Archive
                     </button>
-                    <button
-                      type="button"
-                      class="media-card__menu-btn media-card__menu-btn--delete"
-                      (click)="confirmDelete(media)"
-                      [attr.aria-label]="'Permanently delete ' + media.title"
-                    >
-                      <span class="material-icons" aria-hidden="true">delete_forever</span>
-                      Delete
-                    </button>
                   }
                   @if (media.status === 'ARCHIVED') {
                     <button
@@ -188,15 +175,6 @@
                         <span class="media-spinner media-spinner--sm" aria-hidden="true"></span>
                       }
                       Restore
-                    </button>
-                    <button
-                      type="button"
-                      class="media-card__menu-btn media-card__menu-btn--delete"
-                      (click)="confirmDelete(media)"
-                      [attr.aria-label]="'Permanently delete ' + media.title"
-                    >
-                      <span class="material-icons" aria-hidden="true">delete_forever</span>
-                      Delete
                     </button>
                   }
                 </div>
@@ -236,11 +214,12 @@
               <div class="media-document-row__actions">
                 <a
                   class="media-btn"
-                  [href]="media.secureUrl"
+                  [href]="media.contentUrl"
                   target="_blank"
                   rel="noopener noreferrer"
                   [attr.aria-label]="'Open ' + media.title + ' in Cloudinary'"
-                >View</a>
+                  >View</a
+                >
                 @if (canManageItem(media) && media.status === 'ACTIVE') {
                   <button
                     type="button"
@@ -271,17 +250,6 @@
                       <span class="media-spinner" aria-hidden="true"></span>
                     }
                     Restore
-                  </button>
-                }
-                @if (canManageItem(media)) {
-                  <button
-                    type="button"
-                    class="media-btn media-btn--delete"
-                    (click)="confirmDelete(media)"
-                    [attr.aria-label]="'Permanently delete ' + media.title"
-                  >
-                    <span class="material-icons" aria-hidden="true">delete_forever</span>
-                    Delete
                   </button>
                 }
               </div>
@@ -396,7 +364,7 @@
                 <div class="media-edit-preview">
                   <img [src]="previewUrl(editMedia)" [alt]="editMedia.title" />
                   <a
-                    [href]="editMedia.secureUrl"
+                    [href]="editMedia.contentUrl"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="media-edit-preview__link"
@@ -410,7 +378,10 @@
                   <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
                   <div>
                     <strong>{{ editMedia.originalFileName }}</strong>
-                    <small>{{ fileSize(editMedia.fileSizeBytes) }} · {{ editMedia.uploadedAt | date: 'mediumDate' }}</small>
+                    <small
+                      >{{ fileSize(editMedia.fileSizeBytes) }} ·
+                      {{ editMedia.uploadedAt | date: 'mediumDate' }}</small
+                    >
                   </div>
                 </div>
               }
@@ -486,7 +457,9 @@
                 @if (store.isSaving()) {
                   <span class="media-spinner" aria-hidden="true"></span>
                 }
-                {{ store.isSaving() ? 'Saving…' : mode === 'upload' ? 'Upload file' : 'Save details' }}
+                {{
+                  store.isSaving() ? 'Saving…' : mode === 'upload' ? 'Upload file' : 'Save details'
+                }}
               </button>
             </footer>
           </form>
@@ -526,7 +499,7 @@
               </div>
               <div>
                 <dt>Date</dt>
-                <dd>{{ (media.capturedAt ?? media.uploadedAt) | date: 'mediumDate' }}</dd>
+                <dd>{{ media.capturedAt ?? media.uploadedAt | date: 'mediumDate' }}</dd>
               </div>
               <div>
                 <dt>Uploaded</dt>
@@ -554,7 +527,7 @@
             <footer class="media-preview__actions">
               <a
                 class="media-btn"
-                [href]="media.secureUrl"
+                [href]="media.contentUrl"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -625,11 +598,7 @@
         </label>
         <footer>
           <button type="button" class="media-btn" (click)="closeArchive()">Keep active</button>
-          <button
-            type="submit"
-            class="media-btn media-btn--danger"
-            [disabled]="store.isSaving()"
-          >
+          <button type="submit" class="media-btn media-btn--danger" [disabled]="store.isSaving()">
             @if (store.isSaving()) {
               <span class="media-spinner" aria-hidden="true"></span>
             }
@@ -640,57 +609,13 @@
     </div>
   }
 
-  <!-- Permanent-delete confirmation dialog -->
-  @if (deleteTarget(); as media) {
-    <div
-      class="media-dialog-overlay"
-      role="presentation"
-      (click)="closeDelete()"
-      (keydown.escape)="closeDelete()"
-    >
-      <div
-        class="media-dialog"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="delete-media-title"
-        cdkTrapFocus
-        [cdkTrapFocusAutoCapture]="true"
-        (click)="$event.stopPropagation()"
-        (keydown.escape)="closeDelete()"
-      >
-        <div class="media-dialog__icon media-dialog__icon--delete">
-          <span class="material-icons" aria-hidden="true">delete_forever</span>
-        </div>
-        <h3 id="delete-media-title">Permanently delete "{{ media.title }}"?</h3>
-        <p class="media-dialog__warning">
-          This will <strong>permanently remove</strong> the file from Cloudinary and the database.
-          This action <strong>cannot be undone</strong>.
-        </p>
-        <footer>
-          <button type="button" class="media-btn" (click)="closeDelete()">Cancel</button>
-          <button
-            type="button"
-            class="media-btn media-btn--delete"
-            [disabled]="store.isSaving()"
-            (click)="deleteItem()"
-          >
-            @if (store.isSaving()) {
-              <span class="media-spinner" aria-hidden="true"></span>
-            }
-            Delete permanently
-          </button>
-        </footer>
-      </div>
-    </div>
-  }
-
   <!-- Replace-image dialog -->
   <!-- Hidden file input triggered programmatically by openReplaceImage() -->
   <input
     #replaceInput
     type="file"
     accept="image/jpeg,image/png,image/webp"
-    style="display:none"
+    style="display: none"
     (change)="replaceImageFileChanged($event)"
   />
   @if (replaceTarget(); as media) {
@@ -714,7 +639,9 @@
           <span class="material-icons" aria-hidden="true">swap_horiz</span>
         </div>
         <h3 id="replace-media-title">Replace image</h3>
-        <p>Current: <strong>{{ media.title }}</strong></p>
+        <p>
+          Current: <strong>{{ media.title }}</strong>
+        </p>
 
         <div class="media-replace-previews">
           <div class="media-replace-preview">
@@ -734,7 +661,11 @@
         }
 
         @if (store.uploadProgress() !== null) {
-          <div class="media-progress" role="progressbar" [attr.aria-valuenow]="store.uploadProgress()">
+          <div
+            class="media-progress"
+            role="progressbar"
+            [attr.aria-valuenow]="store.uploadProgress()"
+          >
             <div class="media-progress__bar" [style.width.%]="store.uploadProgress()"></div>
           </div>
         }
@@ -749,7 +680,12 @@
             <span class="material-icons" aria-hidden="true">upload_file</span>
             Choose new image
           </button>
-          <button type="button" class="media-btn" (click)="cancelReplaceImage()" [disabled]="store.isSaving()">
+          <button
+            type="button"
+            class="media-btn"
+            (click)="cancelReplaceImage()"
+            [disabled]="store.isSaving()"
+          >
             Cancel
           </button>
           <button

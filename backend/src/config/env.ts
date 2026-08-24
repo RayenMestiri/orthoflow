@@ -20,6 +20,9 @@ export const envSchema = z
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65535).default(4000),
     HOST: z.string().min(1).default('0.0.0.0'),
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+    API_REPLICA_COUNT: z.coerce.number().int().min(1).max(64).default(1),
+    SHUTDOWN_GRACE_MS: z.coerce.number().int().min(5_000).max(120_000).default(30_000),
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),
@@ -73,6 +76,8 @@ export const envSchema = z
     RATE_LIMIT_WINDOW: z.string().min(1).default('1 minute'),
     AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
     AUTH_RATE_LIMIT_WINDOW: z.string().min(1).default('1 minute'),
+    SLOW_REQUEST_THRESHOLD_MS: z.coerce.number().int().min(100).default(500),
+    MEDIA_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
 
     // --- API docs --------------------------------------------------------
     SWAGGER_ENABLED: z.stringbool().default(true),
@@ -140,7 +145,62 @@ export const envSchema = z
     }
 
     if (value.NODE_ENV === 'production') {
-      if ((value.NOTIFICATION_WORKER_ENABLED || value.COMMUNICATION_WORKER_ENABLED) && !value.MONGODB_TRANSACTIONS_ENABLED) {
+      if (value.TRUST_PROXY_HOPS === 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['TRUST_PROXY_HOPS'],
+          message: 'must explicitly describe the trusted production reverse-proxy hop count',
+        });
+      }
+      if (value.API_REPLICA_COUNT !== 1) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['API_REPLICA_COUNT'],
+          message: 'must remain 1 until a shared rate-limit store is configured',
+        });
+      }
+      if (!value.FRONTEND_URL.startsWith('https://')) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['FRONTEND_URL'],
+          message: 'must use https:// in production',
+        });
+      }
+      const additionalOrigins = value.CORS_ADDITIONAL_ORIGINS.split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+      for (const origin of additionalOrigins) {
+        let parsed: URL | null = null;
+        try {
+          parsed = new URL(origin);
+        } catch {
+          // Reported below with a stable environment-field path.
+        }
+        if (origin === '*' || parsed?.protocol !== 'https:' || parsed.origin !== origin) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['CORS_ADDITIONAL_ORIGINS'],
+            message: `contains an invalid production origin: ${origin}`,
+          });
+        }
+      }
+      for (const key of [
+        'CLOUDINARY_CLOUD_NAME',
+        'CLOUDINARY_API_KEY',
+        'CLOUDINARY_API_SECRET',
+      ] as const) {
+        if (value[key] === '') {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: 'is required in production for protected clinical artifacts',
+          });
+        }
+      }
+      if (
+        (value.NOTIFICATION_WORKER_ENABLED || value.COMMUNICATION_WORKER_ENABLED) &&
+        !value.MONGODB_TRANSACTIONS_ENABLED
+      ) {
         ctx.addIssue({
           code: 'custom',
           path: ['MONGODB_TRANSACTIONS_ENABLED'],
@@ -258,7 +318,7 @@ export const corsOrigins: string[] = [
     .filter((origin) => origin.length > 0),
 ];
 
-/** Cloudinary is optional for the MVP; media routes stay disabled without it. */
+/** Cloudinary may be omitted only outside production. */
 export const isCloudinaryConfigured =
   env.CLOUDINARY_CLOUD_NAME !== '' &&
   env.CLOUDINARY_API_KEY !== '' &&

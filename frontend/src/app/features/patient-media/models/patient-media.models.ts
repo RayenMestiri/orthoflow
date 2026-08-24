@@ -27,7 +27,7 @@ export interface PatientMedia {
   title: string;
   description: string | null;
   storageProvider: string;
-  secureUrl: string;
+  contentUrl: string;
   originalFileName: string;
   mimeType: string;
   fileSizeBytes: number;

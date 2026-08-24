@@ -71,7 +71,6 @@ export class PatientMediaWorkspace implements OnDestroy {
   protected readonly drawerMode = signal<DrawerMode | null>(null);
   protected readonly selected = signal<PatientMedia | null>(null);
   protected readonly archiveTarget = signal<PatientMedia | null>(null);
-  protected readonly deleteTarget = signal<PatientMedia | null>(null);
   protected readonly replaceTarget = signal<PatientMedia | null>(null);
   protected readonly replaceSelectedFile = signal<File | null>(null);
   protected readonly replaceFileError = signal<string | null>(null);
@@ -415,30 +414,6 @@ export class PatientMediaWorkspace implements OnDestroy {
   protected async restoreItem(media: PatientMedia): Promise<void> {
     if (!this.canManageItem(media)) return;
     await this.store.restore(media.id);
-  }
-
-  /** Opens the permanent-delete confirmation for a single item. */
-  protected confirmDelete(media: PatientMedia): void {
-    if (!this.canManageItem(media)) return;
-    this.deleteTarget.set(media);
-  }
-
-  protected closeDelete(): void {
-    if (!this.store.isSaving()) this.deleteTarget.set(null);
-  }
-
-  /** Permanently deletes the item after confirmation. */
-  protected async deleteItem(): Promise<void> {
-    const media = this.deleteTarget();
-    if (!media) return;
-    const ok = await this.store.delete(media.id);
-    if (ok) {
-      this.deleteTarget.set(null);
-      if (this.selected()?.id === media.id) {
-        this.drawerMode.set(null);
-        this.selected.set(null);
-      }
-    }
   }
 
   /** Opens the replace-image file picker for an existing item. */

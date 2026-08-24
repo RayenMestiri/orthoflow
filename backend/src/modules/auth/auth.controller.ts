@@ -30,6 +30,14 @@ function requestContext(request: FastifyRequest): AuthRequestContext {
   };
 }
 
+function publicTokens(tokens: { accessToken: string; tokenType: 'Bearer'; expiresIn: number }) {
+  return {
+    accessToken: tokens.accessToken,
+    tokenType: tokens.tokenType,
+    expiresIn: tokens.expiresIn,
+  };
+}
+
 export async function registerHandler(request: FastifyRequest, reply: FastifyReply) {
   const result = await authService.register(
     validatedBody<RegisterBody>(request),
@@ -42,7 +50,7 @@ export async function registerHandler(request: FastifyRequest, reply: FastifyRep
       user: result.user,
       clinic: result.clinic,
       memberships: result.memberships,
-      tokens: result.tokens,
+      tokens: publicTokens(result.tokens),
       verification: result.verification,
     }),
   );
@@ -56,7 +64,7 @@ export async function loginHandler(request: FastifyRequest, reply: FastifyReply)
   setRefreshCookie(reply, result.tokens.refreshToken);
 
   return reply.send(
-    ok({ user: result.user, memberships: result.memberships, tokens: result.tokens }),
+    ok({ user: result.user, memberships: result.memberships, tokens: publicTokens(result.tokens) }),
   );
 }
 
@@ -74,7 +82,7 @@ export async function refreshHandler(request: FastifyRequest, reply: FastifyRepl
   const tokens = await authService.refresh(token, requestContext(request));
   setRefreshCookie(reply, tokens.refreshToken);
 
-  return reply.send(ok({ tokens }));
+  return reply.send(ok({ tokens: publicTokens(tokens) }));
 }
 
 export async function logoutHandler(request: FastifyRequest, reply: FastifyReply) {

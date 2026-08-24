@@ -8,6 +8,23 @@ const validEnv = {
   AUTH_CODE_SECRET: 'c'.repeat(40),
 };
 
+const validProductionEnv = {
+  ...validEnv,
+  NODE_ENV: 'production',
+  FRONTEND_URL: 'https://app.orthoflow.example',
+  TRUST_PROXY_HOPS: '1',
+  CLOUDINARY_CLOUD_NAME: 'orthoflow-production',
+  CLOUDINARY_API_KEY: 'cloudinary-key',
+  CLOUDINARY_API_SECRET: 'cloudinary-secret',
+  PORTAL_JWT_ACCESS_SECRET: 'd'.repeat(40),
+  PORTAL_JWT_REFRESH_SECRET: 'e'.repeat(40),
+  SMTP_HOST: 'smtp.example.com',
+  SMTP_USER: 'smtp-user',
+  SMTP_PASS: 'smtp-password',
+  SMTP_FROM_ADDRESS: 'noreply@orthoflow.example',
+  COMMUNICATION_PAYLOAD_SECRET: 'f'.repeat(40),
+};
+
 describe('parseEnv', () => {
   it('applies defaults for everything that is not required', () => {
     const env = parseEnv(validEnv);
@@ -31,6 +48,20 @@ describe('parseEnv', () => {
     expect(env.PORT).toBe(8080);
     expect(env.BODY_LIMIT_BYTES).toBe(2048);
     expect(env.MONGODB_TRANSACTIONS_ENABLED).toBe(false);
+  });
+
+  it('accepts a complete single-replica production environment', () => {
+    const env = parseEnv(validProductionEnv);
+
+    expect(env.NODE_ENV).toBe('production');
+    expect(env.TRUST_PROXY_HOPS).toBe(1);
+    expect(env.API_REPLICA_COUNT).toBe(1);
+  });
+
+  it('rejects horizontal replicas while rate limiting is process-local', () => {
+    expect(() => parseEnv({ ...validProductionEnv, API_REPLICA_COUNT: '2' })).toThrow(
+      /shared rate-limit store/,
+    );
   });
 
   it('treats an empty value as "not provided" so the default applies', () => {

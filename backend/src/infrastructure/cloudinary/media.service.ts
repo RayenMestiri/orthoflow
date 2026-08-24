@@ -1,5 +1,6 @@
 import type { UploadApiOptions, UploadApiResponse } from 'cloudinary';
 import { cloudinaryConfig, getCloudinary } from '../../config/cloudinary.js';
+import { env } from '../../config/env.js';
 import { ERROR_CODES } from '../../common/constants/error-codes.js';
 import { ServiceUnavailableError } from '../../common/errors/app-error.js';
 
@@ -162,16 +163,18 @@ export class MediaService {
           resolvedFormat = extMatch?.[1] ?? '';
         }
       }
-      downloadUrl = cloudinary.utils.private_download_url(publicId, resolvedFormat, {
-        resource_type: resourceType,
-        type: deliveryType,
-      }) ?? '';
+      downloadUrl =
+        cloudinary.utils.private_download_url(publicId, resolvedFormat, {
+          resource_type: resourceType,
+          type: deliveryType,
+        }) ?? '';
     } else {
-      downloadUrl = cloudinary.url(publicId, {
-        resource_type: resourceType,
-        type: deliveryType,
-        secure: true,
-      }) ?? '';
+      downloadUrl =
+        cloudinary.url(publicId, {
+          resource_type: resourceType,
+          type: deliveryType,
+          secure: true,
+        }) ?? '';
     }
 
     const response = await fetch(downloadUrl);
@@ -181,6 +184,33 @@ export class MediaService {
       });
     }
     return Buffer.from(await response.arrayBuffer());
+  }
+
+  /**
+   * Creates a short-lived provider URL for an already-authorized browser read.
+   * The durable Cloudinary URL is never returned by domain DTOs.
+   */
+  createPrivateDownloadUrl(
+    publicId: string,
+    resourceType: string,
+    deliveryType: 'upload' | 'authenticated' = 'authenticated',
+    format = '',
+    lifetimeSeconds = env.MEDIA_SIGNED_URL_TTL_SECONDS,
+  ): string {
+    if (!this.isEnabled()) {
+      throw new ServiceUnavailableError('Media storage is not configured', {
+        code: ERROR_CODES.MEDIA_STORAGE_UNAVAILABLE,
+      });
+    }
+    const resolvedFormat =
+      format || (resourceType === 'raw' || publicId.endsWith('.pdf') ? 'pdf' : '');
+    return (
+      getCloudinary().utils.private_download_url(publicId, resolvedFormat, {
+        resource_type: resourceType,
+        type: deliveryType,
+        expires_at: Math.floor(Date.now() / 1000) + lifetimeSeconds,
+      }) ?? ''
+    );
   }
 
   /**

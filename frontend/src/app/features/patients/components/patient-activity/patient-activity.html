@@ -66,7 +66,8 @@
       </div>
       <h3>Aucun historique pour le moment</h3>
       <p>
-        Les rendez-vous, consultations, paiements et documents apparaîtront ici au fil du suivi du patient.
+        Les rendez-vous, consultations, paiements et documents apparaîtront ici au fil du suivi du
+        patient.
       </p>
     </div>
   } @else {
@@ -83,9 +84,16 @@
             @for (item of group.items; track item.id) {
               <li
                 class="activity-row"
-                [class.activity-row--cancelled]="item.type === 'APPOINTMENT_CANCELLED' || item.type === 'PAYMENT_CANCELLED' || item.type === 'TREATMENT_CANCELLED'"
+                [class.activity-row--cancelled]="
+                  item.type === 'APPOINTMENT_CANCELLED' ||
+                  item.type === 'PAYMENT_CANCELLED' ||
+                  item.type === 'TREATMENT_CANCELLED'
+                "
                 [class.activity-row--clickable]="!!item.targetType"
+                [attr.role]="item.targetType ? 'button' : null"
+                [attr.tabindex]="item.targetType ? 0 : null"
                 (click)="onEventClick(item)"
+                (keydown.enter)="onEventClick(item)"
               >
                 <!-- Time Column -->
                 <div class="activity-row__time">
@@ -93,7 +101,11 @@
                 </div>
 
                 <!-- Vertical Marker Node -->
-                <div class="activity-row__marker" [attr.data-category]="item.category" aria-hidden="true">
+                <div
+                  class="activity-row__marker"
+                  [attr.data-category]="item.category"
+                  aria-hidden="true"
+                >
                   <span class="material-icons">{{ iconFor(item) }}</span>
                 </div>
 
@@ -127,7 +139,9 @@
 
                   @if (item.actor) {
                     <footer class="activity-row__footer">
-                      <span class="material-icons activity-row__actor-icon" aria-hidden="true">person</span>
+                      <span class="material-icons activity-row__actor-icon" aria-hidden="true"
+                        >person</span
+                      >
                       <span class="activity-row__actor-name">{{ item.actor.displayName }}</span>
                       @if (item.actor.role) {
                         <span class="activity-row__actor-role">({{ item.actor.role }})</span>

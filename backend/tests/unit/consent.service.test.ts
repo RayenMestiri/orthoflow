@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CLINIC_ROLES } from '../../src/common/constants/roles.js';
 import {
   ConsentService,
   ConsentTemplateService,
@@ -22,7 +21,6 @@ const CONSENT_ID = new Types.ObjectId().toString();
 const USER_ID = new Types.ObjectId().toString();
 const CONTEXT: ConsentMutationContext = {
   actorUserId: USER_ID,
-  clinicRole: CLINIC_ROLES.CLINIC_OWNER,
   ip: null,
   userAgent: null,
 };
@@ -162,11 +160,13 @@ describe('ConsentService evidence safeguards', () => {
       .digest('hex');
   }
 
-  function makeService(options: {
-    replay?: SignedConsentRecord | null;
-    consent?: SignedConsentRecord | null;
-    downloaded?: Buffer;
-  } = {}) {
+  function makeService(
+    options: {
+      replay?: SignedConsentRecord | null;
+      consent?: SignedConsentRecord | null;
+      downloaded?: Buffer;
+    } = {},
+  ) {
     const consents = {
       findByIdempotencyKey: vi.fn(async () => options.replay ?? null),
       findByIdInClinic: vi.fn(async () => options.consent ?? null),
@@ -180,11 +180,31 @@ describe('ConsentService evidence safeguards', () => {
     const service = new ConsentService(
       consents as never,
       { findByIdInClinic: vi.fn(async () => template()) } as never,
-      { findByIdInClinic: vi.fn(async () => ({ firstName: 'Nadia', lastName: 'Patient', birthDate: null })) } as never,
+      {
+        findByIdInClinic: vi.fn(async () => ({
+          firstName: 'Nadia',
+          lastName: 'Patient',
+          birthDate: null,
+        })),
+      } as never,
       {} as never,
       {} as never,
-      { findById: vi.fn(async () => ({ name: 'Clinic', timezone: 'UTC', address: {}, phone: null, settings: {} })) } as never,
-      { findById: vi.fn(async () => ({ firstName: 'Dr', lastName: 'Aymen', email: 'doctor@example.com' })) } as never,
+      {
+        findById: vi.fn(async () => ({
+          name: 'Clinic',
+          timezone: 'UTC',
+          address: {},
+          phone: null,
+          settings: {},
+        })),
+      } as never,
+      {
+        findById: vi.fn(async () => ({
+          firstName: 'Dr',
+          lastName: 'Aymen',
+          email: 'doctor@example.com',
+        })),
+      } as never,
       {} as never,
       {} as never,
       storage,
@@ -203,17 +223,30 @@ describe('ConsentService evidence safeguards', () => {
 
   it('rejects reuse of an idempotency key for changed evidence', async () => {
     const { service } = makeService({ replay: signed('different-payload') });
-    await expect(service.sign(CLINIC_ID, PATIENT_ID, input, signature, CONTEXT)).rejects.toMatchObject({
+    await expect(
+      service.sign(CLINIC_ID, PATIENT_ID, input, signature, CONTEXT),
+    ).rejects.toMatchObject({
       code: 'CONSENT_IDEMPOTENCY_CONFLICT',
     });
   });
 
   it('requires a guardian when the patient is a minor', async () => {
     const { service } = makeService();
-    const patients = { findByIdInClinic: vi.fn(async () => ({ firstName: 'Nadia', lastName: 'Patient', birthDate: new Date('2014-01-01') })) };
+    const patients = {
+      findByIdInClinic: vi.fn(async () => ({
+        firstName: 'Nadia',
+        lastName: 'Patient',
+        birthDate: new Date('2014-01-01'),
+      })),
+    };
     Object.assign(service, { patients });
     await expect(
-      service.preview(CLINIC_ID, PATIENT_ID, { templateId: TEMPLATE_ID, signerType: 'PATIENT' }, CONTEXT),
+      service.preview(
+        CLINIC_ID,
+        PATIENT_ID,
+        { templateId: TEMPLATE_ID, signerType: 'PATIENT' },
+        CONTEXT,
+      ),
     ).rejects.toMatchObject({ code: 'CONSENT_GUARDIAN_REQUIRED' });
   });
 

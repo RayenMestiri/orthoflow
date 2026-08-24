@@ -99,8 +99,9 @@ export class DashboardRepository {
 
     return logs.map((log) => {
       const actorUserId = log.actorUserId ? String(log.actorUserId) : null;
-      const actorName = actorUserId ? userMap.get(actorUserId) ?? 'Membre du cabinet' : 'Système';
-      const patientId = log.metadata?.patientId ? String(log.metadata.patientId) : undefined;
+      const actorName = actorUserId ? (userMap.get(actorUserId) ?? 'Membre du cabinet') : 'Système';
+      const rawPatientId = log.metadata?.patientId;
+      const patientId = typeof rawPatientId === 'string' ? rawPatientId : undefined;
       const patientName = patientId ? patientMap.get(patientId) : undefined;
 
       return {
@@ -116,7 +117,9 @@ export class DashboardRepository {
     });
   }
 
-  async getClinicSetupCounts(clinicId: string): Promise<{ appointmentTypesCount: number; membersCount: number }> {
+  async getClinicSetupCounts(
+    clinicId: string,
+  ): Promise<{ appointmentTypesCount: number; membersCount: number }> {
     const clinicObjectId = toObjectId(clinicId, 'clinicId');
     const [appointmentTypesCount, membersCount] = await Promise.all([
       AppointmentTypeModel.countDocuments({ clinicId: clinicObjectId, isActive: true }),

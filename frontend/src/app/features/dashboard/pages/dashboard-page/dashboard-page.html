@@ -2,17 +2,20 @@
   @if (store.loading()) {
     <!-- Regional Loading Skeletons -->
     <header class="dash-header skeleton-header">
-      <div class="skeleton-box" style="width: 240px; height: 32px; border-radius: 8px;"></div>
-      <div class="skeleton-box" style="width: 180px; height: 20px; border-radius: 6px; margin-top: 8px;"></div>
+      <div class="skeleton-box" style="width: 240px; height: 32px; border-radius: 8px"></div>
+      <div
+        class="skeleton-box"
+        style="width: 180px; height: 20px; border-radius: 6px; margin-top: 8px"
+      ></div>
     </header>
 
     <div class="dash-grid">
-      <div class="dash-col-8 skeleton-card" style="height: 280px;"></div>
-      <div class="dash-col-4 skeleton-card" style="height: 280px;"></div>
-      <div class="dash-col-6 skeleton-card" style="height: 260px;"></div>
-      <div class="dash-col-6 skeleton-card" style="height: 260px;"></div>
-      <div class="dash-col-6 skeleton-card" style="height: 260px;"></div>
-      <div class="dash-col-6 skeleton-card" style="height: 260px;"></div>
+      <div class="dash-col-8 skeleton-card" style="height: 280px"></div>
+      <div class="dash-col-4 skeleton-card" style="height: 280px"></div>
+      <div class="dash-col-6 skeleton-card" style="height: 260px"></div>
+      <div class="dash-col-6 skeleton-card" style="height: 260px"></div>
+      <div class="dash-col-6 skeleton-card" style="height: 260px"></div>
+      <div class="dash-col-6 skeleton-card" style="height: 260px"></div>
     </div>
   } @else if (store.error()) {
     <div class="dash-error-card" role="alert">
@@ -81,7 +84,12 @@
               <span class="material-icons" aria-hidden="true">tune</span>
             </div>
             <div>
-              <strong>Configuration initiale du cabinet ({{ data.setup.remainingCount }} élément{{ data.setup.remainingCount > 1 ? 's' : '' }} restant{{ data.setup.remainingCount > 1 ? 's' : '' }})</strong>
+              <strong
+                >Configuration initiale du cabinet ({{ data.setup.remainingCount }} élément{{
+                  data.setup.remainingCount > 1 ? 's' : ''
+                }}
+                restant{{ data.setup.remainingCount > 1 ? 's' : '' }})</strong
+              >
               <p>Éléments à compléter : {{ data.setup.pendingItems.join(', ') }}.</p>
             </div>
           </div>
@@ -137,7 +145,11 @@
 
           <!-- PROMINENT NEXT PATIENT CARD -->
           @if (data.today.nextPatient; as next) {
-            <div class="dash-next-hero" [class.is-chair]="next.flowGroup === 'IN_TREATMENT'" [class.is-waiting]="next.flowGroup === 'WAITING'">
+            <div
+              class="dash-next-hero"
+              [class.is-chair]="next.flowGroup === 'IN_TREATMENT'"
+              [class.is-waiting]="next.flowGroup === 'WAITING'"
+            >
               <div class="dash-next-hero__top">
                 <span class="dash-next-hero__avatar">{{ initials(next.patientName) }}</span>
                 <div class="dash-next-hero__identity">
@@ -147,14 +159,24 @@
                     </a>
                     <span class="dash-flow-badge" [class]="flowGroupBadgeClass(next.flowGroup)">
                       <span class="material-icons" aria-hidden="true">
-                        {{ next.flowGroup === 'IN_TREATMENT' ? 'airline_seat_recline_normal' : (next.flowGroup === 'WAITING' ? 'hourglass_top' : 'schedule') }}
+                        {{
+                          next.flowGroup === 'IN_TREATMENT'
+                            ? 'airline_seat_recline_normal'
+                            : next.flowGroup === 'WAITING'
+                              ? 'hourglass_top'
+                              : 'schedule'
+                        }}
                       </span>
                       <span>{{ flowGroupLabel(next.flowGroup) }}</span>
                     </span>
                   </div>
                   <p class="dash-next-hero__treatment">
-                    <span class="treatment-name">{{ next.treatmentLabel || next.appointmentTypeName }}</span>
-                    <span class="time-slot">{{ formatTime(next.startAt) }} - {{ formatTime(next.endAt) }}</span>
+                    <span class="treatment-name">{{
+                      next.treatmentLabel || next.appointmentTypeName
+                    }}</span>
+                    <span class="time-slot"
+                      >{{ formatTime(next.startAt) }} - {{ formatTime(next.endAt) }}</span
+                    >
                   </p>
                 </div>
 
@@ -168,7 +190,9 @@
                   } @else if (next.isNow) {
                     <span class="countdown-tag now">Maintenant</span>
                   } @else {
-                    <span class="countdown-tag upcoming">Dans {{ next.minutesUntilStart }} min</span>
+                    <span class="countdown-tag upcoming"
+                      >Dans {{ next.minutesUntilStart }} min</span
+                    >
                   }
                 </div>
               </div>
@@ -188,8 +212,11 @@
             <div class="dash-empty-state">
               <span class="material-icons" aria-hidden="true">event_available</span>
               <strong>Aucun rendez-vous en cours ou imminent</strong>
-              <small>Le planning de la journée est calme ou toutes les consultations sont achevées.</small>
-              <a routerLink="/app/schedule" class="dash-btn-secondary" style="margin-top: 0.75rem;">
+              <small
+                >Le planning de la journée est calme ou toutes les consultations sont
+                achevées.</small
+              >
+              <a routerLink="/app/schedule" class="dash-btn-secondary" style="margin-top: 0.75rem">
                 <span class="material-icons" aria-hidden="true">calendar_month</span>
                 <span>Consulter l'agenda complet</span>
               </a>
@@ -208,13 +235,20 @@
       <!-- 2. FINANCIAL PULSE (4 COLS)               -->
       <!-- ========================================== -->
       @if (canViewFinance() && data.finance; as fin) {
-        <section class="dash-card dash-col-4 dash-finance-pulse" aria-labelledby="finance-pulse-heading">
+        <section
+          class="dash-card dash-col-4 dash-finance-pulse"
+          aria-labelledby="finance-pulse-heading"
+        >
           <div class="dash-card__header">
             <div class="dash-card__title-group">
               <span class="dash-card__eyebrow">PULSION FINANCIÈRE</span>
               <h2 id="finance-pulse-heading">Caisse du jour</h2>
             </div>
-            <a routerLink="/app/finance" class="dash-card__link" title="Consulter la gestion financière">
+            <a
+              routerLink="/app/finance"
+              class="dash-card__link"
+              title="Consulter la gestion financière"
+            >
               <span class="material-icons" aria-hidden="true">arrow_forward</span>
             </a>
           </div>
@@ -223,10 +257,17 @@
             <!-- Large today figure -->
             <div class="finance-today-card">
               <span class="finance-today-label">Encaissé aujourd’hui</span>
-              <strong class="finance-today-amount">{{ formatMoney(fin.receivedTodayMinor, fin.currency) }}</strong>
+              <strong class="finance-today-amount">{{
+                formatMoney(fin.receivedTodayMinor, fin.currency)
+              }}</strong>
               <span class="finance-today-sub">
                 @if (fin.receivedTodayCount > 0) {
-                  {{ fin.receivedTodayCount }} paiement{{ fin.receivedTodayCount > 1 ? 's' : '' }} physique{{ fin.receivedTodayCount > 1 ? 's' : '' }} enregistré{{ fin.receivedTodayCount > 1 ? 's' : '' }}
+                  {{ fin.receivedTodayCount }} paiement{{
+                    fin.receivedTodayCount > 1 ? 's' : ''
+                  }}
+                  physique{{ fin.receivedTodayCount > 1 ? 's' : '' }} enregistré{{
+                    fin.receivedTodayCount > 1 ? 's' : ''
+                  }}
                 } @else {
                   Aucun versement physique enregistré pour l'instant
                 }
@@ -237,11 +278,15 @@
             <div class="finance-metrics-grid">
               <div class="finance-metric-box">
                 <span class="finance-metric-label">Ce mois</span>
-                <strong class="finance-metric-val">{{ formatMoney(fin.receivedMonthMinor, fin.currency) }}</strong>
+                <strong class="finance-metric-val">{{
+                  formatMoney(fin.receivedMonthMinor, fin.currency)
+                }}</strong>
               </div>
               <div class="finance-metric-box">
                 <span class="finance-metric-label">Restant dû</span>
-                <strong class="finance-metric-val text-due">{{ formatMoney(fin.outstandingMinor, fin.currency) }}</strong>
+                <strong class="finance-metric-val text-due">{{
+                  formatMoney(fin.outstandingMinor, fin.currency)
+                }}</strong>
               </div>
             </div>
 
@@ -291,7 +336,10 @@
                     <a [routerLink]="['/app/patients', late.patientId]" class="late-patient-name">
                       <strong>{{ late.patientName }}</strong>
                     </a>
-                    <span>Rendez-vous de {{ formatTime(late.startAt) }} · {{ late.appointmentTypeName }}</span>
+                    <span
+                      >Rendez-vous de {{ formatTime(late.startAt) }} ·
+                      {{ late.appointmentTypeName }}</span
+                    >
                   </div>
                   <span class="late-delay-badge">{{ late.lateMinutes }} min de retard</span>
                 </div>
@@ -318,7 +366,10 @@
                 </li>
               }
             </ul>
-          } @else if (!data.today || (data.today.waitingPatients.length === 0 && data.today.latePatients.length === 0)) {
+          } @else if (
+            !data.today ||
+            (data.today.waitingPatients.length === 0 && data.today.latePatients.length === 0)
+          ) {
             <div class="dash-empty-state compact">
               <span class="material-icons" aria-hidden="true">chair</span>
               <strong>Salle d'attente vide</strong>
@@ -331,7 +382,10 @@
       <!-- ========================================== -->
       <!-- 4. FOLLOW-UPS ATTENTION (6 COLS)           -->
       <!-- ========================================== -->
-      <section class="dash-card dash-col-6 dash-followups-section" aria-labelledby="followups-heading">
+      <section
+        class="dash-card dash-col-6 dash-followups-section"
+        aria-labelledby="followups-heading"
+      >
         <div class="dash-card__header">
           <div class="dash-card__title-group">
             <span class="dash-card__eyebrow">SUIVIS CLINIQUES</span>
@@ -368,7 +422,13 @@
                         <a [routerLink]="['/app/patients', row.patient.id]" class="dash-fu-name">
                           {{ row.patient.fullName }}
                         </a>
-                        <span class="dash-fu-badge" [class.overdue]="row.state === 'OVERDUE'" [class.recommended]="row.state === 'DUE_SOON' || row.state === 'NEEDS_SCHEDULING'">
+                        <span
+                          class="dash-fu-badge"
+                          [class.overdue]="row.state === 'OVERDUE'"
+                          [class.recommended]="
+                            row.state === 'DUE_SOON' || row.state === 'NEEDS_SCHEDULING'
+                          "
+                        >
                           @if (row.state === 'OVERDUE') {
                             {{ row.daysFromRecommendation }}j de retard
                           } @else if (row.daysFromRecommendation > 0) {
@@ -378,10 +438,16 @@
                           }
                         </span>
                       </div>
-                      <small class="dash-fu-treatment">{{ row.treatment?.label || 'Traitement orthodontique' }}</small>
+                      <small class="dash-fu-treatment">{{
+                        row.treatment?.label || 'Traitement orthodontique'
+                      }}</small>
                     </div>
 
-                    <a [routerLink]="['/app/schedule']" class="dash-btn-schedule-sm" title="Fixer un rendez-vous">
+                    <a
+                      [routerLink]="['/app/schedule']"
+                      class="dash-btn-schedule-sm"
+                      title="Fixer un rendez-vous"
+                    >
                       <span class="material-icons" aria-hidden="true">event</span>
                       <span>Planifier</span>
                     </a>
@@ -427,7 +493,8 @@
                 <strong>{{ taskSection.summary.overdue }}</strong> en retard
               </span>
               <span class="fu-stat pending">
-                <strong>{{ taskSection.summary.toDo + taskSection.summary.inProgress }}</strong> à traiter
+                <strong>{{ taskSection.summary.toDo + taskSection.summary.inProgress }}</strong> à
+                traiter
               </span>
               <span class="fu-stat scheduled">
                 <strong>{{ taskSection.summary.completedToday }}</strong> terminées auj.
@@ -478,7 +545,12 @@
           <div class="dash-empty-state compact">
             <span class="material-icons" aria-hidden="true">task_alt</span>
             <strong>Espace tâches</strong>
-            <small><a routerLink="/app/tasks" class="text-teal-600 underline">Créer une première tâche</a> pour l'équipe.</small>
+            <small
+              ><a routerLink="/app/tasks" class="text-teal-600 underline"
+                >Créer une première tâche</a
+              >
+              pour l'équipe.</small
+            >
           </div>
         }
       </section>
@@ -486,14 +558,19 @@
       <!-- ========================================== -->
       <!-- 5. ATTENTION CENTER (6 COLS)              -->
       <!-- ========================================== -->
-      <section class="dash-card dash-col-6 dash-attention-section" aria-labelledby="attention-heading">
+      <section
+        class="dash-card dash-col-6 dash-attention-section"
+        aria-labelledby="attention-heading"
+      >
         <div class="dash-card__header">
           <div class="dash-card__title-group">
             <span class="dash-card__eyebrow">POINTS D'ATTENTION</span>
             <h2 id="attention-heading">Vérifications opérationnelles</h2>
           </div>
           @if (data.attention.length > 0) {
-            <span class="dash-badge-attention">{{ data.attention.length }} point{{ data.attention.length > 1 ? 's' : '' }}</span>
+            <span class="dash-badge-attention"
+              >{{ data.attention.length }} point{{ data.attention.length > 1 ? 's' : '' }}</span
+            >
           }
         </div>
 
@@ -501,10 +578,23 @@
           @if (data.attention.length > 0) {
             <div class="dash-attention-list">
               @for (item of data.attention; track item.id) {
-                <div class="dash-attention-card" [class]="'level-' + item.level.toLowerCase()" (click)="handleAttentionClick(item)">
+                <div
+                  class="dash-attention-card"
+                  role="button"
+                  tabindex="0"
+                  [class]="'level-' + item.level.toLowerCase()"
+                  (click)="handleAttentionClick(item)"
+                  (keydown.enter)="handleAttentionClick(item)"
+                >
                   <div class="attention-icon-box">
                     <span class="material-icons" aria-hidden="true">
-                      {{ item.level === 'CRITICAL' ? 'report' : (item.level === 'WARNING' ? 'warning' : 'info') }}
+                      {{
+                        item.level === 'CRITICAL'
+                          ? 'report'
+                          : item.level === 'WARNING'
+                            ? 'warning'
+                            : 'info'
+                      }}
                     </span>
                   </div>
                   <div class="attention-content">
@@ -531,7 +621,10 @@
       <!-- ========================================== -->
       <!-- 6. RECENT ACTIVITY STREAM (6 COLS)        -->
       <!-- ========================================== -->
-      <section class="dash-card dash-col-6 dash-activity-section" aria-labelledby="activity-heading">
+      <section
+        class="dash-card dash-col-6 dash-activity-section"
+        aria-labelledby="activity-heading"
+      >
         <div class="dash-card__header">
           <div class="dash-card__title-group">
             <span class="dash-card__eyebrow">HISTORIQUE RÉCENT</span>
@@ -545,13 +638,17 @@
               @for (act of data.recentActivity; track act.id) {
                 <li class="dash-activity-item">
                   <div class="act-icon-box" [class]="activityColorClass(act.type)">
-                    <span class="material-icons" aria-hidden="true">{{ activityIcon(act.type) }}</span>
+                    <span class="material-icons" aria-hidden="true">{{
+                      activityIcon(act.type)
+                    }}</span>
                   </div>
                   <div class="act-content">
                     <div class="act-title-row">
                       <strong>{{ act.title }}</strong>
                       @if (act.amountMinor) {
-                        <span class="act-amount">+{{ formatMoney(act.amountMinor, act.currency || 'TND') }}</span>
+                        <span class="act-amount"
+                          >+{{ formatMoney(act.amountMinor, act.currency || 'TND') }}</span
+                        >
                       }
                     </div>
                     <p class="act-subtitle">{{ act.subtitle }}</p>

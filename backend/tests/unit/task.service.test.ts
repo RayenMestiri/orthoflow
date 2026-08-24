@@ -1,13 +1,15 @@
 import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CLINIC_ROLES, MEMBERSHIP_STATUSES } from '../../src/common/constants/roles.js';
-import {
-  BusinessRuleError,
-  NotFoundError,
-  ValidationError,
-} from '../../src/common/errors/index.js';
+import { BusinessRuleError, ValidationError } from '../../src/common/errors/index.js';
 import { TaskService } from '../../src/modules/tasks/task.service.js';
 import type { TaskRecord } from '../../src/modules/tasks/task.types.js';
+import type { TaskRepository } from '../../src/modules/tasks/task.repository.js';
+import type { MembershipRepository } from '../../src/modules/memberships/membership.repository.js';
+import type { UserRepository } from '../../src/modules/users/user.repository.js';
+import type { PatientRepository } from '../../src/modules/patients/patient.repository.js';
+import type { AuditLogService } from '../../src/modules/audit-logs/audit-log.service.js';
+import type { CommunicationEventService } from '../../src/modules/notifications/notification.service.js';
 
 const CLINIC_ID = '652f1c9b8a1e4f0012ab34cd';
 const DOCTOR_ID = '652f1c9b8a1e4f0012ab0001';
@@ -15,17 +17,24 @@ const SECRETARY_ID = '652f1c9b8a1e4f0012ab0002';
 const PATIENT_ID = '652f1c9b8a1e4f0012abaaaa';
 
 describe('TaskService', () => {
-  let taskRepo: any;
-  let membershipRepo: any;
-  let userRepo: any;
-  let patientRepo: any;
-  let auditLogs: any;
-  let communicationEvents: any;
+  type MockFn = ReturnType<typeof vi.fn>;
+  let taskRepo: {
+    create: MockFn;
+    findById: MockFn;
+    list: MockFn;
+    getSummary: MockFn;
+    update: MockFn;
+  };
+  let membershipRepo: { findByUserAndClinic: MockFn; findManyByUsersInClinic: MockFn };
+  let userRepo: { findById: MockFn; findManyByIds: MockFn };
+  let patientRepo: { findByIdInClinic: MockFn; findManyByIdsInClinic: MockFn };
+  let auditLogs: { record: MockFn };
+  let communicationEvents: { enqueue: MockFn };
   let service: TaskService;
 
   beforeEach(() => {
     taskRepo = {
-      create: vi.fn(async (data) => ({
+      create: vi.fn(async (data: Partial<TaskRecord>) => ({
         _id: new Types.ObjectId('652f1c9b8a1e4f0012ab9999'),
         ...data,
         createdAt: new Date(),
@@ -71,6 +80,7 @@ describe('TaskService', () => {
       findManyByIds: vi.fn(async (ids: string[]) =>
         ids.map((id) => ({
           id,
+          _id: new Types.ObjectId(id),
           firstName: id === DOCTOR_ID ? 'Rayen' : 'Sarah',
           lastName: id === DOCTOR_ID ? 'Mestiri' : 'Trabelsi',
           email: `${id}@test.com`,
@@ -103,12 +113,12 @@ describe('TaskService', () => {
     communicationEvents = { enqueue: vi.fn().mockResolvedValue(undefined) };
 
     service = new TaskService(
-      taskRepo,
-      membershipRepo,
-      userRepo,
-      patientRepo,
-      auditLogs,
-      communicationEvents,
+      taskRepo as unknown as TaskRepository,
+      membershipRepo as unknown as MembershipRepository,
+      userRepo as unknown as UserRepository,
+      patientRepo as unknown as PatientRepository,
+      auditLogs as unknown as AuditLogService,
+      communicationEvents as unknown as CommunicationEventService,
     );
   });
 
@@ -168,13 +178,15 @@ describe('TaskService', () => {
       context: null,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as any;
+    };
 
     taskRepo.findById.mockResolvedValue(initialRecord);
-    taskRepo.update.mockImplementation(async (_cId: string, _tId: string, patch: any) => ({
-      ...initialRecord,
-      ...patch,
-    }));
+    taskRepo.update.mockImplementation(
+      (_cId: string, _tId: string, patch: Partial<TaskRecord>) => ({
+        ...initialRecord,
+        ...patch,
+      }),
+    );
 
     // 1. Start task
     const started = await service.start(CLINIC_ID, DOCTOR_ID, '652f1c9b8a1e4f0012ab9999');
@@ -199,6 +211,7 @@ describe('TaskService', () => {
       _id: new Types.ObjectId('652f1c9b8a1e4f0012ab9999'),
       clinicId: new Types.ObjectId(CLINIC_ID),
       title: 'Appeler patient',
+      description: null,
       status: 'TODO',
       priority: 'NORMAL',
       assignedToUserId: new Types.ObjectId(SECRETARY_ID),
@@ -213,13 +226,15 @@ describe('TaskService', () => {
       context: null,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as any;
+    };
 
     taskRepo.findById.mockResolvedValue(initialRecord);
-    taskRepo.update.mockImplementation(async (_cId: string, _tId: string, patch: any) => ({
-      ...initialRecord,
-      ...patch,
-    }));
+    taskRepo.update.mockImplementation(
+      (_cId: string, _tId: string, patch: Partial<TaskRecord>) => ({
+        ...initialRecord,
+        ...patch,
+      }),
+    );
 
     const cancelled = await service.cancel(CLINIC_ID, DOCTOR_ID, '652f1c9b8a1e4f0012ab9999', {
       reason: 'Patient a déjà appelé directement',
@@ -251,7 +266,7 @@ describe('TaskService', () => {
       context: null,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as any;
+    } as TaskRecord;
 
     taskRepo.findById.mockResolvedValue(completedRecord);
 
@@ -287,7 +302,7 @@ describe('TaskService', () => {
         context: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any,
+      } as TaskRecord,
       {
         _id: new Types.ObjectId('652f1c9b8a1e4f0012ab0002'),
         clinicId: new Types.ObjectId(CLINIC_ID),
@@ -306,7 +321,7 @@ describe('TaskService', () => {
         context: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any,
+      } as TaskRecord,
       {
         _id: new Types.ObjectId('652f1c9b8a1e4f0012ab0003'),
         clinicId: new Types.ObjectId(CLINIC_ID),
@@ -325,7 +340,7 @@ describe('TaskService', () => {
         context: null,
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any,
+      } as TaskRecord,
     ];
 
     taskRepo.list.mockResolvedValueOnce({ items: records, total: 3 });
@@ -335,7 +350,7 @@ describe('TaskService', () => {
       DOCTOR_ID,
       CLINIC_ROLES.CLINIC_OWNER,
       {},
-      { page: 1, limit: 20 },
+      { page: 1, limit: 20, skip: 0 },
       nowDate,
     );
 

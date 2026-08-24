@@ -195,7 +195,7 @@ export class ScheduleStore {
       calls.push(
         firstValueFrom(this.api.listAppointments(start.toISOString(), end.toISOString()))
           .then((today) => this.todayState.set(today))
-          .catch(() => {}),
+          .catch(() => undefined),
       );
     }
 
@@ -256,7 +256,7 @@ export class ScheduleStore {
       .then((fresh) => {
         this.upsert(fresh);
       })
-      .catch(() => {});
+      .catch(() => undefined);
   }
 
   async openRemote(appointmentId: string): Promise<void> {

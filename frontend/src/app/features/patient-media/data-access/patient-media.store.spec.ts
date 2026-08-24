@@ -17,7 +17,7 @@ function media(overrides: Partial<PatientMedia> = {}): PatientMedia {
     title: 'Progress month 6',
     description: null,
     storageProvider: 'CLOUDINARY',
-    secureUrl: 'https://res.cloudinary.com/demo/image/upload/v1/progress.jpg',
+    contentUrl: 'https://res.cloudinary.com/demo/private/short-lived.jpg',
     originalFileName: 'progress.jpg',
     mimeType: 'image/jpeg',
     fileSizeBytes: 1024,

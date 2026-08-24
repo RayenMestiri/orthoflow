@@ -90,6 +90,7 @@ export class PatientMediaRepository {
         storageProvider: input.storageProvider,
         publicId: input.publicId,
         resourceType: input.resourceType,
+        deliveryType: input.deliveryType,
         secureUrl: input.secureUrl,
         originalFileName: input.originalFileName,
         mimeType: input.mimeType,
@@ -154,10 +155,7 @@ export class PatientMediaRepository {
       .lean<PatientMediaRecord | null>()
       .exec();
   }
-  async restore(
-    mediaId: string,
-    clinicId: string,
-  ): Promise<PatientMediaRecord | null> {
+  async restore(mediaId: string, clinicId: string): Promise<PatientMediaRecord | null> {
     return PatientMediaModel.findOneAndUpdate(
       {
         ...this.baseFilter(clinicId),
@@ -174,15 +172,6 @@ export class PatientMediaRepository {
       .exec();
   }
 
-  /** Permanently removes a media record from MongoDB. */
-  async deleteById(mediaId: string, clinicId: string): Promise<boolean> {
-    const result = await PatientMediaModel.deleteOne({
-      ...this.baseFilter(clinicId),
-      _id: toObjectId(mediaId, 'mediaId'),
-    }).exec();
-    return result.deletedCount === 1;
-  }
-
   /**
    * Atomically replaces the storage-level fields after a Cloudinary upload.
    * Metadata (title, category, etc.) is left untouched.
@@ -193,6 +182,7 @@ export class PatientMediaRepository {
     fields: {
       publicId: string;
       resourceType: string;
+      deliveryType: 'authenticated';
       secureUrl: string;
       mimeType: string;
       fileSizeBytes: number;

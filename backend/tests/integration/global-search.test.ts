@@ -3,7 +3,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { CLINIC_ROLES } from '../../src/common/constants/roles.js';
 import {
   CLINIC_A,
-  CLINIC_B,
   PATIENT_ID,
   resetRepositoryMocks,
   resetTestState,
@@ -62,27 +61,27 @@ describe('Global Search endpoint', () => {
     vi.spyOn(PatientModel, 'find').mockReturnValue({
       limit: () => ({ lean: async () => [] }),
       lean: async () => [],
-    } as any);
+    } as never);
 
     vi.spyOn(TreatmentModel, 'find').mockReturnValue({
       sort: () => ({ limit: () => ({ lean: async () => [] }) }),
       lean: async () => [],
-    } as any);
+    } as never);
 
     vi.spyOn(ReceiptModel, 'find').mockReturnValue({
       sort: () => ({ limit: () => ({ lean: async () => [] }) }),
       lean: async () => [],
-    } as any);
+    } as never);
 
-    vi.spyOn(AppointmentTypeModel, 'find').mockReturnValue({ lean: async () => [] } as any);
+    vi.spyOn(AppointmentTypeModel, 'find').mockReturnValue({ lean: async () => [] } as never);
     vi.spyOn(AppointmentModel, 'find').mockReturnValue({
       sort: () => ({ limit: () => ({ lean: async () => [] }) }),
       lean: async () => [],
-    } as any);
+    } as never);
     vi.spyOn(PatientMediaModel, 'find').mockReturnValue({
       sort: () => ({ limit: () => ({ lean: async () => [] }) }),
       lean: async () => [],
-    } as any);
+    } as never);
   });
 
   it('rejects queries shorter than 2 characters with 400 Bad Request', async () => {
@@ -110,11 +109,12 @@ describe('Global Search endpoint', () => {
           },
         ],
       }),
-    } as any);
+    } as never);
 
-    vi.spyOn(TreatmentModel, 'find').mockImplementation((filter: any) => {
+    vi.spyOn(TreatmentModel, 'find').mockImplementation((filter: unknown) => {
+      const query = filter as { patientId?: { $in?: unknown } };
       // If querying for active treatments by patientId ($in)
-      if (filter?.patientId?.$in) {
+      if (query.patientId?.$in) {
         return {
           lean: async () => [
             {
@@ -125,7 +125,7 @@ describe('Global Search endpoint', () => {
               status: 'ACTIVE',
             },
           ],
-        } as any;
+        } as never;
       }
       // If querying for treatments search
       return {
@@ -135,7 +135,7 @@ describe('Global Search endpoint', () => {
           }),
         }),
         lean: async () => [],
-      } as any;
+      } as never;
     });
 
     vi.spyOn(ReceiptModel, 'find').mockReturnValue({
@@ -144,11 +144,11 @@ describe('Global Search endpoint', () => {
           lean: async () => [],
         }),
       }),
-    } as any);
+    } as never);
 
     vi.spyOn(AppointmentTypeModel, 'find').mockReturnValue({
       lean: async () => [],
-    } as any);
+    } as never);
 
     vi.spyOn(AppointmentModel, 'find').mockReturnValue({
       sort: () => ({
@@ -156,7 +156,7 @@ describe('Global Search endpoint', () => {
           lean: async () => [],
         }),
       }),
-    } as any);
+    } as never);
 
     vi.spyOn(PatientMediaModel, 'find').mockReturnValue({
       sort: () => ({
@@ -164,7 +164,7 @@ describe('Global Search endpoint', () => {
           lean: async () => [],
         }),
       }),
-    } as any);
+    } as never);
 
     const response = await app.inject({
       method: 'GET',
@@ -190,21 +190,21 @@ describe('Global Search endpoint', () => {
       limit: () => ({
         lean: async () => [],
       }),
-    } as any);
+    } as never);
     vi.spyOn(TreatmentModel, 'find').mockReturnValue({
       sort: () => ({ limit: () => ({ lean: async () => [] }) }),
       lean: async () => [],
-    } as any);
+    } as never);
     vi.spyOn(ReceiptModel, 'find').mockReturnValue({
       sort: () => ({ limit: () => ({ lean: async () => [] }) }),
-    } as any);
-    vi.spyOn(AppointmentTypeModel, 'find').mockReturnValue({ lean: async () => [] } as any);
+    } as never);
+    vi.spyOn(AppointmentTypeModel, 'find').mockReturnValue({ lean: async () => [] } as never);
     vi.spyOn(AppointmentModel, 'find').mockReturnValue({
       sort: () => ({ limit: () => ({ lean: async () => [] }) }),
-    } as any);
+    } as never);
     vi.spyOn(PatientMediaModel, 'find').mockReturnValue({
       sort: () => ({ limit: () => ({ lean: async () => [] }) }),
-    } as any);
+    } as never);
 
     const response = await app.inject({
       method: 'GET',
@@ -244,12 +244,12 @@ describe('Global Search endpoint', () => {
           status: 'ACTIVE',
         },
       ],
-    } as any);
+    } as never);
 
     vi.spyOn(TreatmentModel, 'find').mockReturnValue({
       sort: () => ({ limit: () => ({ lean: async () => [] }) }),
       lean: async () => [],
-    } as any);
+    } as never);
 
     vi.spyOn(ReceiptModel, 'find').mockReturnValue({
       sort: () => ({
@@ -267,15 +267,15 @@ describe('Global Search endpoint', () => {
           ],
         }),
       }),
-    } as any);
+    } as never);
 
-    vi.spyOn(AppointmentTypeModel, 'find').mockReturnValue({ lean: async () => [] } as any);
+    vi.spyOn(AppointmentTypeModel, 'find').mockReturnValue({ lean: async () => [] } as never);
     vi.spyOn(AppointmentModel, 'find').mockReturnValue({
       sort: () => ({ limit: () => ({ lean: async () => [] }) }),
-    } as any);
+    } as never);
     vi.spyOn(PatientMediaModel, 'find').mockReturnValue({
       sort: () => ({ limit: () => ({ lean: async () => [] }) }),
-    } as any);
+    } as never);
 
     const response = await app.inject({
       method: 'GET',
@@ -308,7 +308,7 @@ describe('Global Search endpoint', () => {
         ],
       }),
       lean: async () => [],
-    } as any);
+    } as never);
 
     const receiptSpy = vi.spyOn(ReceiptModel, 'find');
 

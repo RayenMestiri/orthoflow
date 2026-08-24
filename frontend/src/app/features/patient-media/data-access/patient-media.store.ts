@@ -105,22 +105,6 @@ export class PatientMediaStore {
     return this.mutate(async () => firstValueFrom(this.api.restore(mediaId)), false, true);
   }
 
-  async delete(mediaId: string): Promise<boolean> {
-    this.savingState.set(true);
-    this.errorState.set(null);
-    try {
-      await firstValueFrom(this.api.delete(mediaId));
-      this.itemsState.update((items) => items.filter((item) => item.id !== mediaId));
-      this.totalState.update((total) => Math.max(0, total - 1));
-      return true;
-    } catch (error) {
-      this.errorState.set(getApiProblem(error).message);
-      return false;
-    } finally {
-      this.savingState.set(false);
-    }
-  }
-
   async replaceFile(mediaId: string, file: File): Promise<PatientMedia | null> {
     this.savingState.set(true);
     this.uploadProgressState.set(0);

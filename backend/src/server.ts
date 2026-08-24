@@ -11,29 +11,39 @@ import { logger } from './config/logger.js';
  */
 async function start(): Promise<void> {
   const app = await buildApp();
+  let shuttingDown = false;
 
-  const shutdown = (signal: NodeJS.Signals): void => {
+  const shutdown = async (signal: NodeJS.Signals, exitCode = 0): Promise<void> => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     app.log.info({ signal }, 'Shutting down');
-    void app
-      .close()
-      .then(() => process.exit(0))
-      .catch((error: unknown) => {
-        app.log.error({ err: error }, 'Error during shutdown');
-        process.exit(1);
-      });
+    const forceExit = setTimeout(() => {
+      app.log.fatal({ graceMs: env.SHUTDOWN_GRACE_MS }, 'Graceful shutdown timed out');
+      process.exit(1);
+    }, env.SHUTDOWN_GRACE_MS);
+    forceExit.unref();
+    try {
+      await app.close();
+      clearTimeout(forceExit);
+      process.exit(exitCode);
+    } catch (error) {
+      clearTimeout(forceExit);
+      app.log.error({ err: error }, 'Error during shutdown');
+      process.exit(1);
+    }
   };
 
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
   process.on('unhandledRejection', (reason: unknown) => {
     app.log.fatal({ err: reason }, 'Unhandled promise rejection');
-    process.exit(1);
+    void shutdown('SIGTERM', 1);
   });
 
   process.on('uncaughtException', (error: Error) => {
     app.log.fatal({ err: error }, 'Uncaught exception');
-    process.exit(1);
+    void shutdown('SIGTERM', 1);
   });
 
   await app.listen({ port: env.PORT, host: env.HOST });

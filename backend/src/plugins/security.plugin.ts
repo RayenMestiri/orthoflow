@@ -63,3 +63,13 @@ export const authRateLimitConfig = {
     timeWindow: env.AUTH_RATE_LIMIT_WINDOW,
   },
 } as const;
+
+/** CPU/storage-heavy commands get a separate budget from ordinary clinic reads. */
+export const artifactGenerationRateLimitConfig = {
+  rateLimit: { max: 15, timeWindow: '1 minute' },
+} as const;
+
+/** Protected binary reads are bounded without impeding normal document review. */
+export const protectedDownloadRateLimitConfig = {
+  rateLimit: { max: 60, timeWindow: '1 minute' },
+} as const;

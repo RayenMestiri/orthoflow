@@ -96,7 +96,7 @@ export class GlobalSearchComponent {
             return of(null);
           }
           return this.searchApi.search(trimmed, 5).pipe(
-            catchError((err) => {
+            catchError(() => {
               this.error.set('La recherche est temporairement indisponible.');
               this.loading.set(false);
               return of(null);

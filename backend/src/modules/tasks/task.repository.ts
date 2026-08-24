@@ -1,4 +1,4 @@
-import type { ClientSession } from 'mongoose';
+import type { ClientSession, QueryFilter } from 'mongoose';
 import { toObjectId } from '../../common/utils/object-id.js';
 import type { PaginatedResult, PaginationParams } from '../../common/types/common.types.js';
 import { TaskModel } from './task.model.js';
@@ -45,7 +45,7 @@ export class TaskRepository {
     const clinicObjId = toObjectId(clinicId, 'clinicId');
     const userObjId = toObjectId(userId, 'userId');
 
-    const query: Record<string, any> = { clinicId: clinicObjId };
+    const query: QueryFilter<TaskAttributes> = { clinicId: clinicObjId };
 
     // 1. Apply Scope
     if (filters.scope === TASK_SCOPES.ASSIGNED_BY_ME) {
@@ -84,8 +84,15 @@ export class TaskRepository {
 
     // 6. Search
     if (filters.search?.trim()) {
-      const searchRegex = new RegExp(filters.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      query.$or = [{ title: searchRegex }, { description: searchRegex }, { 'context.labelSnapshot': searchRegex }];
+      const searchRegex = new RegExp(
+        filters.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+        'i',
+      );
+      query.$or = [
+        { title: searchRegex },
+        { description: searchRegex },
+        { 'context.labelSnapshot': searchRegex },
+      ];
     }
 
     const [items, total] = await Promise.all([
@@ -106,7 +113,11 @@ export class TaskRepository {
     return { items, total };
   }
 
-  async getSummary(clinicId: string, userId: string, now: Date = new Date()): Promise<TaskSummaryDto> {
+  async getSummary(
+    clinicId: string,
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<TaskSummaryDto> {
     const clinicObjId = toObjectId(clinicId, 'clinicId');
     const userObjId = toObjectId(userId, 'userId');
 

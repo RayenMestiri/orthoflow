@@ -36,7 +36,10 @@ function uploadRequest(options: {
 describe('patient media upload validation', () => {
   it('accepts a valid JPEG based on MIME and file signature', async () => {
     const result = await parsePatientMediaUpload(
-      uploadRequest({ content: Buffer.from([0xff, 0xd8, 0xff, 0x00]), mimeType: 'image/jpeg' }),
+      uploadRequest({
+        content: Buffer.from([0xff, 0xd8, 0xff, 0x00, 0xff, 0xd9]),
+        mimeType: 'image/jpeg',
+      }),
     );
     expect(result.file.mediaType).toBe(PATIENT_MEDIA_TYPES.IMAGE);
     expect(result.metadata.category).toBe(PATIENT_MEDIA_CATEGORIES.EXTRAORAL_PHOTO);
@@ -45,7 +48,7 @@ describe('patient media upload validation', () => {
   it('accepts a valid PDF and preserves a separate capture date', async () => {
     const result = await parsePatientMediaUpload(
       uploadRequest({
-        content: Buffer.from('%PDF-1.7\n'),
+        content: Buffer.from('%PDF-1.7\n1 0 obj\n<<>>\nendobj\n%%EOF'),
         mimeType: 'application/pdf',
         fields: {
           category: PATIENT_MEDIA_CATEGORIES.CONSENT,
@@ -63,7 +66,7 @@ describe('patient media upload validation', () => {
       parsePatientMediaUpload(
         uploadRequest({ content: Buffer.from('not-an-image'), mimeType: 'image/jpeg' }),
       ),
-    ).rejects.toThrow('Only valid JPEG, PNG, WebP and PDF files are supported');
+    ).rejects.toThrow('Only valid passive JPEG, PNG, WebP and PDF files are supported');
   });
 
   it('rejects unsupported arbitrary documents', async () => {
@@ -72,6 +75,23 @@ describe('patient media upload validation', () => {
         uploadRequest({ content: Buffer.from('plain text'), mimeType: 'text/plain' }),
       ),
     ).rejects.toThrow('Only valid JPEG, PNG, WebP and PDF files are supported');
+  });
+
+  it('rejects truncated images and PDFs with active content', async () => {
+    await expect(
+      parsePatientMediaUpload(
+        uploadRequest({ content: Buffer.from([0xff, 0xd8, 0xff, 0x00]), mimeType: 'image/jpeg' }),
+      ),
+    ).rejects.toThrow('Only valid passive JPEG, PNG, WebP and PDF files are supported');
+
+    await expect(
+      parsePatientMediaUpload(
+        uploadRequest({
+          content: Buffer.from('%PDF-1.7\n/OpenAction 1 0 R\n%%EOF'),
+          mimeType: 'application/pdf',
+        }),
+      ),
+    ).rejects.toThrow('Only valid passive JPEG, PNG, WebP and PDF files are supported');
   });
 
   it('enforces the smaller 10 MB image limit', async () => {

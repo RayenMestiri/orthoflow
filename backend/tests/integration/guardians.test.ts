@@ -7,7 +7,6 @@ import {
   GUARDIAN_ID,
   PATIENT_ID,
   guardianRepositoryMock,
-  auditLogRepositoryMock,
   patientGuardianRepositoryMock,
   patientRepositoryMock,
   resetRepositoryMocks,
@@ -130,7 +129,6 @@ describe('patient guardians', () => {
     expect(guardianRepositoryMock.create).not.toHaveBeenCalled();
   });
 
-
   it('rejects an unsupported relationship before persistence', async () => {
     const response = await app.inject({
       method: 'POST',
@@ -230,4 +228,3 @@ describe('patient guardians', () => {
     expect(guardianRepositoryMock.searchInClinic).toHaveBeenCalledWith(CLINIC_A, 'Leila', 20);
   });
 });
-

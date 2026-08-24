@@ -8,7 +8,6 @@ import {
 } from '../../common/validation/api-schemas.js';
 import {
   archivePatientMediaHandler,
-  deletePatientMediaHandler,
   getPatientMediaHandler,
   listPatientMediaHandler,
   replacePatientMediaHandler,
@@ -164,26 +163,6 @@ export const patientMediaRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     restorePatientMediaHandler,
-  );
-
-  // DELETE — permanent removal from Cloudinary + MongoDB
-  app.delete(
-    '/:mediaId',
-    {
-      preHandler: [app.requirePermission(PERMISSIONS.PATIENT_MEDIA_MANAGE)],
-      schema: {
-        tags: ['patient-media'],
-        summary: 'Permanently delete a patient media record and its binary',
-        description:
-          'Removes the file from Cloudinary and the metadata from the database. This action is irreversible.',
-        security: [{ bearerAuth: [] }],
-        params: patientMediaIdParamSchema,
-        response: {
-          ...errorResponses(401, 403, 404, 503),
-        },
-      },
-    },
-    deletePatientMediaHandler,
   );
 
   // POST /:mediaId/replace — swap the binary while keeping metadata

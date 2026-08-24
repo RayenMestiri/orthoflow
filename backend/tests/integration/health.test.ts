@@ -18,6 +18,7 @@ describe('GET /health', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ status: 'ok', environment: 'test' });
+    expect(response.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/i);
   });
 
   it('leaks nothing about the infrastructure', async () => {
@@ -42,7 +43,19 @@ describe('GET /health', () => {
     const result = await app.inject({ method: 'GET', url: '/api/v1/does-not-exist' });
 
     expect(result.statusCode).toBe(404);
-    expect(result.json()).toMatchObject({ success: false, error: { code: 'NOT_FOUND' } });
+    expect(result.json()).toMatchObject({
+      success: false,
+      error: { code: 'NOT_FOUND', details: { requestId: result.headers['x-request-id'] } },
+    });
+  });
+
+  it('does not expose a permanent patient-media deletion route', async () => {
+    const result = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/patient-media/652f1c9b8a1e4f0012ab0001',
+    });
+
+    expect(result.statusCode).toBe(404);
   });
 });
 

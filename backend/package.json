@@ -19,7 +19,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "seed": "tsx src/scripts/seed.ts"
+    "seed": "tsx src/scripts/seed.ts",
+    "db:indexes:apply": "tsx src/scripts/apply-indexes.ts --apply",
+    "media:private:plan": "tsx src/scripts/migrate-private-patient-media.ts",
+    "media:private:apply": "tsx src/scripts/migrate-private-patient-media.ts --apply"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

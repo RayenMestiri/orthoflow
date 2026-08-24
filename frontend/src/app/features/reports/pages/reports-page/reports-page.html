@@ -1,55 +1,75 @@
 <div class="reports-page">
+  <!-- Page Header -->
   <header class="reports-header">
-    <div>
-      <p class="eyebrow">Lecture historique du cabinet</p>
-      <h1>Rapports</h1>
-      <p>Activité, évolution et continuité des soins à partir des données opérationnelles réelles.</p>
+    <div class="header-text-block">
+      <span class="eyebrow">LECTURE HISTORIQUE DU CABINET</span>
+      <h1>Rapports & Statistiques</h1>
+      <p class="header-description">
+        Activité, évolution et continuité des soins basées sur les données cliniques et financières réelles.
+      </p>
     </div>
     <app-report-period-selector [query]="query()" (queryChange)="selectPeriod($event)" />
   </header>
 
   @if (store.refreshing() && hasAnyData()) {
-    <div class="refresh-note" role="status"><span></span> Actualisation de la période…</div>
+    <div class="refresh-note" role="status"><span></span> Actualisation de la période en cours…</div>
   }
 
+  <!-- Executive Summary Banner -->
   <section class="executive-summary" aria-labelledby="summary-title">
     <div class="summary-intro">
-      <p class="eyebrow">Synthèse</p>
+      <span class="eyebrow">SYNTHÈSE GLOBALE</span>
       <h2 id="summary-title">Le cabinet sur la période</h2>
       @if (store.appointments().data; as appointments) {
-        <p>{{ appointments.period.fromDate }} — {{ appointments.period.toDate }} · {{ appointments.period.timezone }}</p>
+        <p class="period-caption">
+          {{ appointments.period.fromDate }} — {{ appointments.period.toDate }} · Fuseau {{ appointments.period.timezone }}
+        </p>
       } @else {
-        <p>Les états actuels sont identifiés séparément des flux de période.</p>
+        <p class="period-caption">Les flux de la période sélectionnée sont calculés en temps réel.</p>
       }
     </div>
 
     <div class="summary-metrics">
       @if (store.appointments().data; as appointments) {
         <div class="summary-metric">
-          <span>Rendez-vous écoulés</span><strong>{{ appointments.booked.value }}</strong>
-          @if (comparison(appointments.booked); as change) { <small>{{ change }}</small> }
+          <span class="metric-label">Rendez-vous écoulés</span>
+          <strong class="metric-value">{{ appointments.booked.value }}</strong>
+          @if (comparison(appointments.booked); as change) { 
+            <small class="metric-change">{{ change }}</small> 
+          }
         </div>
       }
       @if (store.overview().data; as overview) {
         <div class="summary-metric">
-          <span>Visites cliniques terminées</span><strong>{{ overview.completedClinicalVisits.value }}</strong>
-          @if (comparison(overview.completedClinicalVisits); as change) { <small>{{ change }}</small> }
+          <span class="metric-label">Visites cliniques terminées</span>
+          <strong class="metric-value">{{ overview.completedClinicalVisits.value }}</strong>
+          @if (comparison(overview.completedClinicalVisits); as change) { 
+            <small class="metric-change">{{ change }}</small> 
+          }
         </div>
       }
       @if (store.treatments().data; as treatments) {
         <div class="summary-metric">
-          <span>Traitements démarrés</span><strong>{{ treatments.treatments.started.value }}</strong>
-          @if (comparison(treatments.treatments.started); as change) { <small>{{ change }}</small> }
+          <span class="metric-label">Traitements démarrés</span>
+          <strong class="metric-value">{{ treatments.treatments.started.value }}</strong>
+          @if (comparison(treatments.treatments.started); as change) { 
+            <small class="metric-change">{{ change }}</small> 
+          }
         </div>
       }
       @if (store.finance().data; as finance) {
         <div class="summary-metric summary-metric--money">
-          <span>Encaissements valides</span><strong>{{ formatMoney(finance.cashRecordedMinor.value, finance.currency) }}</strong>
-          @if (comparison(finance.cashRecordedMinor); as change) { <small>{{ change }}</small> }
+          <span class="metric-label">Encaissements valides</span>
+          <strong class="metric-value">{{ formatMoney(finance.cashRecordedMinor.value, finance.currency) }}</strong>
+          @if (comparison(finance.cashRecordedMinor); as change) { 
+            <small class="metric-change">{{ change }}</small> 
+          }
         </div>
       }
       @if (!hasAnyData()) {
-        @for (_ of [1, 2, 3, 4]; track $index) { <div class="summary-metric skeleton"></div> }
+        @for (_ of [1, 2, 3, 4]; track $index) { 
+          <div class="summary-metric skeleton"></div> 
+        }
       }
     </div>
   </section>
@@ -57,35 +77,115 @@
   @if (hasAnyData() && !hasPeriodActivity() && !store.refreshing()) {
     <div class="period-empty">
       <span class="material-icons" aria-hidden="true">event_busy</span>
-      <div><h2>Aucune activité enregistrée pour cette période</h2><p>Choisissez une autre période pour consulter l’évolution du cabinet.</p></div>
+      <div>
+        <h2>Aucune activité enregistrée pour cette période</h2>
+        <p>Sélectionnez un autre intervalle dans le sélecteur ci-dessus pour consulter l’activité du cabinet.</p>
+      </div>
     </div>
   }
 
+  <!-- Section 1: Rendez-vous & Planification -->
   @if (store.canViewAppointments) {
     <section class="report-section" aria-labelledby="appointments-title">
       <div class="section-heading">
-        <div><p class="eyebrow">Activité planifiée</p><h2 id="appointments-title">Rendez-vous</h2></div>
-        <p class="section-note">Cohorte selon l’heure prévue · les rendez-vous futurs sont exclus des taux.</p>
+        <div>
+          <span class="eyebrow">ACTIVITÉ PLANIFIÉE</span>
+          <h2 id="appointments-title">Rendez-vous & Assiduité</h2>
+        </div>
+        <p class="section-note">
+          Cohorte selon l’horaire prévu · Les rendez-vous futurs ou annulés à l’avance sont exclus du taux de présence.
+        </p>
       </div>
+
       @if (store.appointments().error; as error) {
-        <div class="section-error"><div><strong>Rendez-vous indisponibles</strong><p>{{ error }}</p></div><button (click)="store.retry('appointments')">Réessayer</button></div>
+        <div class="section-error">
+          <div>
+            <strong>Rendez-vous indisponibles</strong>
+            <p>{{ error }}</p>
+          </div>
+          <button type="button" (click)="store.retry('appointments')">Réessayer</button>
+        </div>
       } @else if (store.appointments().data; as report) {
+        <!-- Main Appointment Layout -->
         <div class="appointment-layout" [class.is-refreshing]="store.appointments().loading">
           <div class="chart-panel">
-            <h3>Volume des rendez-vous</h3>
-            <p>{{ report.booked.value }} créneaux écoulés, dont {{ report.completed.value }} terminés.</p>
-            <app-report-series-chart title="Volume des rendez-vous par période" [series]="report.volumeTrend" />
+            <div class="chart-panel-header">
+              <h3>Volume des rendez-vous par intervalle</h3>
+              <p class="chart-subtitle">
+                <strong>{{ report.booked.value }}</strong> créneaux planifiés au total, dont 
+                <strong>{{ report.completed.value }}</strong> consultations honorées et terminées.
+              </p>
+            </div>
+            
+            <app-report-series-chart 
+              title="Volume des rendez-vous par période" 
+              [series]="report.volumeTrend"
+              valueSuffix=" rdv" 
+            />
           </div>
+
+          <!-- Attendance KPI Panel -->
           <div class="outcome-panel">
-            <div class="rate-feature"><span>Taux de présence</span><strong>{{ report.attendanceRate.value }}%</strong><small>{{ report.attended.value }} présences sur {{ report.eligible.value }} attendus</small></div>
-            <div class="rate-row"><span>No-show</span><strong>{{ report.noShowRate.value }}%</strong><small>{{ report.noShow.value }} cas</small></div>
-            <div class="rate-row"><span>Annulés</span><strong>{{ report.cancelled.value }}</strong><small>hors dénominateur</small></div>
-            <div class="rate-row"><span>Issue non résolue</span><strong>{{ report.unresolved.value }}</strong><small>créneaux passés</small></div>
+            <div class="rate-feature">
+              <span class="rate-label">Taux de présence global</span>
+              <strong class="rate-number">{{ report.attendanceRate.value }}%</strong>
+              <small class="rate-caption">
+                {{ report.attended.value }} présences effectives sur {{ report.eligible.value }} patients attendus
+              </small>
+            </div>
+
+            <div class="rate-row">
+              <div class="rate-row-info">
+                <span class="rate-label">Absences non excusées (No-shows)</span>
+                <small class="rate-caption">{{ report.noShow.value }} créneau{{ report.noShow.value > 1 ? 'x' : '' }} perdu{{ report.noShow.value > 1 ? 's' : '' }}</small>
+              </div>
+              <strong class="rate-row-stat" style="color: #b93b22;">{{ report.noShowRate.value }}%</strong>
+            </div>
+
+            <div class="rate-row">
+              <div class="rate-row-info">
+                <span class="rate-label">Rendez-vous annulés à l'avance</span>
+                <small class="rate-caption">Prévenus à temps · non pénalisés</small>
+              </div>
+              <strong class="rate-row-stat">{{ report.cancelled.value }}</strong>
+            </div>
+
+            <div class="rate-row">
+              <div class="rate-row-info">
+                <span class="rate-label">Statuts non résolus</span>
+                <small class="rate-caption">Créneaux passés en attente de clôture</small>
+              </div>
+              <strong class="rate-row-stat" style="color: #92400e;">{{ report.unresolved.value }}</strong>
+            </div>
           </div>
         </div>
-        <div class="secondary-chart">
-          <div><h3>Évolution des absences</h3><p>NO_SHOW uniquement, rapporté aux rendez-vous attendus de chaque intervalle.</p></div>
-          <app-report-series-chart title="Nombre de no-shows par période" tone="coral" [series]="report.noShowTrend" />
+
+        <!-- Enhanced Absences & No-Show Trend Section -->
+        <div class="secondary-chart-section">
+          <div class="secondary-chart-header">
+            <div>
+              <h3>Évolution chronologique des absences (No-shows)</h3>
+              <p class="chart-subtitle">
+                Rapporté aux rendez-vous attendus de chaque intervalle. Permet d'identifier les jours ou périodes à risque.
+              </p>
+            </div>
+
+            <div class="no-show-kpi-chip" [class.is-elevated]="report.noShowRate.value > 8">
+              <span class="material-icons" aria-hidden="true">person_off</span>
+              <div>
+                <span class="chip-title">Taux moyen d'absentéisme</span>
+                <strong class="chip-value">{{ report.noShowRate.value }}%</strong>
+              </div>
+            </div>
+          </div>
+
+          <app-report-series-chart 
+            title="Nombre de no-shows par période" 
+            tone="coral" 
+            [series]="report.noShowTrend" 
+            [isRate]="true"
+            valueSuffix=" no-shows" 
+          />
         </div>
       } @else {
         <div class="section-skeleton"><span></span><span></span><span></span></div>
@@ -93,68 +193,299 @@
     </section>
   }
 
+  <!-- Section 2: Clinical Visits -->
   @if (store.canViewOverview && store.overview().data; as overview) {
     <section class="clinical-strip" aria-label="Activité clinique">
-      <div><p class="eyebrow">Activité clinique</p><h2>Patients effectivement vus</h2></div>
-      <dl>
-        <div><dt>Visites terminées</dt><dd>{{ overview.completedClinicalVisits.value }}</dd></div>
-        <div><dt>Patients distincts vus</dt><dd>{{ overview.uniquePatientsSeen.value }}</dd></div>
-        <div><dt>Nouveaux dossiers créés</dt><dd>{{ overview.newPatients.value }}</dd></div>
+      <div class="strip-header">
+        <span class="eyebrow">ACTIVITÉ AU FAUTEUIL</span>
+        <h2>Patients effectivement soignés</h2>
+        <p class="definition-note">
+          Actes cliniques validés en salle de soins par l’équipe orthodontique.
+        </p>
+      </div>
+
+      <dl class="strip-stats">
+        <div class="stat-card">
+          <dt>Visites terminées</dt>
+          <dd>{{ overview.completedClinicalVisits.value }}</dd>
+        </div>
+        <div class="stat-card">
+          <dt>Patients distincts vus</dt>
+          <dd>{{ overview.uniquePatientsSeen.value }}</dd>
+        </div>
+        <div class="stat-card">
+          <dt>Nouveaux dossiers créés</dt>
+          <dd>{{ overview.newPatients.value }}</dd>
+        </div>
       </dl>
-      <p class="definition-note">Un nouveau dossier patient ne signifie pas une première visite clinique.</p>
     </section>
   }
 
+  <!-- Section 3: Parcours de soins (Traitements & Contention) -->
   @if (store.canViewTreatments) {
     <section class="report-section" aria-labelledby="treatments-title">
-      <div class="section-heading"><div><p class="eyebrow">Parcours de soins</p><h2 id="treatments-title">Traitements & contention</h2></div><p class="section-note"><b>Flux</b> sur la période · <b>état actuel</b> clairement séparé.</p></div>
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">PARCOURS DE SOINS</span>
+          <h2 id="treatments-title">Traitements actifs & Contention</h2>
+        </div>
+        <p class="section-note">
+          <b>Flux dynamiques</b> sur la période choisie · <b>Instantané de patientèle</b> en cours.
+        </p>
+      </div>
+
       @if (store.treatments().error; as error) {
-        <div class="section-error"><div><strong>Traitements indisponibles</strong><p>{{ error }}</p></div><button (click)="store.retry('treatments')">Réessayer</button></div>
+        <div class="section-error">
+          <div>
+            <strong>Données de traitements indisponibles</strong>
+            <p>{{ error }}</p>
+          </div>
+          <button type="button" (click)="store.retry('treatments')">Réessayer</button>
+        </div>
       } @else if (store.treatments().data; as report) {
         <div class="care-columns" [class.is-refreshing]="store.treatments().loading">
-          <article>
-            <div class="article-heading"><h3>Traitements</h3><span class="snapshot-label">État actuel</span></div>
-            <div class="snapshot-pair"><div><strong>{{ report.treatments.activeNow }}</strong><span>actifs</span></div><div><strong>{{ report.treatments.pausedNow }}</strong><span>en pause</span></div></div>
-            <dl class="flow-list"><div><dt>Démarrés</dt><dd>{{ report.treatments.started.value }}</dd></div><div><dt>Terminés</dt><dd>{{ report.treatments.completed.value }}</dd></div><div><dt>Annulés</dt><dd>{{ report.treatments.cancelled.value }}</dd></div></dl>
-            <app-report-series-chart title="Traitements démarrés par période" [series]="report.treatments.startedTrend" />
+          <!-- Traitements Actifs -->
+          <article class="care-card">
+            <div class="article-heading">
+              <div>
+                <h3>Traitements orthodontiques</h3>
+                <small class="article-sub">Flux & dynamique des cas</small>
+              </div>
+              <span class="snapshot-label">État actuel</span>
+            </div>
+
+            <div class="snapshot-pair">
+              <div class="snapshot-box">
+                <strong class="snapshot-num">{{ report.treatments.activeNow }}</strong>
+                <span class="snapshot-text">En cours actifs</span>
+              </div>
+              <div class="snapshot-box">
+                <strong class="snapshot-num" style="color: #92400e;">{{ report.treatments.pausedNow }}</strong>
+                <span class="snapshot-text">En pause / attente</span>
+              </div>
+            </div>
+
+            <dl class="flow-list">
+              <div class="flow-row">
+                <dt>Traitements démarrés sur la période</dt>
+                <dd>{{ report.treatments.started.value }}</dd>
+              </div>
+              <div class="flow-row">
+                <dt>Traitements finalisés avec succès</dt>
+                <dd style="color: var(--color-success);">{{ report.treatments.completed.value }}</dd>
+              </div>
+              <div class="flow-row">
+                <dt>Traitements arrêtés ou annulés</dt>
+                <dd style="color: #b93b22;">{{ report.treatments.cancelled.value }}</dd>
+              </div>
+            </dl>
+
+            <div class="care-chart-wrap">
+              <app-report-series-chart 
+                title="Traitements démarrés par période" 
+                [series]="report.treatments.startedTrend"
+                valueSuffix=" trait." 
+              />
+            </div>
           </article>
-          <article>
-            <div class="article-heading"><h3>Contention</h3><span class="snapshot-label">État actuel</span></div>
-            <div class="snapshot-pair"><div><strong>{{ report.retention.activePlansNow }}</strong><span>plans actifs</span></div><div><strong>{{ report.retention.activeDevicesNow }}</strong><span>dispositifs actifs</span></div></div>
-            <dl class="flow-list"><div><dt>Plans démarrés</dt><dd>{{ report.retention.started.value }}</dd></div><div><dt>Plans terminés</dt><dd>{{ report.retention.completed.value }}</dd></div><div><dt>Remplacements</dt><dd>{{ report.retention.replacements.value }}</dd></div></dl>
-            <p class="definition-note">Les contrôles en retard apparaissent dans la continuité des soins, selon les seuils du cabinet.</p>
+
+          <!-- Contention -->
+          <article class="care-card">
+            <div class="article-heading">
+              <div>
+                <h3>Phase de contention</h3>
+                <small class="article-sub">Stabilisation post-traitement</small>
+              </div>
+              <span class="snapshot-label">État actuel</span>
+            </div>
+
+            <div class="snapshot-pair">
+              <div class="snapshot-box">
+                <strong class="snapshot-num">{{ report.retention.activePlansNow }}</strong>
+                <span class="snapshot-text">Plans de contention actifs</span>
+              </div>
+              <div class="snapshot-box">
+                <strong class="snapshot-num">{{ report.retention.activeDevicesNow }}</strong>
+                <span class="snapshot-text">Appareils posés actifs</span>
+              </div>
+            </div>
+
+            <dl class="flow-list">
+              <div class="flow-row">
+                <dt>Nouveaux protocoles de contention</dt>
+                <dd>{{ report.retention.started.value }}</dd>
+              </div>
+              <div class="flow-row">
+                <dt>Contentions terminées avec succès</dt>
+                <dd style="color: var(--color-success);">{{ report.retention.completed.value }}</dd>
+              </div>
+              <div class="flow-row">
+                <dt>Renouvellements / Remplacements d'appareils</dt>
+                <dd>{{ report.retention.replacements.value }}</dd>
+              </div>
+            </dl>
+
+            <p class="definition-note" style="margin-top: 1rem;">
+              Les contrôles de contention en retard apparaissent dans la section <i>Continuité des soins</i> ci-dessous.
+            </p>
           </article>
         </div>
-      } @else { <div class="section-skeleton"><span></span><span></span></div> }
+      } @else {
+        <div class="section-skeleton"><span></span><span></span></div>
+      }
     </section>
   }
 
+  <!-- Section 4: Mouvements Financiers & Encaissements -->
   @if (store.canViewFinance) {
     <section class="report-section report-section--finance" aria-labelledby="finance-title">
-      <div class="section-heading"><div><p class="eyebrow">Mouvements financiers</p><h2 id="finance-title">Encaissements</h2></div><p class="section-note">Registre des paiements valides · les lignes annulées ne contribuent jamais au total.</p></div>
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">MOUVEMENTS FINANCIERS</span>
+          <h2 id="finance-title">Encaissements & Règlements</h2>
+        </div>
+        <div class="finance-audit-notice">
+          <span class="material-icons" aria-hidden="true">verified_user</span>
+          <span>Registre des paiements valides · Les lignes annulées ne contribuent jamais au total</span>
+        </div>
+      </div>
+
       @if (store.finance().error; as error) {
-        <div class="section-error"><div><strong>Finance indisponible</strong><p>{{ error }}</p></div><button (click)="store.retry('finance')">Réessayer</button></div>
+        <div class="section-error">
+          <div>
+            <strong>Données financières indisponibles</strong>
+            <p>{{ error }}</p>
+          </div>
+          <button type="button" (click)="store.retry('finance')">Réessayer</button>
+        </div>
       } @else if (store.finance().data; as report) {
         <div class="finance-layout" [class.is-refreshing]="store.finance().loading">
-          <div class="chart-panel"><h3>Encaissements par période</h3><p>{{ report.paymentCount.value }} paiements enregistrés · {{ report.cancelledPaymentCount.value }} annulations pendant la période.</p><app-report-series-chart title="Encaissements valides par période" [series]="report.cashTrend" /></div>
-          <aside class="finance-snapshot"><span class="snapshot-label">État actuel</span><div class="money-feature"><small>Solde restant</small><strong>{{ formatMoney(report.currentSnapshot.outstandingMinor, report.currency) }}</strong><span>{{ report.currentSnapshot.outstandingPatientCount }} patients concernés</span></div><div class="collection-rail"><div><span>Valeur convenue encaissée</span><strong>{{ report.currentSnapshot.collectedPercent }}%</strong></div><progress max="100" [value]="report.currentSnapshot.collectedPercent">{{ report.currentSnapshot.collectedPercent }}%</progress></div><p>Le solde actuel est un instantané et ne varie pas avec le sélecteur de période.</p></aside>
+          <!-- Chart Panel -->
+          <div class="chart-panel">
+            <div class="chart-panel-header">
+              <h3>Flux d'encaissements validés par période</h3>
+              <p class="chart-subtitle">
+                <strong>{{ report.paymentCount.value }}</strong> règlements validés sur la période sélectionnée.
+                @if (report.cancelledPaymentCount.value > 0) {
+                  <span class="cancelled-count-pill">
+                    {{ report.cancelledPaymentCount.value }} annulation{{ report.cancelledPaymentCount.value > 1 ? 's' : '' }} exclue{{ report.cancelledPaymentCount.value > 1 ? 's' : '' }}
+                  </span>
+                }
+              </p>
+            </div>
+
+            <app-report-series-chart 
+              title="Encaissements valides par période" 
+              [series]="report.cashTrend" 
+              [isMoney]="true"
+              [currency]="report.currency" 
+            />
+          </div>
+
+          <!-- Snapshot Panel -->
+          <aside class="finance-snapshot">
+            <div class="snapshot-header-row">
+              <span class="snapshot-label">Instantané du cabinet</span>
+              <span class="snapshot-date-tag">Aujourd'hui</span>
+            </div>
+
+            <div class="money-feature">
+              <small class="money-feature-label">Reste à recouvrer (Solde patientèle)</small>
+              <strong class="money-feature-value">
+                {{ formatMoney(report.currentSnapshot.outstandingMinor, report.currency) }}
+              </strong>
+              <span class="money-feature-sub">
+                Réparti sur {{ report.currentSnapshot.outstandingPatientCount }} patients débiteurs
+              </span>
+            </div>
+
+            <div class="collection-rail">
+              <div class="rail-header">
+                <span>Taux d'honoraires encaissés</span>
+                <strong>{{ report.currentSnapshot.collectedPercent }}%</strong>
+              </div>
+              <progress max="100" [value]="report.currentSnapshot.collectedPercent">
+                {{ report.currentSnapshot.collectedPercent }}%
+              </progress>
+            </div>
+
+            <p class="finance-snapshot-note">
+              Ce solde représente la dette restante totale sur l’ensemble des traitements engagés et ne varie pas avec le sélecteur de période.
+            </p>
+          </aside>
         </div>
-      } @else { <div class="section-skeleton"><span></span><span></span></div> }
+      } @else {
+        <div class="section-skeleton"><span></span><span></span></div>
+      }
     </section>
   }
 
+  <!-- Section 5: Continuité des soins -->
   @if (store.canViewContinuity) {
     <section class="report-section continuity" aria-labelledby="continuity-title">
-      <div class="section-heading"><div><p class="eyebrow">État actuel</p><h2 id="continuity-title">Continuité des soins</h2></div><p class="section-note">Photographie calculée maintenant · aucun historique artificiel.</p></div>
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">CONTINUITÉ & FIDÉLISATION</span>
+          <h2 id="continuity-title">Continuité des soins & Suivi patientèle</h2>
+        </div>
+        <p class="section-note">
+          Photographie calculée en temps réel selon les seuils cliniques configurés.
+        </p>
+      </div>
+
       @if (store.continuity().error; as error) {
-        <div class="section-error"><div><strong>Continuité indisponible</strong><p>{{ error }}</p></div><button (click)="store.retry('continuity')">Réessayer</button></div>
+        <div class="section-error">
+          <div>
+            <strong>Données de continuité indisponibles</strong>
+            <p>{{ error }}</p>
+          </div>
+          <button type="button" (click)="store.retry('continuity')">Réessayer</button>
+        </div>
       } @else if (store.continuity().data; as report) {
         <div class="continuity-layout">
-          <div class="continuity-counts"><div><span>À surveiller</span><strong>{{ report.needsAttention }}</strong></div><div class="critical"><span>Perdus de vue</span><strong>{{ report.lostToFollowUp }}</strong></div></div>
-          <div><h3>Par parcours</h3><dl class="flow-list">@for (row of report.byCareType; track row.careType) { <div><dt>{{ row.careType === 'TREATMENT' ? 'Traitement' : 'Contention' }}</dt><dd>{{ row.needsAttention + row.lostToFollowUp }}</dd></div> }</dl></div>
-          <div><h3>Motifs observés</h3><dl class="flow-list">@for (row of report.byReason; track row.reason) { <div><dt>{{ reasonLabel(row.reason) }}</dt><dd>{{ row.count }}</dd></div> }</dl></div>
+          <!-- Counts -->
+          <div class="continuity-counts">
+            <div class="continuity-card is-attention">
+              <span class="card-label">À surveiller (Seuil dépassé)</span>
+              <strong class="card-val">{{ report.needsAttention }}</strong>
+              <small class="card-sub">Patients à relancer prochainement</small>
+            </div>
+            <div class="continuity-card is-critical">
+              <span class="card-label">Perdus de vue (Critique)</span>
+              <strong class="card-val">{{ report.lostToFollowUp }}</strong>
+              <small class="card-sub">Rupture prolongée de suivi</small>
+            </div>
+          </div>
+
+          <!-- By Care Type -->
+          <div class="continuity-breakdown">
+            <h3>Par type de parcours</h3>
+            <dl class="flow-list">
+              @for (row of report.byCareType; track row.careType) {
+                <div class="flow-row">
+                  <dt>{{ row.careType === 'TREATMENT' ? 'Traitements en cours' : 'Phase de contention' }}</dt>
+                  <dd>{{ row.needsAttention + row.lostToFollowUp }}</dd>
+                </div>
+              }
+            </dl>
+          </div>
+
+          <!-- By Reason -->
+          <div class="continuity-breakdown">
+            <h3>Motifs de vigilance identifiés</h3>
+            <dl class="flow-list">
+              @for (row of report.byReason; track row.reason) {
+                <div class="flow-row">
+                  <dt>{{ reasonLabel(row.reason) }}</dt>
+                  <dd>{{ row.count }}</dd>
+                </div>
+              }
+            </dl>
+          </div>
         </div>
-      } @else { <div class="section-skeleton"><span></span><span></span></div> }
+      } @else {
+        <div class="section-skeleton"><span></span><span></span></div>
+      }
     </section>
   }
 </div>

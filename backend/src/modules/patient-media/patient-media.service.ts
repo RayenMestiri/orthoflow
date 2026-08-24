@@ -33,7 +33,10 @@ import {
   type UpdatePatientMediaInput,
 } from './patient-media.types.js';
 
-type PatientMediaStorage = Pick<MediaService, 'isEnabled' | 'upload' | 'remove'>;
+type PatientMediaStorage = Pick<
+  MediaService,
+  'isEnabled' | 'upload' | 'remove' | 'createPrivateDownloadUrl'
+>;
 
 export class PatientMediaService {
   constructor(
@@ -52,11 +55,11 @@ export class PatientMediaService {
   ): Promise<PaginatedResult<PatientMediaDto>> {
     await this.requirePatient(clinicId, patientId);
     const result = await this.media.listByPatient(patientId, clinicId, filters, pagination);
-    return { items: result.items.map(toPatientMediaDto), total: result.total };
+    return { items: result.items.map((record) => this.toDto(record)), total: result.total };
   }
 
   async getById(clinicId: string, mediaId: string): Promise<PatientMediaDto> {
-    return toPatientMediaDto(await this.requireMedia(clinicId, mediaId));
+    return this.toDto(await this.requireMedia(clinicId, mediaId));
   }
 
   async upload(
@@ -87,6 +90,7 @@ export class PatientMediaService {
       content: file.content,
       fileName: file.originalFileName,
       mimeType: file.mimeType,
+      deliveryType: 'authenticated',
     });
 
     let created: PatientMediaRecord;
@@ -104,6 +108,7 @@ export class PatientMediaService {
         storageProvider: 'CLOUDINARY',
         publicId: stored.publicId,
         resourceType: stored.resourceType,
+        deliveryType: 'authenticated',
         secureUrl: stored.secureUrl,
         originalFileName: file.originalFileName,
         mimeType: file.mimeType,
@@ -133,7 +138,7 @@ export class PatientMediaService {
       treatmentId: created.treatmentId?.toString() ?? null,
       event: 'uploaded',
     });
-    return toPatientMediaDto(created);
+    return this.toDto(created);
   }
 
   async update(
@@ -159,7 +164,7 @@ export class PatientMediaService {
       event: 'updated',
       changedFields: Object.keys(changes),
     });
-    return toPatientMediaDto(updated);
+    return this.toDto(updated);
   }
 
   async archive(
@@ -185,7 +190,7 @@ export class PatientMediaService {
       treatmentId: archived.treatmentId?.toString() ?? null,
       event: 'archived',
     });
-    return toPatientMediaDto(archived);
+    return this.toDto(archived);
   }
 
   async restore(
@@ -210,35 +215,7 @@ export class PatientMediaService {
       treatmentId: restored.treatmentId?.toString() ?? null,
       event: 'restored',
     });
-    return toPatientMediaDto(restored);
-  }
-
-  async permanentDelete(
-    clinicId: string,
-    mediaId: string,
-    context: PatientMediaMutationContext,
-  ): Promise<void> {
-    const existing = await this.requireMedia(clinicId, mediaId);
-    this.assertManageableCategory(existing.category, context);
-
-    // Remove the binary from Cloudinary first.
-    // If storage removal fails we abort — the record stays intact so the clinic
-    // can retry. A "deleted from DB but still in Cloudinary" state is far worse.
-    if (this.storage.isEnabled() && existing.publicId) {
-      await this.storage.remove(existing.publicId, existing.resourceType);
-    }
-
-    const deleted = await this.media.deleteById(mediaId, clinicId);
-    if (!deleted) throw this.notFound();
-
-    await this.audit.record({
-      ...context,
-      clinicId,
-      patientId: existing.patientId.toString(),
-      mediaId,
-      treatmentId: existing.treatmentId?.toString() ?? null,
-      event: 'deleted',
-    });
+    return this.toDto(restored);
   }
 
   /**
@@ -274,12 +251,14 @@ export class PatientMediaService {
       content: file.content,
       fileName: file.originalFileName,
       mimeType: file.mimeType,
+      deliveryType: 'authenticated',
     });
 
     // Swap the storage fields in MongoDB.
     const updated = await this.media.replaceStorageFields(mediaId, clinicId, {
       publicId: stored.publicId,
       resourceType: stored.resourceType,
+      deliveryType: 'authenticated',
       secureUrl: stored.secureUrl,
       mimeType: file.mimeType,
       fileSizeBytes: stored.bytes,
@@ -325,7 +304,7 @@ export class PatientMediaService {
       event: 'replaced',
     });
 
-    return toPatientMediaDto(updated);
+    return this.toDto(updated);
   }
 
   private async requirePatient(clinicId: string, patientId: string): Promise<void> {
@@ -339,6 +318,16 @@ export class PatientMediaService {
     const record = await this.media.findByIdInClinic(mediaId, clinicId);
     if (!record) throw this.notFound();
     return record;
+  }
+
+  private toDto(record: PatientMediaRecord): PatientMediaDto {
+    const contentUrl = this.storage.createPrivateDownloadUrl(
+      record.publicId,
+      record.resourceType,
+      record.deliveryType ?? 'upload',
+      record.format ?? '',
+    );
+    return toPatientMediaDto(record, contentUrl);
   }
 
   private assertManageableCategory(

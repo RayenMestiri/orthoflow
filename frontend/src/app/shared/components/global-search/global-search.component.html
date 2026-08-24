@@ -13,6 +13,7 @@
           placeholder="Rechercher patient, téléphone, reçu (REC-...), traitement..."
           [formControl]="searchControl"
           role="combobox"
+          aria-controls="global-search-results"
           aria-expanded="true"
           aria-autocomplete="list"
           autocomplete="off"
@@ -32,7 +33,7 @@
       </div>
 
       <!-- Results Body -->
-      <div class="cmd-body" role="listbox">
+      <div id="global-search-results" class="cmd-body" role="listbox">
         <!-- Loading Skeleton -->
         @if (loading()) {
           <div class="cmd-loading" aria-label="Recherche en cours...">

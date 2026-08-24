@@ -74,13 +74,14 @@ describe('Operational Dashboard endpoint (GET /api/v1/dashboard)', () => {
       timezone: 'Africa/Tunis',
       generatedAt: new Date().toISOString(),
       summary: {
-        totalAppointments: 0,
+        total: 0,
         completed: 0,
         waiting: 0,
         inTreatment: 0,
         late: 0,
         upcoming: 0,
-        closed: 0,
+        noShow: 0,
+        cancelled: 0,
       },
       rows: [],
     });
@@ -103,7 +104,17 @@ describe('Operational Dashboard endpoint (GET /api/v1/dashboard)', () => {
         outstandingCount: 0,
         noPaymentCount: 0,
         overpaidCount: 0,
-        cancelledWithoutCorrectionCount: 0,
+        cancelledUncorrectedCount: 0,
+        overpaidExcessMinor: 0,
+        outstandingMinor: 0,
+      },
+      distribution: {
+        paid: 0,
+        partiallyPaid: 0,
+        noPayment: 0,
+        overpaid: 0,
+        noAgreedPrice: 0,
+        overpaidExcessMinor: 0,
       },
     });
 
@@ -114,7 +125,7 @@ describe('Operational Dashboard endpoint (GET /api/v1/dashboard)', () => {
         scheduled: 0,
       },
       rows: [],
-      pagination: { total: 0, page: 1, limit: 10, totalPages: 0, hasNextPage: false, hasPreviousPage: false },
+      pagination: { total: 0, page: 1, limit: 10, pages: 0 },
     });
     vi.spyOn(careContinuityService, 'list').mockResolvedValue({
       summary: { needsAttention: 0, lostToFollowUp: 0 },
@@ -143,13 +154,14 @@ describe('Operational Dashboard endpoint (GET /api/v1/dashboard)', () => {
       timezone: 'Africa/Tunis',
       generatedAt: today.toISOString(),
       summary: {
-        totalAppointments: 12,
+        total: 12,
         completed: 8,
         waiting: 2,
         inTreatment: 1,
         late: 1,
         upcoming: 0,
-        closed: 0,
+        noShow: 0,
+        cancelled: 0,
       },
       rows: [
         {
@@ -193,7 +205,17 @@ describe('Operational Dashboard endpoint (GET /api/v1/dashboard)', () => {
         outstandingCount: 15,
         noPaymentCount: 5,
         overpaidCount: 0,
-        cancelledWithoutCorrectionCount: 2,
+        cancelledUncorrectedCount: 2,
+        overpaidExcessMinor: 0,
+        outstandingMinor: 0,
+      },
+      distribution: {
+        paid: 0,
+        partiallyPaid: 0,
+        noPayment: 0,
+        overpaid: 0,
+        noAgreedPrice: 0,
+        overpaidExcessMinor: 0,
       },
     });
 
@@ -218,7 +240,7 @@ describe('Operational Dashboard endpoint (GET /api/v1/dashboard)', () => {
           daysFromRecommendation: 7,
         },
       ],
-      pagination: { total: 1, page: 1, limit: 10, totalPages: 1, hasNextPage: false, hasPreviousPage: false },
+      pagination: { total: 1, page: 1, limit: 10, pages: 1 },
     });
 
     vi.spyOn(dashboardRepository, 'getRecentActivityLogs').mockResolvedValueOnce([
@@ -263,11 +285,15 @@ describe('Operational Dashboard endpoint (GET /api/v1/dashboard)', () => {
 
     // Verify Attention items
     expect(body.data.attention.length).toBeGreaterThan(0);
-    const overdueItem = body.data.attention.find((a: any) => a.id === 'overdue_followups');
+    const overdueItem = body.data.attention.find(
+      (item: { id: string }) => item.id === 'overdue_followups',
+    );
     expect(overdueItem).toBeDefined();
     expect(overdueItem.count).toBe(2);
 
-    const noPaymentItem = body.data.attention.find((a: any) => a.id === 'no_payment_treatments');
+    const noPaymentItem = body.data.attention.find(
+      (item: { id: string }) => item.id === 'no_payment_treatments',
+    );
     expect(noPaymentItem).toBeDefined();
 
     // Verify Recent Activity

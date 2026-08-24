@@ -1,25 +1,192 @@
-<div class="chart" [class.chart--coral]="tone() === 'coral'">
-  <svg viewBox="0 0 720 220" role="img" [attr.aria-label]="title()">
+<div class="chart-container" [class.chart--coral]="tone() === 'coral'">
+  <svg 
+    viewBox="0 0 760 250" 
+    role="img" 
+    [attr.aria-label]="title()" 
+    class="chart-svg"
+    (mouseleave)="setHover(null)">
+    
+    <defs>
+      <!-- Gradients -->
+      <linearGradient id="pineBarGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#247260" />
+        <stop offset="100%" stop-color="#0f3d32" />
+      </linearGradient>
+
+      <linearGradient id="coralBarGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#e07153" />
+        <stop offset="100%" stop-color="#9a341d" />
+      </linearGradient>
+
+      <linearGradient id="hoverBarGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3eb89c" />
+        <stop offset="100%" stop-color="#144d40" />
+      </linearGradient>
+
+      <linearGradient id="hoverCoralGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f8896d" />
+        <stop offset="100%" stop-color="#b93b22" />
+      </linearGradient>
+
+      <filter id="barShadow" x="-10%" y="-10%" width="120%" height="120%">
+        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.12" />
+      </filter>
+    </defs>
+
     <title>{{ title() }}</title>
-    <line x1="54" y1="184" x2="690" y2="184" />
-    <line x1="54" y1="28" x2="54" y2="184" />
-    @for (bar of bars(); track bar.bucket) {
-      <rect [attr.x]="bar.x" [attr.y]="bar.y" [attr.width]="bar.width" [attr.height]="bar.height">
-        <title>{{ formatBucket(bar.bucket) }} : {{ bar.value }}{{ valueSuffix() }}</title>
-      </rect>
-    }
+
+    <!-- Background Grid & Y-Axis Ticks -->
+    <g class="grid-layer">
+      @for (tick of yTicks(); track tick.value) {
+        <line 
+          x1="62" 
+          [attr.y1]="tick.y" 
+          x2="710" 
+          [attr.y2]="tick.y" 
+          class="grid-line"
+          [class.grid-line--zero]="tick.value === 0" 
+        />
+        <text 
+          x="54" 
+          [attr.y]="tick.y + 4" 
+          text-anchor="end" 
+          class="y-axis-label">
+          {{ tick.displayLabel }}
+        </text>
+      }
+    </g>
+
+    <!-- Bars & Direct Labels -->
+    <g class="bars-layer">
+      @for (bar of bars(); track bar.bucket; let i = $index) {
+        <g 
+          class="bar-group" 
+          [class.is-hovered]="hoveredIndex() === i"
+          [class.is-zero]="bar.isZero"
+          (mouseenter)="setHover(i)">
+
+          @if (!bar.isZero) {
+            <!-- Actual Bar with gradient & rounded top -->
+            <rect 
+              [attr.x]="bar.x" 
+              [attr.y]="bar.y" 
+              [attr.width]="bar.width" 
+              [attr.height]="bar.height" 
+              rx="5"
+              ry="5"
+              class="bar-rect"
+              filter="url(#barShadow)">
+              <title>{{ formatBucket(bar.bucket) }} : {{ bar.displayValue }}</title>
+            </rect>
+
+            <!-- Top Value Label (Instant Visibility) -->
+            <text 
+              [attr.x]="bar.labelX" 
+              [attr.y]="bar.labelY" 
+              text-anchor="middle" 
+              class="bar-value-label">
+              {{ bar.displayValue }}
+            </text>
+          } @else {
+            <!-- Zero Marker Baseline Dash -->
+            <circle 
+              [attr.cx]="bar.labelX" 
+              cy="198" 
+              r="3" 
+              class="zero-marker"
+            />
+            <text 
+              [attr.x]="bar.labelX" 
+              y="190" 
+              text-anchor="middle" 
+              class="bar-zero-label">
+              0
+            </text>
+          }
+
+          <!-- X-Axis Tick Mark -->
+          <line 
+            [attr.x1]="bar.labelX" 
+            y1="200" 
+            [attr.x2]="bar.labelX" 
+            y2="206" 
+            class="x-axis-tick" 
+          />
+
+          <!-- X-Axis Date Label -->
+          <text 
+            [attr.x]="bar.labelX" 
+            y="222" 
+            text-anchor="middle" 
+            class="bar-date-label">
+            {{ bar.dateLabel }}
+          </text>
+          <text 
+            [attr.x]="bar.labelX" 
+            y="237" 
+            text-anchor="middle" 
+            class="bar-weekday-label">
+            {{ bar.dayOfWeek }}
+          </text>
+        </g>
+      }
+    </g>
+
+    <!-- Empty State -->
     @if (bars().length === 0) {
-      <text x="360" y="112" text-anchor="middle">Aucune activité sur cette période</text>
+      <g class="empty-state">
+        <text x="380" y="120" text-anchor="middle" class="empty-text">
+          Aucune activité sur cette période
+        </text>
+      </g>
     }
   </svg>
 
-  <details>
-    <summary>Voir les données du graphique</summary>
-    <table>
-      <thead><tr><th>Période</th><th>Valeur</th></tr></thead>
+  <!-- Interactive Active Bar Details Pill -->
+  @if (hoveredIndex() !== null && bars()[hoveredIndex()!]; as activeBar) {
+    <div class="chart-active-pill" role="status">
+      <span class="active-date">{{ formatBucket(activeBar.bucket) }}</span>
+      <span class="active-divider">·</span>
+      <strong class="active-val">{{ activeBar.displayValue }}</strong>
+      @if (activeBar.denominator !== undefined) {
+        <span class="active-sub">({{ activeBar.value }} / {{ activeBar.denominator }} attendus)</span>
+      }
+    </div>
+  }
+
+  <!-- Accessible Data Table -->
+  <details class="chart-data-details">
+    <summary>
+      <span class="material-icons" aria-hidden="true">table_chart</span>
+      <span>Voir le tableau des données</span>
+    </summary>
+    <table class="chart-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th style="text-align: right;">Valeur</th>
+          @if (tone() === 'coral') {
+            <th style="text-align: right;">Taux</th>
+          }
+        </tr>
+      </thead>
       <tbody>
         @for (point of series(); track point.bucket) {
-          <tr><td>{{ formatBucket(point.bucket) }}</td><td>{{ point.value }}{{ valueSuffix() }}</td></tr>
+          <tr>
+            <td>{{ formatBucket(point.bucket) }}</td>
+            <td style="text-align: right; font-weight: 750;">
+              @if (isMoney()) {
+                {{ formatCurrency(point.value) }}
+              } @else {
+                {{ point.value }}{{ valueSuffix() }}
+              }
+            </td>
+            @if (tone() === 'coral') {
+              <td style="text-align: right; color: var(--color-danger); font-weight: 700;">
+                {{ point.rate !== undefined && point.rate !== null ? (point.rate + '%') : '—' }}
+              </td>
+            }
+          </tr>
         }
       </tbody>
     </table>

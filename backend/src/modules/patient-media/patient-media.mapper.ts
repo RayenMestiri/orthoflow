@@ -1,6 +1,6 @@
 import type { PatientMediaDto, PatientMediaRecord } from './patient-media.types.js';
 
-export function toPatientMediaDto(record: PatientMediaRecord): PatientMediaDto {
+export function toPatientMediaDto(record: PatientMediaRecord, contentUrl: string): PatientMediaDto {
   return {
     id: record._id.toString(),
     clinicId: record.clinicId.toString(),
@@ -11,7 +11,7 @@ export function toPatientMediaDto(record: PatientMediaRecord): PatientMediaDto {
     title: record.title,
     description: record.description,
     storageProvider: record.storageProvider,
-    secureUrl: record.secureUrl,
+    contentUrl,
     originalFileName: record.originalFileName,
     mimeType: record.mimeType,
     fileSizeBytes: record.fileSizeBytes,

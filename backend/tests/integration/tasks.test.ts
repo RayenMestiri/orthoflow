@@ -1,7 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { Types } from 'mongoose';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CLINIC_ROLES } from '../../src/common/constants/roles.js';
 import {
   CLINIC_A,
   PATIENT_ID,
@@ -9,7 +8,6 @@ import {
   resetRepositoryMocks,
   resetTestState,
   taskRepositoryMock,
-  testState,
 } from '../helpers/repository-mocks.js';
 import { authHeader, createTestApp } from '../helpers/test-app.js';
 
@@ -147,6 +145,7 @@ describe('Tasks API', () => {
       _id: new Types.ObjectId(taskId),
       clinicId: new Types.ObjectId(CLINIC_A),
       title: 'Tâche à terminer',
+      description: null,
       status: 'TODO',
       priority: 'NORMAL',
       assignedToUserId: new Types.ObjectId(USER_ID),
@@ -167,6 +166,7 @@ describe('Tasks API', () => {
       _id: new Types.ObjectId(taskId),
       clinicId: new Types.ObjectId(CLINIC_A),
       title: 'Tâche à terminer',
+      description: null,
       status: 'COMPLETED',
       priority: 'NORMAL',
       assignedToUserId: new Types.ObjectId(USER_ID),
@@ -204,6 +204,7 @@ describe('Tasks API', () => {
       _id: new Types.ObjectId(taskId),
       clinicId: new Types.ObjectId(CLINIC_A),
       title: 'Tâche à annuler',
+      description: null,
       status: 'TODO',
       priority: 'NORMAL',
       assignedToUserId: new Types.ObjectId(USER_ID),
@@ -224,6 +225,7 @@ describe('Tasks API', () => {
       _id: new Types.ObjectId(taskId),
       clinicId: new Types.ObjectId(CLINIC_A),
       title: 'Tâche à annuler',
+      description: null,
       status: 'CANCELLED',
       priority: 'NORMAL',
       assignedToUserId: new Types.ObjectId(USER_ID),

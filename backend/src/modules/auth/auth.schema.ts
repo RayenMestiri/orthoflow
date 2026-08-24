@@ -74,7 +74,6 @@ export type ResetPasswordBody = z.infer<typeof resetPasswordBodySchema>;
 
 export const authTokensSchema = z.object({
   accessToken: z.string(),
-  refreshToken: z.string(),
   tokenType: z.literal('Bearer'),
   expiresIn: z.number().int().positive().meta({ description: 'Access token lifetime in seconds' }),
 });

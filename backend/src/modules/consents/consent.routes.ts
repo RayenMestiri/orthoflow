@@ -1,7 +1,15 @@
 import multipart from '@fastify/multipart';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { PERMISSIONS } from '../../common/constants/permissions.js';
-import { errorResponses, paginatedSchema, successSchema } from '../../common/validation/api-schemas.js';
+import {
+  errorResponses,
+  paginatedSchema,
+  successSchema,
+} from '../../common/validation/api-schemas.js';
+import {
+  artifactGenerationRateLimitConfig,
+  protectedDownloadRateLimitConfig,
+} from '../../plugins/security.plugin.js';
 import {
   activateConsentTemplateHandler,
   archiveConsentTemplateHandler,
@@ -47,7 +55,10 @@ export const consentTemplateRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: 'List clinic consent template versions',
         security: [{ bearerAuth: [] }],
         querystring: consentTemplateListQuerySchema,
-        response: { 200: paginatedSchema(consentTemplateDtoSchema), ...errorResponses(400, 401, 403) },
+        response: {
+          200: paginatedSchema(consentTemplateDtoSchema),
+          ...errorResponses(400, 401, 403),
+        },
       },
     },
     listConsentTemplatesHandler,
@@ -61,7 +72,10 @@ export const consentTemplateRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: 'Create a draft consent template',
         security: [{ bearerAuth: [] }],
         body: createConsentTemplateBodySchema,
-        response: { 201: successSchema(consentTemplateDtoSchema), ...errorResponses(400, 401, 403, 409) },
+        response: {
+          201: successSchema(consentTemplateDtoSchema),
+          ...errorResponses(400, 401, 403, 409),
+        },
       },
     },
     createConsentTemplateHandler,
@@ -76,7 +90,10 @@ export const consentTemplateRoutes: FastifyPluginAsyncZod = async (app) => {
         security: [{ bearerAuth: [] }],
         params: consentTemplateIdParamSchema,
         body: updateConsentTemplateBodySchema,
-        response: { 200: successSchema(consentTemplateDtoSchema), ...errorResponses(400, 401, 403, 404, 422) },
+        response: {
+          200: successSchema(consentTemplateDtoSchema),
+          ...errorResponses(400, 401, 403, 404, 422),
+        },
       },
     },
     updateConsentTemplateHandler,
@@ -91,7 +108,10 @@ export const consentTemplateRoutes: FastifyPluginAsyncZod = async (app) => {
         security: [{ bearerAuth: [] }],
         params: consentTemplateIdParamSchema,
         body: createConsentTemplateVersionBodySchema,
-        response: { 201: successSchema(consentTemplateDtoSchema), ...errorResponses(400, 401, 403, 404, 409) },
+        response: {
+          201: successSchema(consentTemplateDtoSchema),
+          ...errorResponses(400, 401, 403, 404, 409),
+        },
       },
     },
     createConsentTemplateVersionHandler,
@@ -105,7 +125,10 @@ export const consentTemplateRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: 'Activate one immutable template version',
         security: [{ bearerAuth: [] }],
         params: consentTemplateIdParamSchema,
-        response: { 200: successSchema(consentTemplateDtoSchema), ...errorResponses(400, 401, 403, 404, 422) },
+        response: {
+          200: successSchema(consentTemplateDtoSchema),
+          ...errorResponses(400, 401, 403, 404, 422),
+        },
       },
     },
     activateConsentTemplateHandler,
@@ -119,7 +142,10 @@ export const consentTemplateRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: 'Archive a template version without deleting history',
         security: [{ bearerAuth: [] }],
         params: consentTemplateIdParamSchema,
-        response: { 200: successSchema(consentTemplateDtoSchema), ...errorResponses(400, 401, 403, 404, 422) },
+        response: {
+          200: successSchema(consentTemplateDtoSchema),
+          ...errorResponses(400, 401, 403, 404, 422),
+        },
       },
     },
     archiveConsentTemplateHandler,
@@ -128,7 +154,13 @@ export const consentTemplateRoutes: FastifyPluginAsyncZod = async (app) => {
 
 export const patientConsentRoutes: FastifyPluginAsyncZod = async (app) => {
   await app.register(multipart, {
-    limits: { fields: 8, files: 1, parts: 9, fieldSize: 25_000, fileSize: CONSENT_SIGNATURE_MAX_BYTES },
+    limits: {
+      fields: 8,
+      files: 1,
+      parts: 9,
+      fieldSize: 25_000,
+      fileSize: CONSENT_SIGNATURE_MAX_BYTES,
+    },
   });
   app.addHook('preHandler', app.authenticate);
   app.addHook('preHandler', app.requireClinic());
@@ -142,7 +174,10 @@ export const patientConsentRoutes: FastifyPluginAsyncZod = async (app) => {
         security: [{ bearerAuth: [] }],
         params: consentPatientIdParamSchema,
         querystring: consentListQuerySchema,
-        response: { 200: paginatedSchema(signedConsentDtoSchema), ...errorResponses(400, 401, 403, 404) },
+        response: {
+          200: paginatedSchema(signedConsentDtoSchema),
+          ...errorResponses(400, 401, 403, 404),
+        },
       },
     },
     listPatientConsentsHandler,
@@ -157,7 +192,10 @@ export const patientConsentRoutes: FastifyPluginAsyncZod = async (app) => {
         security: [{ bearerAuth: [] }],
         params: consentPatientIdParamSchema,
         body: consentPreviewBodySchema,
-        response: { 200: successSchema(consentPreviewDtoSchema), ...errorResponses(400, 401, 403, 404, 422) },
+        response: {
+          200: successSchema(consentPreviewDtoSchema),
+          ...errorResponses(400, 401, 403, 404, 422),
+        },
       },
     },
     previewPatientConsentHandler,
@@ -166,13 +204,17 @@ export const patientConsentRoutes: FastifyPluginAsyncZod = async (app) => {
     '/:patientId/consents/sign',
     {
       preHandler: [app.requirePermission(PERMISSIONS.CONSENT_CAPTURE)],
+      config: artifactGenerationRateLimitConfig,
       schema: {
         tags: ['consents'],
         summary: 'Finalize a signed consent from a PNG signature upload',
         description: 'Accepts multipart/form-data; signature bytes are never stored in MongoDB.',
         security: [{ bearerAuth: [] }],
         params: consentPatientIdParamSchema,
-        response: { 201: successSchema(signedConsentDtoSchema), ...errorResponses(400, 401, 403, 404, 409, 422, 503) },
+        response: {
+          201: successSchema(signedConsentDtoSchema),
+          ...errorResponses(400, 401, 403, 404, 409, 422, 503),
+        },
       },
     },
     signPatientConsentHandler,
@@ -191,7 +233,10 @@ export const consentRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: 'Get immutable signed-consent metadata and snapshot',
         security: [{ bearerAuth: [] }],
         params: consentIdParamSchema,
-        response: { 200: successSchema(signedConsentDtoSchema), ...errorResponses(400, 401, 403, 404) },
+        response: {
+          200: successSchema(signedConsentDtoSchema),
+          ...errorResponses(400, 401, 403, 404),
+        },
       },
     },
     getConsentHandler,
@@ -200,6 +245,7 @@ export const consentRoutes: FastifyPluginAsyncZod = async (app) => {
     '/:consentId/pdf',
     {
       preHandler: [app.requirePermission(PERMISSIONS.CONSENT_READ)],
+      config: protectedDownloadRateLimitConfig,
       schema: {
         tags: ['consents'],
         summary: 'Stream the integrity-checked finalized consent PDF',
@@ -220,7 +266,10 @@ export const consentRoutes: FastifyPluginAsyncZod = async (app) => {
         security: [{ bearerAuth: [] }],
         params: consentIdParamSchema,
         body: consentReasonBodySchema,
-        response: { 200: successSchema(signedConsentDtoSchema), ...errorResponses(400, 401, 403, 404, 409, 422) },
+        response: {
+          200: successSchema(signedConsentDtoSchema),
+          ...errorResponses(400, 401, 403, 404, 409, 422),
+        },
       },
     },
     revokeConsentHandler,
@@ -235,7 +284,10 @@ export const consentRoutes: FastifyPluginAsyncZod = async (app) => {
         security: [{ bearerAuth: [] }],
         params: consentIdParamSchema,
         body: consentReasonBodySchema,
-        response: { 200: successSchema(signedConsentDtoSchema), ...errorResponses(400, 401, 403, 404, 409, 422) },
+        response: {
+          200: successSchema(signedConsentDtoSchema),
+          ...errorResponses(400, 401, 403, 404, 409, 422),
+        },
       },
     },
     voidConsentHandler,

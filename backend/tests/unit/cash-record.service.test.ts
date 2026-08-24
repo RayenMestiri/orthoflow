@@ -437,6 +437,7 @@ describe('CashRecordService', () => {
       users as unknown as UserRepository,
       patients as unknown as PatientRepository,
       guardians as unknown as GuardianRepository,
+      patientGuardians as unknown as PatientGuardianRepository,
       treatments as unknown as TreatmentRepository,
       clinics as unknown as ClinicRepository,
     );

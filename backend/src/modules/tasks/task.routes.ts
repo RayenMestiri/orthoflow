@@ -43,7 +43,7 @@ export const taskRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    (req, reply) => taskController.listTasks(req as any, reply),
+    (req, reply) => taskController.listTasks(req, reply),
   );
 
   // GET /api/v1/tasks/summary - Counters summary
@@ -61,7 +61,7 @@ export const taskRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    (req, reply) => taskController.getSummary(req as any, reply),
+    (req, reply) => taskController.getSummary(req, reply),
   );
 
   // GET /api/v1/tasks/:taskId - Single task
@@ -80,7 +80,7 @@ export const taskRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    (req, reply) => taskController.getTask(req as any, reply),
+    (req, reply) => taskController.getTask(req, reply),
   );
 
   // POST /api/v1/tasks - Create task
@@ -99,7 +99,7 @@ export const taskRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    (req, reply) => taskController.createTask(req as any, reply),
+    (req, reply) => taskController.createTask(req, reply),
   );
 
   // PATCH /api/v1/tasks/:taskId - Update task
@@ -119,7 +119,7 @@ export const taskRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    (req, reply) => taskController.updateTask(req as any, reply),
+    (req, reply) => taskController.updateTask(req, reply),
   );
 
   // POST /api/v1/tasks/:taskId/start - Start task
@@ -138,7 +138,7 @@ export const taskRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    (req, reply) => taskController.startTask(req as any, reply),
+    (req, reply) => taskController.startTask(req, reply),
   );
 
   // POST /api/v1/tasks/:taskId/complete - Complete task
@@ -158,7 +158,7 @@ export const taskRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    (req, reply) => taskController.completeTask(req as any, reply),
+    (req, reply) => taskController.completeTask(req, reply),
   );
 
   // POST /api/v1/tasks/:taskId/cancel - Cancel task
@@ -178,6 +178,6 @@ export const taskRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
     },
-    (req, reply) => taskController.cancelTask(req as any, reply),
+    (req, reply) => taskController.cancelTask(req, reply),
   );
 };

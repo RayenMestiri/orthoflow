@@ -25,20 +25,35 @@ export interface ParsedPatientMediaUpload {
 
 function hasExpectedSignature(content: Buffer, mimeType: string): boolean {
   if (mimeType === 'image/jpeg') {
-    return content.length >= 3 && content[0] === 0xff && content[1] === 0xd8 && content[2] === 0xff;
+    return (
+      content.length >= 5 &&
+      content[0] === 0xff &&
+      content[1] === 0xd8 &&
+      content[2] === 0xff &&
+      content.at(-2) === 0xff &&
+      content.at(-1) === 0xd9
+    );
   }
   if (mimeType === 'image/png') {
-    return content.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    return (
+      content.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) &&
+      content.subarray(-12).equals(Buffer.from([0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130]))
+    );
   }
   if (mimeType === 'image/webp') {
     return (
       content.length >= 12 &&
       content.subarray(0, 4).toString('ascii') === 'RIFF' &&
-      content.subarray(8, 12).toString('ascii') === 'WEBP'
+      content.subarray(8, 12).toString('ascii') === 'WEBP' &&
+      content.readUInt32LE(4) + 8 === content.length
     );
   }
   if (mimeType === 'application/pdf') {
-    return content.subarray(0, 5).toString('ascii') === '%PDF-';
+    const header = content.subarray(0, 5).toString('ascii');
+    const tail = content.subarray(Math.max(0, content.length - 1024)).toString('latin1');
+    const sample = content.toString('latin1').replace(/\s+/g, ' ');
+    const activeContent = /\/(JavaScript|JS|Launch|EmbeddedFile|OpenAction|AA)\b/i.test(sample);
+    return header === '%PDF-' && tail.includes('%%EOF') && !activeContent;
   }
   return false;
 }
@@ -49,7 +64,7 @@ function validateFile(
   mimeType: string,
 ): PatientMediaUploadFile {
   const mediaType = ALLOWED_MIME_TYPES[mimeType];
-  if (!mediaType || !hasExpectedSignature(content, mimeType)) {
+  if (!mediaType) {
     throw new ValidationError('Only valid JPEG, PNG, WebP and PDF files are supported', {
       code: ERROR_CODES.UNSUPPORTED_MEDIA_TYPE,
     });
@@ -68,6 +83,11 @@ function validateFile(
         : 'PDF files must not exceed 20 MB',
       { code: ERROR_CODES.FILE_TOO_LARGE },
     );
+  }
+  if (!hasExpectedSignature(content, mimeType)) {
+    throw new ValidationError('Only valid passive JPEG, PNG, WebP and PDF files are supported', {
+      code: ERROR_CODES.UNSUPPORTED_MEDIA_TYPE,
+    });
   }
   return {
     content,

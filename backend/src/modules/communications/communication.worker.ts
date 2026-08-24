@@ -17,17 +17,25 @@ export class CommunicationWorker {
   private readonly workerId = `${hostname()}:${process.pid}:external`;
   private timer: ReturnType<typeof setInterval> | null = null;
   private running = false;
+  private drainResolvers: Array<() => void> = [];
   constructor(private readonly jobs: CommunicationRepository = communicationRepository) {}
 
   start(intervalMs: number, log: FastifyBaseLogger): void {
     if (this.timer) return;
-    void this.runOnce(log);
-    this.timer = setInterval(() => void this.runOnce(log), intervalMs);
+    const run = () =>
+      void this.runOnce(log).catch((error: unknown) =>
+        log.error({ err: error }, 'Communication worker batch failed'),
+      );
+    run();
+    this.timer = setInterval(run, intervalMs);
     this.timer.unref();
   }
-  stop(): void {
+  async stop(): Promise<void> {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+    if (this.running) {
+      await new Promise<void>((resolve) => this.drainResolvers.push(resolve));
+    }
   }
 
   async runOnce(log: FastifyBaseLogger): Promise<number> {
@@ -94,6 +102,7 @@ export class CommunicationWorker {
       return processed;
     } finally {
       this.running = false;
+      for (const resolve of this.drainResolvers.splice(0)) resolve();
     }
   }
 

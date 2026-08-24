@@ -228,7 +228,11 @@
         <span>Historique</span>
       </button>
       @if (canViewCommunications) {
-        <button type="button" [class.active]="activeView() === 'communications'" (click)="activeView.set('communications')">
+        <button
+          type="button"
+          [class.active]="activeView() === 'communications'"
+          (click)="activeView.set('communications')"
+        >
           <span class="material-icons" aria-hidden="true">forum</span><span>Communications</span>
         </button>
       }
@@ -269,12 +273,15 @@
         </button>
       }
       @if (canViewConsents) {
-        <button type="button" [class.active]="activeView() === 'consents'" (click)="activeView.set('consents')">
+        <button
+          type="button"
+          [class.active]="activeView() === 'consents'"
+          (click)="activeView.set('consents')"
+        >
           <span class="material-icons" aria-hidden="true">verified_user</span>
           <span>Consents</span>
         </button>
       }
-
     </nav>
 
     <!-- Main Content Panels -->
@@ -428,7 +435,10 @@
               </div>
               <div class="guardian-minor-notice__body">
                 <strong>Patient mineur · Aucun parent ou responsable enregistré</strong>
-                <p>Ajoutez un parent ou représentant légal pour faciliter la prise de rendez-vous et le suivi des paiements.</p>
+                <p>
+                  Ajoutez un parent ou représentant légal pour faciliter la prise de rendez-vous et
+                  le suivi des paiements.
+                </p>
               </div>
               @if (canUpdate && current.status !== 'ARCHIVED') {
                 <button type="button" class="btn-minor-add" (click)="openAddGuardian()">
@@ -443,9 +453,16 @@
             <div class="guardian-empty">
               <span class="material-icons" aria-hidden="true">family_restroom</span>
               <strong>Aucun parent ou responsable enregistré</strong>
-              <small>Ajoutez un contact responsable pour faciliter les rendez-vous et les paiements.</small>
+              <small
+                >Ajoutez un contact responsable pour faciliter les rendez-vous et les
+                paiements.</small
+              >
               @if (canUpdate && current.status !== 'ARCHIVED') {
-                <button type="button" class="btn-panel-action btn-panel-action--inline" (click)="openAddGuardian()">
+                <button
+                  type="button"
+                  class="btn-panel-action btn-panel-action--inline"
+                  (click)="openAddGuardian()"
+                >
                   <span class="material-icons" aria-hidden="true">add</span>
                   <span>Ajouter un responsable</span>
                 </button>
@@ -454,9 +471,17 @@
           } @else if (guardians().length > 0) {
             <div class="guardian-compact-grid">
               @for (guardian of guardians(); track guardian.id) {
-                <article class="guardian-compact-card" (click)="openGuardianView(guardian)">
+                <article
+                  class="guardian-compact-card"
+                  role="button"
+                  tabindex="0"
+                  (click)="openGuardianView(guardian)"
+                  (keydown.enter)="openGuardianView(guardian)"
+                >
                   <div class="guardian-compact-card__top">
-                    <span class="guardian-avatar">{{ initials(guardian.firstName, guardian.lastName) }}</span>
+                    <span class="guardian-avatar">{{
+                      initials(guardian.firstName, guardian.lastName)
+                    }}</span>
                     <div class="guardian-compact-card__meta">
                       <div class="guardian-compact-card__title-row">
                         <h3>{{ guardian.fullName }}</h3>
@@ -467,19 +492,29 @@
                           </span>
                         }
                       </div>
-                      <p class="guardian-compact-card__rel">{{ relationshipLabel(guardian.relationship) }}</p>
+                      <p class="guardian-compact-card__rel">
+                        {{ relationshipLabel(guardian.relationship) }}
+                      </p>
                     </div>
                   </div>
 
                   <div class="guardian-compact-card__details">
                     @if (guardian.phone) {
-                      <a class="guardian-contact-link" [href]="'tel:' + guardian.phone" (click)="$event.stopPropagation()">
+                      <a
+                        class="guardian-contact-link"
+                        [href]="'tel:' + guardian.phone"
+                        (click)="$event.stopPropagation()"
+                      >
                         <span class="material-icons" aria-hidden="true">call</span>
                         <span>{{ guardian.phone }}</span>
                       </a>
                     }
                     @if (guardian.email) {
-                      <a class="guardian-contact-link" [href]="'mailto:' + guardian.email" (click)="$event.stopPropagation()">
+                      <a
+                        class="guardian-contact-link"
+                        [href]="'mailto:' + guardian.email"
+                        (click)="$event.stopPropagation()"
+                      >
                         <span class="material-icons" aria-hidden="true">mail</span>
                         <span>{{ guardian.email }}</span>
                       </a>
@@ -487,12 +522,21 @@
                   </div>
 
                   <div class="guardian-compact-card__footer">
-                    <button type="button" class="btn-view-guardian" (click)="openGuardianView(guardian); $event.stopPropagation()">
+                    <button
+                      type="button"
+                      class="btn-view-guardian"
+                      (click)="openGuardianView(guardian); $event.stopPropagation()"
+                    >
                       <span class="material-icons" aria-hidden="true">visibility</span>
                       <span>Voir la fiche</span>
                     </button>
                     @if (guardian.phone) {
-                      <a class="btn-quick-call" [href]="'tel:' + guardian.phone" (click)="$event.stopPropagation()" title="Appeler">
+                      <a
+                        class="btn-quick-call"
+                        [href]="'tel:' + guardian.phone"
+                        (click)="$event.stopPropagation()"
+                        title="Appeler"
+                      >
                         <span class="material-icons" aria-hidden="true">phone</span>
                         <span>Appeler</span>
                       </a>
@@ -655,7 +699,12 @@
                   </div>
                 </div>
               </div>
-              <button type="button" class="drawer__close" aria-label="Fermer" (click)="closeGuardian()">
+              <button
+                type="button"
+                class="drawer__close"
+                aria-label="Fermer"
+                (click)="closeGuardian()"
+              >
                 <span class="material-icons" aria-hidden="true">close</span>
               </button>
             </header>
@@ -673,9 +722,17 @@
                 <div class="primary-promotion-banner">
                   <div>
                     <strong>Définir comme contact principal ?</strong>
-                    <p>Ce responsable sera affiché en priorité lors des prises de rendez-vous et contacts urgents.</p>
+                    <p>
+                      Ce responsable sera affiché en priorité lors des prises de rendez-vous et
+                      contacts urgents.
+                    </p>
                   </div>
-                  <button type="button" class="btn-make-primary" [disabled]="makingPrimary()" (click)="makePrimary(g)">
+                  <button
+                    type="button"
+                    class="btn-make-primary"
+                    [disabled]="makingPrimary()"
+                    (click)="makePrimary(g)"
+                  >
                     <span class="material-icons" aria-hidden="true">star_outline</span>
                     <span>{{ makingPrimary() ? 'En cours…' : 'Définir contact principal' }}</span>
                   </button>
@@ -721,7 +778,9 @@
                   </div>
 
                   <div class="detail-row">
-                    <dt><span class="material-icons" aria-hidden="true">chat</span> Canal préféré</dt>
+                    <dt>
+                      <span class="material-icons" aria-hidden="true">chat</span> Canal préféré
+                    </dt>
                     <dd>{{ contactPreferenceLabel(g.contactPreference) }}</dd>
                   </div>
                 </dl>
@@ -735,19 +794,43 @@
                   } @else if (portalAccess(); as access) {
                     <div class="primary-promotion-banner">
                       <div>
-                        <strong>Statut : {{ access.status.replaceAll('_', ' ').toLowerCase() }}</strong>
+                        <strong
+                          >Statut : {{ access.status.replaceAll('_', ' ').toLowerCase() }}</strong
+                        >
                         @if (!g.email) {
-                          <p>Ajoutez une adresse email au responsable avant d'envoyer une invitation.</p>
+                          <p>
+                            Ajoutez une adresse email au responsable avant d'envoyer une invitation.
+                          </p>
                         } @else if (access.status === 'ACTIVE') {
-                          <p>{{ access.email }} peut consulter uniquement les enfants liés et les documents explicitement partagés.</p>
+                          <p>
+                            {{ access.email }} peut consulter uniquement les enfants liés et les
+                            documents explicitement partagés.
+                          </p>
                         } @else {
-                          <p>L'invitation est personnelle, expire après 48 heures et ne donne aucun droit staff.</p>
+                          <p>
+                            L'invitation est personnelle, expire après 48 heures et ne donne aucun
+                            droit staff.
+                          </p>
                         }
                       </div>
                       @if (access.status === 'ACTIVE') {
-                        <button type="button" class="btn-make-primary" [disabled]="portalAccessBusy()" (click)="revokePortal(g)">Révoquer l'accès</button>
+                        <button
+                          type="button"
+                          class="btn-make-primary"
+                          [disabled]="portalAccessBusy()"
+                          (click)="revokePortal(g)"
+                        >
+                          Révoquer l'accès
+                        </button>
                       } @else {
-                        <button type="button" class="btn-make-primary" [disabled]="portalAccessBusy() || !g.email" (click)="invitePortal(g)">{{ access.status === 'INVITED' ? 'Renvoyer' : 'Inviter' }}</button>
+                        <button
+                          type="button"
+                          class="btn-make-primary"
+                          [disabled]="portalAccessBusy() || !g.email"
+                          (click)="invitePortal(g)"
+                        >
+                          {{ access.status === 'INVITED' ? 'Renvoyer' : 'Inviter' }}
+                        </button>
                       }
                     </div>
                   }
@@ -765,14 +848,24 @@
                 @if (guardianChildrenLoading()) {
                   <p class="text-muted small">Recherche des dossiers associés…</p>
                 } @else if (guardianChildren().length === 0) {
-                  <p class="text-muted small">Aucun autre enfant n'est actuellement rattaché à ce responsable dans la clinique.</p>
+                  <p class="text-muted small">
+                    Aucun autre enfant n'est actuellement rattaché à ce responsable dans la
+                    clinique.
+                  </p>
                 } @else {
                   <div class="siblings-list">
                     @for (child of guardianChildren(); track child.patientId) {
-                      <a class="sibling-card" [routerLink]="['/app/patients', child.patientId]" (click)="closeGuardian()">
+                      <a
+                        class="sibling-card"
+                        [routerLink]="['/app/patients', child.patientId]"
+                        (click)="closeGuardian()"
+                      >
                         <div class="sibling-card__info">
                           <strong>{{ child.fullName }}</strong>
-                          <small>{{ relationshipLabel(child.relationship) }} · {{ child.referenceNumber || 'Dossier' }}</small>
+                          <small
+                            >{{ relationshipLabel(child.relationship) }} ·
+                            {{ child.referenceNumber || 'Dossier' }}</small
+                          >
                         </div>
                         <span class="material-icons" aria-hidden="true">arrow_forward</span>
                       </a>
@@ -794,7 +887,9 @@
                     <span>Modifier</span>
                   </button>
                 }
-                <button type="button" class="btn-drawer-close" (click)="closeGuardian()">Fermer</button>
+                <button type="button" class="btn-drawer-close" (click)="closeGuardian()">
+                  Fermer
+                </button>
               </div>
             </footer>
           } @else if (guardianDrawerView() === 'CREATE') {
@@ -804,7 +899,12 @@
                 <span class="drawer__eyebrow">Nouveau Responsable</span>
                 <h2 id="guardian-drawer-title">Ajouter un responsable</h2>
               </div>
-              <button type="button" class="drawer__close" aria-label="Fermer" (click)="closeGuardian()">
+              <button
+                type="button"
+                class="drawer__close"
+                aria-label="Fermer"
+                (click)="closeGuardian()"
+              >
                 <span class="material-icons" aria-hidden="true">close</span>
               </button>
             </header>
@@ -886,12 +986,17 @@
                     </label>
                     <label class="guardian-checkbox">
                       <input type="checkbox" formControlName="communicationAuthorized" />
-                      <span><strong>Communications autorisées</strong> (rappels opérationnels uniquement)</span>
+                      <span
+                        ><strong>Communications autorisées</strong> (rappels opérationnels
+                        uniquement)</span
+                      >
                     </label>
                   </div>
 
                   <footer class="guardian-drawer__footer">
-                    <button type="button" class="btn-drawer-cancel" (click)="closeGuardian()">Annuler</button>
+                    <button type="button" class="btn-drawer-cancel" (click)="closeGuardian()">
+                      Annuler
+                    </button>
                     <button type="submit" class="btn-drawer-submit" [disabled]="guardianSaving()">
                       {{ guardianSaving() ? 'Enregistrement…' : 'Enregistrer' }}
                     </button>
@@ -917,22 +1022,38 @@
                         <div
                           class="existing-result-item"
                           [class.selected]="selectedExistingGuardian()?.id === result.id"
+                          role="button"
+                          tabindex="0"
                           (click)="selectExistingGuardian(result)"
+                          (keydown.enter)="selectExistingGuardian(result)"
                         >
                           <div class="existing-result-item__meta">
                             <strong>{{ result.fullName }}</strong>
-                            <small>{{ result.phone || result.email || 'Aucun contact direct' }} · {{ result.linkedPatientsCount }} dossier(s) lié(s)</small>
+                            <small
+                              >{{ result.phone || result.email || 'Aucun contact direct' }} ·
+                              {{ result.linkedPatientsCount }} dossier(s) lié(s)</small
+                            >
                           </div>
-                          <button type="button" class="btn-select-result" [attr.aria-label]="'Sélectionner ' + result.fullName">
+                          <button
+                            type="button"
+                            class="btn-select-result"
+                            [attr.aria-label]="'Sélectionner ' + result.fullName"
+                          >
                             <span class="material-icons" aria-hidden="true">
-                              {{ selectedExistingGuardian()?.id === result.id ? 'check_circle' : 'radio_button_unchecked' }}
+                              {{
+                                selectedExistingGuardian()?.id === result.id
+                                  ? 'check_circle'
+                                  : 'radio_button_unchecked'
+                              }}
                             </span>
                           </button>
                         </div>
                       }
                     </div>
                   } @else if (guardianSearchQuery().trim().length > 0) {
-                    <p class="text-muted small">Aucun responsable trouvé dans la clinique pour cette recherche.</p>
+                    <p class="text-muted small">
+                      Aucun responsable trouvé dans la clinique pour cette recherche.
+                    </p>
                   }
 
                   @if (selectedExistingGuardian(); as sel) {
@@ -940,7 +1061,10 @@
                       <h4>Rattacher {{ sel.fullName }}</h4>
                       <label class="form-field">
                         <span>Lien de parenté avec {{ current.fullName }} *</span>
-                        <select [value]="existingRelationship()" (change)="existingRelationship.set($any($event.target).value)">
+                        <select
+                          [value]="existingRelationship()"
+                          (change)="existingRelationship.set($any($event.target).value)"
+                        >
                           <option value="FATHER">Père</option>
                           <option value="MOTHER">Mère</option>
                           <option value="LEGAL_GUARDIAN">Responsable légal</option>
@@ -948,21 +1072,42 @@
                         </select>
                       </label>
                       <label class="guardian-checkbox">
-                        <input type="checkbox" [checked]="existingIsPrimary()" (change)="existingIsPrimary.set($any($event.target).checked)" />
+                        <input
+                          type="checkbox"
+                          [checked]="existingIsPrimary()"
+                          (change)="existingIsPrimary.set($any($event.target).checked)"
+                        />
                         <span><strong>Contact principal</strong></span>
                       </label>
                       <label class="guardian-checkbox">
-                        <input type="checkbox" [checked]="existingFinanciallyResponsible()" (change)="existingFinanciallyResponsible.set($any($event.target).checked)" />
+                        <input
+                          type="checkbox"
+                          [checked]="existingFinanciallyResponsible()"
+                          (change)="existingFinanciallyResponsible.set($any($event.target).checked)"
+                        />
                         <span><strong>Responsable financier</strong></span>
                       </label>
                       <label class="guardian-checkbox">
-                        <input type="checkbox" [checked]="existingCommunicationAuthorized()" (change)="existingCommunicationAuthorized.set($any($event.target).checked)" />
+                        <input
+                          type="checkbox"
+                          [checked]="existingCommunicationAuthorized()"
+                          (change)="
+                            existingCommunicationAuthorized.set($any($event.target).checked)
+                          "
+                        />
                         <span><strong>Communications autorisées</strong></span>
                       </label>
 
-                      <button type="button" class="btn-link-submit" [disabled]="existingLinking()" (click)="linkExistingGuardianSubmit()">
+                      <button
+                        type="button"
+                        class="btn-link-submit"
+                        [disabled]="existingLinking()"
+                        (click)="linkExistingGuardianSubmit()"
+                      >
                         <span class="material-icons" aria-hidden="true">link</span>
-                        <span>{{ existingLinking() ? 'Association en cours…' : 'Associer ce responsable' }}</span>
+                        <span>{{
+                          existingLinking() ? 'Association en cours…' : 'Associer ce responsable'
+                        }}</span>
                       </button>
                     </div>
                   }
@@ -976,7 +1121,12 @@
                 <span class="drawer__eyebrow">Modifier Responsable</span>
                 <h2 id="guardian-drawer-title">Modifier {{ editingGuardian()!.fullName }}</h2>
               </div>
-              <button type="button" class="drawer__close" aria-label="Fermer" (click)="switchBackToView()">
+              <button
+                type="button"
+                class="drawer__close"
+                aria-label="Fermer"
+                (click)="switchBackToView()"
+              >
                 <span class="material-icons" aria-hidden="true">close</span>
               </button>
             </header>
@@ -1038,7 +1188,9 @@
                 </div>
 
                 <footer class="guardian-drawer__footer">
-                  <button type="button" class="btn-drawer-cancel" (click)="switchBackToView()">Annuler</button>
+                  <button type="button" class="btn-drawer-cancel" (click)="switchBackToView()">
+                    Annuler
+                  </button>
                   <button type="submit" class="btn-drawer-submit" [disabled]="guardianSaving()">
                     {{ guardianSaving() ? 'Enregistrement…' : 'Mettre à jour' }}
                   </button>
@@ -1074,11 +1226,19 @@
           </div>
           <h2 id="unlink-title">Dissocier {{ target.fullName }} ?</h2>
           <p id="unlink-desc">
-            Le lien de parenté sera retiré de ce dossier. Si {{ target.fullName }} est également le responsable d'autres enfants au cabinet, ses autres dossiers resteront inchangés.
+            Le lien de parenté sera retiré de ce dossier. Si {{ target.fullName }} est également le
+            responsable d'autres enfants au cabinet, ses autres dossiers resteront inchangés.
           </p>
           <footer class="modal-footer">
-            <button type="button" class="btn-cancel" (click)="unlinkConfirmOpen.set(false)">Conserver le lien</button>
-            <button type="button" class="btn-confirm-archive" [disabled]="unlinking()" (click)="confirmUnlink()">
+            <button type="button" class="btn-cancel" (click)="unlinkConfirmOpen.set(false)">
+              Conserver le lien
+            </button>
+            <button
+              type="button"
+              class="btn-confirm-archive"
+              [disabled]="unlinking()"
+              (click)="confirmUnlink()"
+            >
               {{ unlinking() ? 'Dissociation…' : 'Dissocier du patient' }}
             </button>
           </footer>

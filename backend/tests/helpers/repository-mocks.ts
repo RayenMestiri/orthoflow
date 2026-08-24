@@ -9,6 +9,9 @@ import {
   type PlatformRole,
 } from '../../src/common/constants/roles.js';
 import { CLINIC_STATUSES, type ClinicStatus } from '../../src/modules/clinics/clinic.types.js';
+import type { AppointmentRecord } from '../../src/modules/appointments/appointment.types.js';
+import type { ClinicalVisitRecord } from '../../src/modules/clinical-visits/clinical-visit.types.js';
+import type { TaskAttributes, TaskRecord } from '../../src/modules/tasks/task.types.js';
 
 /**
  * In-memory stand-ins for the Mongoose repositories.
@@ -27,6 +30,7 @@ export const GUARDIAN_ID = '652f1c9b8a1e4f0012abbbbb';
 
 /** Knobs each test turns to describe the caller and their clinic. */
 export const testState = {
+  activeUserId: USER_ID,
   platformRole: PLATFORM_ROLES.USER as PlatformRole,
   membershipRole: CLINIC_ROLES.CLINIC_OWNER as ClinicRole,
   membershipStatus: MEMBERSHIP_STATUSES.ACTIVE as MembershipStatus,
@@ -37,6 +41,7 @@ export const testState = {
 };
 
 export function resetTestState(): void {
+  testState.activeUserId = USER_ID;
   testState.platformRole = PLATFORM_ROLES.USER;
   testState.membershipRole = CLINIC_ROLES.CLINIC_OWNER;
   testState.membershipStatus = MEMBERSHIP_STATUSES.ACTIVE;
@@ -277,11 +282,16 @@ export function appointmentTypeRecord(clinicId: string, typeId = APPOINTMENT_TYP
 /** Monday 2026-08-10, 09:00 in Africa/Tunis (UTC+1). */
 export const APPOINTMENT_START = new Date('2026-08-10T08:00:00.000Z');
 
-export function appointmentRecord(clinicId: string, appointmentId = APPOINTMENT_ID) {
+export function appointmentRecord(
+  clinicId: string,
+  appointmentId = APPOINTMENT_ID,
+): AppointmentRecord {
   return {
     _id: new Types.ObjectId(appointmentId),
     clinicId: new Types.ObjectId(clinicId),
     patientId: new Types.ObjectId(PATIENT_ID),
+    treatmentId: null,
+    retentionPlanId: null,
     doctorId: new Types.ObjectId(USER_ID),
     appointmentTypeId: new Types.ObjectId(APPOINTMENT_TYPE_ID),
     startAt: APPOINTMENT_START,
@@ -308,8 +318,9 @@ export function appointmentRecord(clinicId: string, appointmentId = APPOINTMENT_
 }
 
 export const appointmentRepositoryMock = {
-  findByIdInClinic: vi.fn(async (appointmentId: string, clinicId: string) =>
-    appointmentRecord(clinicId, appointmentId),
+  findByIdInClinic: vi.fn(
+    async (appointmentId: string, clinicId: string): Promise<AppointmentRecord | null> =>
+      appointmentRecord(clinicId, appointmentId),
   ),
   listInRange: vi.fn(async (clinicId: string) => [appointmentRecord(clinicId)]),
   listCapacityOverlaps: vi.fn(async () => []),
@@ -370,8 +381,11 @@ export const patientGuardianRepositoryMock = {
     patientGuardianRecord(clinicId),
   ]),
   findByPatientAndGuardian: vi.fn(
-    async (_patientId: string, _guardianId: string, clinicId: string) =>
-      patientGuardianRecord(clinicId),
+    async (
+      _patientId: string,
+      _guardianId: string,
+      clinicId: string,
+    ): Promise<ReturnType<typeof patientGuardianRecord> | null> => patientGuardianRecord(clinicId),
   ),
   create: vi.fn(async (input: { clinicId: string }) => patientGuardianRecord(input.clinicId)),
   clearPrimary: vi.fn(async () => undefined),
@@ -471,7 +485,7 @@ export const treatmentRepositoryMock = {
   listMilestonesByTreatmentIds: vi.fn(async () => []),
 };
 
-export function clinicalVisitRecord(clinicId: string, visitId = VISIT_ID) {
+export function clinicalVisitRecord(clinicId: string, visitId = VISIT_ID): ClinicalVisitRecord {
   return {
     _id: new Types.ObjectId(visitId),
     clinicId: new Types.ObjectId(clinicId),
@@ -498,19 +512,24 @@ export function clinicalVisitRecord(clinicId: string, visitId = VISIT_ID) {
 }
 
 export const clinicalVisitRepositoryMock = {
-  findByIdInClinic: vi.fn(async (visitId: string, clinicId: string) =>
-    clinicalVisitRecord(clinicId, visitId),
+  findByIdInClinic: vi.fn(
+    async (visitId: string, clinicId: string): Promise<ClinicalVisitRecord | null> =>
+      clinicalVisitRecord(clinicId, visitId),
   ),
-  findByAppointment: vi.fn(async () => null),
-  findPreviousCompleted: vi.fn(async () => null),
-  listByPatient: vi.fn(async () => ({ items: [], total: 0 })),
+  findByAppointment: vi.fn(async (): Promise<ClinicalVisitRecord | null> => null),
+  findPreviousCompleted: vi.fn(async (): Promise<ClinicalVisitRecord | null> => null),
+  listByPatient: vi.fn(async (): Promise<{ items: ClinicalVisitRecord[]; total: number }> => ({
+    items: [],
+    total: 0,
+  })),
   create: vi.fn(async (input: { clinicId: string }) => clinicalVisitRecord(input.clinicId)),
   update: vi.fn(async (visitId: string, clinicId: string) =>
     clinicalVisitRecord(clinicId, visitId),
   ),
-  complete: vi.fn(async (visitId: string, clinicId: string) =>
-    ({ ...clinicalVisitRecord(clinicId, visitId), status: 'COMPLETED' as const })
-  ),
+  complete: vi.fn(async (visitId: string, clinicId: string) => ({
+    ...clinicalVisitRecord(clinicId, visitId),
+    status: 'COMPLETED' as const,
+  })),
 };
 
 export const patientActivityRepositoryMock = {
@@ -531,28 +550,36 @@ export const patientActivityRepositoryMock = {
 };
 
 export const taskRepositoryMock = {
-  create: vi.fn(async (data: any) => ({
-    _id: new Types.ObjectId(),
-    clinicId: data.clinicId,
-    title: data.title,
-    description: data.description ?? null,
-    status: data.status ?? 'TODO',
-    priority: data.priority ?? 'NORMAL',
-    assignedToUserId: data.assignedToUserId,
-    createdByUserId: data.createdByUserId,
-    dueAt: data.dueAt ?? null,
-    startedAt: null,
-    completedAt: null,
-    completedByUserId: null,
-    cancelledAt: null,
-    cancelledByUserId: null,
-    cancellationReason: null,
-    context: data.context ?? null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+  create: vi.fn(
+    async (
+      data: Partial<TaskAttributes> &
+        Pick<TaskAttributes, 'clinicId' | 'title' | 'assignedToUserId' | 'createdByUserId'>,
+    ): Promise<TaskRecord> => ({
+      _id: new Types.ObjectId(),
+      clinicId: data.clinicId,
+      title: data.title,
+      description: data.description ?? null,
+      status: data.status ?? 'TODO',
+      priority: data.priority ?? 'NORMAL',
+      assignedToUserId: data.assignedToUserId,
+      createdByUserId: data.createdByUserId,
+      dueAt: data.dueAt ?? null,
+      startedAt: null,
+      completedAt: null,
+      completedByUserId: null,
+      cancelledAt: null,
+      cancelledByUserId: null,
+      cancellationReason: null,
+      context: data.context ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }),
+  ),
+  findById: vi.fn(async (): Promise<TaskRecord | null> => null),
+  list: vi.fn(async (): Promise<{ items: TaskRecord[]; total: number }> => ({
+    items: [],
+    total: 0,
   })),
-  findById: vi.fn(async () => null),
-  list: vi.fn(async () => ({ items: [], total: 0 })),
   getSummary: vi.fn(async () => ({
     toDo: 0,
     inProgress: 0,
@@ -561,7 +588,7 @@ export const taskRepositoryMock = {
     completedToday: 0,
   })),
   countOpenByPatient: vi.fn(async () => 0),
-  update: vi.fn(async () => null),
+  update: vi.fn(async (): Promise<TaskRecord | null> => null),
 };
 
 export function resetRepositoryMocks(): void {
@@ -590,4 +617,3 @@ export function resetRepositoryMocks(): void {
     }
   }
 }
-

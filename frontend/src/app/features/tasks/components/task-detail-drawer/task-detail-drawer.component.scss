@@ -325,6 +325,9 @@
 }
 
 .attachment-card {
+  width: 100%;
+  font: inherit;
+  text-align: left;
   position: relative;
   background: var(--color-white);
   border: 1.5px solid var(--color-line);
@@ -428,7 +431,8 @@
   flex-direction: column;
   gap: 0.35rem;
 
-  label {
+  label,
+  .form-label {
     font-size: 0.7rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -555,6 +559,9 @@
 }
 
 .upload-zone-compact {
+  width: 100%;
+  color: inherit;
+  font: inherit;
   border: 1.5px dashed var(--color-line);
   border-radius: var(--radius-md);
   background: var(--color-porcelain);
@@ -805,11 +812,19 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }

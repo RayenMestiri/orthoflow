@@ -58,6 +58,7 @@ export interface PatientMediaAttributes {
   storageProvider: 'CLOUDINARY';
   publicId: string;
   resourceType: string;
+  deliveryType?: 'upload' | 'authenticated';
   secureUrl: string;
   originalFileName: string;
   mimeType: string;
@@ -89,7 +90,8 @@ export interface PatientMediaDto {
   description: string | null;
   /** 'CLOUDINARY' for real uploads; stored as 'CLOUDINARY' even for local fallback. */
   storageProvider: string;
-  secureUrl: string;
+  /** Short-lived provider URL issued only after clinic and permission checks. */
+  contentUrl: string;
   originalFileName: string;
   mimeType: string;
   fileSizeBytes: number;
@@ -140,6 +142,7 @@ export interface CreatePatientMediaInput extends PatientMediaUploadMetadata {
   storageProvider: 'CLOUDINARY';
   publicId: string;
   resourceType: string;
+  deliveryType: 'authenticated';
   secureUrl: string;
   originalFileName: string;
   mimeType: string;

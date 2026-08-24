@@ -36,16 +36,13 @@ function cloudinaryTransform(url: string, transformation: string): string {
  * cut: the full composition is clinically meaningful.
  */
 export function patientMediaThumbnailUrl(media: PatientMedia): string {
-  if (media.mediaType !== 'IMAGE') return media.secureUrl;
-  // Local data-URIs have no Cloudinary /upload/ segment; return as-is
-  if (media.secureUrl.startsWith('data:')) return media.secureUrl;
-  return cloudinaryTransform(media.secureUrl, 'c_fit,w_600,h_450,q_auto,f_auto');
+  if (media.mediaType !== 'IMAGE') return media.contentUrl;
+  return cloudinaryTransform(media.contentUrl, 'c_fit,w_600,h_450,q_auto,f_auto');
 }
 
 export function patientMediaPreviewUrl(media: PatientMedia): string {
-  if (media.mediaType !== 'IMAGE') return media.secureUrl;
-  if (media.secureUrl.startsWith('data:')) return media.secureUrl;
-  return cloudinaryTransform(media.secureUrl, 'c_limit,w_1800,h_1800,q_auto,f_auto');
+  if (media.mediaType !== 'IMAGE') return media.contentUrl;
+  return cloudinaryTransform(media.contentUrl, 'c_limit,w_1800,h_1800,q_auto,f_auto');
 }
 
 /** Creates a temporary local preview URL from a File object. Call revokeLocalPreview() to clean up. */
