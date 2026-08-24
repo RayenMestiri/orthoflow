@@ -47,6 +47,7 @@ import {
   type CommunicationEventService,
 } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.types.js';
+import { EXTERNAL_EVENT_TYPES } from '../communications/communication.types.js';
 import { toAppointmentDto } from './appointment.mapper.js';
 import type { ClientSession } from 'mongoose';
 import { appointmentRepository, type AppointmentRepository } from './appointment.repository.js';
@@ -274,20 +275,43 @@ export class AppointmentService {
       context.actorUserId,
     );
 
-    const record = await this.appointments.create({
-      clinicId,
-      patientId: patient._id.toString(),
-      treatmentId: treatment?._id.toString() ?? null,
-      retentionPlanId: retentionPlan?._id.toString() ?? null,
-      doctorId,
-      appointmentTypeId: appointmentType._id.toString(),
-      startAt,
-      endAt,
-      durationMinutes,
-      note: command.note ?? null,
-      overbookingOverride: capacity.requiresConfirmation,
-      overbookingApprovedBy: capacity.requiresConfirmation ? context.actorUserId : null,
-      createdBy: context.actorUserId,
+    const record = await withTransaction(async (session) => {
+      const created = await this.appointments.create(
+        {
+          clinicId,
+          patientId: patient._id.toString(),
+          treatmentId: treatment?._id.toString() ?? null,
+          retentionPlanId: retentionPlan?._id.toString() ?? null,
+          doctorId,
+          appointmentTypeId: appointmentType._id.toString(),
+          startAt,
+          endAt,
+          durationMinutes,
+          note: command.note ?? null,
+          overbookingOverride: capacity.requiresConfirmation,
+          overbookingApprovedBy: capacity.requiresConfirmation ? context.actorUserId : null,
+          createdBy: context.actorUserId,
+        },
+        session,
+      );
+      await this.communicationEvents.enqueue(
+        {
+          clinicId,
+          type: EXTERNAL_EVENT_TYPES.APPOINTMENT_SCHEDULED,
+          aggregateType: 'APPOINTMENT',
+          aggregateId: created._id.toString(),
+          actorUserId: context.actorUserId,
+          deduplicationKey: `APPOINTMENT_SCHEDULED:${created._id.toString()}:${startAt.toISOString()}`,
+          payload: {
+            patientId: patient._id.toString(),
+            patientName: `${patient.firstName} ${patient.lastName}`.trim(),
+            startAt: startAt.toISOString(),
+          },
+          occurredAt: created.createdAt,
+        },
+        session,
+      );
+      return created;
     });
 
     if (capacity.requiresConfirmation) {
@@ -406,7 +430,7 @@ export class AppointmentService {
       );
     }
 
-    const updated = await this.appointments.updateFields(appointmentId, clinicId, {
+    const updateFields = {
       ...(command.patientId === undefined ? {} : { patientId: command.patientId }),
       ...(command.treatmentId === undefined && command.retentionPlanId === undefined
         ? {}
@@ -428,7 +452,36 @@ export class AppointmentService {
           }
         : {}),
       updatedBy: context.actorUserId,
-    });
+    };
+
+    const updated = timeChanged
+      ? await withTransaction(async (session) => {
+          const record = await this.appointments.updateFields(
+            appointmentId,
+            clinicId,
+            updateFields,
+            session,
+          );
+          if (!record) return null;
+          await this.communicationEvents.enqueue(
+            {
+              clinicId,
+              type: EXTERNAL_EVENT_TYPES.APPOINTMENT_RESCHEDULED,
+              aggregateType: 'APPOINTMENT',
+              aggregateId: appointmentId,
+              actorUserId: context.actorUserId,
+              deduplicationKey: `APPOINTMENT_RESCHEDULED:${appointmentId}:${startAt.toISOString()}`,
+              payload: {
+                patientId: resolvedPatientId,
+                startAt: startAt.toISOString(),
+                previousStartAt: existing.startAt.toISOString(),
+              },
+            },
+            session,
+          );
+          return record;
+        })
+      : await this.appointments.updateFields(appointmentId, clinicId, updateFields);
 
     if (!updated) {
       throw new NotFoundError('Appointment not found', {
@@ -562,6 +615,24 @@ export class AppointmentService {
       if (session) await this.communicationEvents.enqueue(communicationEvent, session);
       else await this.communicationEvents.enqueue(communicationEvent);
     }
+    if (toStatus === APPOINTMENT_STATUSES.CONFIRMED) {
+      const patient = await this.patients.findByIdInClinic(existing.patientId.toString(), clinicId);
+      const confirmationEvent = {
+        clinicId,
+        type: EXTERNAL_EVENT_TYPES.APPOINTMENT_CONFIRMED,
+        aggregateType: 'APPOINTMENT',
+        aggregateId: appointmentId,
+        actorUserId: context.actorUserId,
+        deduplicationKey: `APPOINTMENT_CONFIRMED:${appointmentId}:${existing.startAt.toISOString()}`,
+        payload: {
+          patientId: existing.patientId.toString(),
+          patientName: patient ? `${patient.firstName} ${patient.lastName}`.trim() : 'Patient',
+          startAt: existing.startAt.toISOString(),
+        },
+      } as const;
+      if (session) await this.communicationEvents.enqueue(confirmationEvent, session);
+      else await this.communicationEvents.enqueue(confirmationEvent);
+    }
 
     return this.joinOneWithCapacity(clinicId, updated);
   }
@@ -624,6 +695,8 @@ export class AppointmentService {
           patientName: patient ? `${patient.firstName} ${patient.lastName}`.trim() : 'Patient',
           doctorId: existing.doctorId.toString(),
           scheduledLabel: existing.startAt.toISOString(),
+          startAt: existing.startAt.toISOString(),
+          cancellationReason: reason,
         },
       } as const;
       if (session) await this.communicationEvents.enqueue(communicationEvent, session);

@@ -12,6 +12,8 @@ export interface AuthCodeEmail {
 
 export interface EmailServiceContract {
   sendAuthCode(message: AuthCodeEmail): Promise<boolean>;
+  sendTransactional?(message: TransactionalEmail): Promise<{ messageId: string | null }>;
+  isConfigured?(): boolean;
   sendPortalInvitation?(message: {
     recipient: string;
     recipientName: string;
@@ -19,6 +21,13 @@ export interface EmailServiceContract {
     expiresInHours: number;
     clinicName: string;
   }): Promise<boolean>;
+}
+
+export interface TransactionalEmail {
+  recipient: string;
+  subject: string;
+  text: string;
+  html?: string | null;
 }
 
 function escapeHtml(value: string): string {
@@ -47,6 +56,24 @@ export class SmtpEmailService implements EmailServiceContract {
             secure: env.SMTP_SECURE,
             auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
           });
+  }
+
+  isConfigured(): boolean {
+    return this.transporter !== null && env.SMTP_FROM_ADDRESS !== '';
+  }
+
+  async sendTransactional(message: TransactionalEmail): Promise<{ messageId: string | null }> {
+    if (!this.transporter || env.SMTP_FROM_ADDRESS === '') {
+      throw new Error('SMTP_NOT_CONFIGURED');
+    }
+    const info = (await this.transporter.sendMail({
+      from: { name: env.SMTP_FROM_NAME, address: env.SMTP_FROM_ADDRESS },
+      to: message.recipient,
+      subject: message.subject,
+      text: message.text,
+      ...(message.html ? { html: message.html } : {}),
+    })) as { messageId?: unknown };
+    return { messageId: typeof info.messageId === 'string' ? info.messageId : null };
   }
 
   async sendAuthCode(message: AuthCodeEmail): Promise<boolean> {

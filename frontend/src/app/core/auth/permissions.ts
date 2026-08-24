@@ -52,6 +52,8 @@ export const PERMISSIONS = {
   TASKS_CREATE: 'tasks.create',
   TASKS_MANAGE: 'tasks.manage',
   NOTIFICATIONS_VIEW: 'notifications.view',
+  COMMUNICATIONS_VIEW: 'communications.view',
+  COMMUNICATIONS_MANAGE: 'communications.manage',
   STAFF_MANAGE: 'staff.manage',
   CLINIC_SETTINGS_MANAGE: 'clinic-settings.manage',
   PORTAL_ACCESS_MANAGE: 'portal-access.manage',
@@ -95,6 +97,7 @@ const clinicalPermissions: Permission[] = [
   PERMISSIONS.TASKS_CREATE,
   PERMISSIONS.TASKS_MANAGE,
   PERMISSIONS.NOTIFICATIONS_VIEW,
+  PERMISSIONS.COMMUNICATIONS_VIEW,
 ];
 
 export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
@@ -109,6 +112,7 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
     PERMISSIONS.GENERATED_DOCUMENTS_VOID,
     PERMISSIONS.DOCUMENT_TEMPLATES_MANAGE,
     PERMISSIONS.PORTAL_ACCESS_MANAGE,
+    PERMISSIONS.COMMUNICATIONS_MANAGE,
   ],
   [CLINIC_ROLES.ORTHODONTIST]: clinicalPermissions,
   [CLINIC_ROLES.DENTIST]: clinicalPermissions,
@@ -136,6 +140,7 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
     PERMISSIONS.TASKS_VIEW,
     PERMISSIONS.TASKS_CREATE,
     PERMISSIONS.NOTIFICATIONS_VIEW,
+    PERMISSIONS.COMMUNICATIONS_VIEW,
   ],
   [CLINIC_ROLES.ASSISTANT]: [
     PERMISSIONS.DASHBOARD_VIEW,

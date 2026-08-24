@@ -126,6 +126,7 @@ describe('appointments API', () => {
     expect(response.statusCode).toBe(201);
     expect(appointmentRepositoryMock.create).toHaveBeenCalledWith(
       expect.objectContaining({ clinicId: CLINIC_A }),
+      undefined,
     );
     const created = appointmentRepositoryMock.create.mock.calls[0]?.[0] as unknown as {
       doctorId: string;

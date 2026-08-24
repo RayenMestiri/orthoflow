@@ -89,12 +89,28 @@ export interface ClinicCareContinuitySettings {
   missedAppointmentRebookGraceDays: number;
 }
 
+export const COMMUNICATION_CHANNELS = ['EMAIL', 'SMS', 'WHATSAPP'] as const;
+export type CommunicationChannel = (typeof COMMUNICATION_CHANNELS)[number];
+
+export interface ClinicCommunicationSettings {
+  appointmentRemindersEnabled: boolean;
+  reminderLeadMinutes: number;
+  channelPriority: CommunicationChannel[];
+  appointmentConfirmationsEnabled: boolean;
+  appointmentCancellationNoticesEnabled: boolean;
+  receiptNoticesEnabled: boolean;
+  consentConfirmationsEnabled: boolean;
+  documentShareNoticesEnabled: boolean;
+  defaultPhoneRegion: string | null;
+}
+
 export interface ClinicSettings {
   clinicId: string;
   general: ClinicGeneralSettings;
   workingHours: WeeklyWorkingHours;
   scheduling: ClinicSchedulingSettings;
   careContinuity?: ClinicCareContinuitySettings;
+  communications: ClinicCommunicationSettings;
   updatedAt: string;
 }
 
@@ -106,6 +122,7 @@ export const SETTINGS_SECTIONS = [
   'working-hours',
   'scheduling',
   'care-continuity',
+  'communications',
   'consents',
   'documents',
 ] as const;

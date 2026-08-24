@@ -1,0 +1,67 @@
+<section class="communications" aria-labelledby="communications-title">
+  <header class="communications__header">
+    <div>
+      <span class="communications__eyebrow">Delivery trace</span>
+      <h2 id="communications-title">Communications</h2>
+      <p>Transactional messages sent to the patient or authorized guardian.</p>
+    </div>
+    @if (failedCount()) {
+      <span class="communications__attention"
+        ><span class="material-icons" aria-hidden="true">warning_amber</span
+        >{{ failedCount() }} need attention</span
+      >
+    }
+  </header>
+  @if (error()) {
+    <div class="communications__alert" role="alert">
+      {{ error() }} <button type="button" (click)="load()">Try again</button>
+    </div>
+  }
+  @if (loading()) {
+    <div class="communications__state" role="status">
+      <span class="communications__spinner"></span>Loading delivery history…
+    </div>
+  } @else if (!items().length) {
+    <div class="communications__empty">
+      <span class="material-icons" aria-hidden="true">mark_email_unread</span>
+      <h3>No external communication yet</h3>
+      <p>Appointment reminders and shared portal items will appear here.</p>
+    </div>
+  } @else {
+    <ol class="delivery-list">
+      @for (item of items(); track item.id) {
+        <li class="delivery-item">
+          <span class="delivery-item__icon material-icons" aria-hidden="true">{{
+            item.channel === 'EMAIL' ? 'mail' : item.channel === 'SMS' ? 'sms' : 'chat'
+          }}</span>
+          <div class="delivery-item__copy">
+            <strong>{{ label(item.templateKey) }}</strong
+            ><span
+              >{{ item.channel }} · {{ item.destinationMasked }} ·
+              {{ item.recipientType === 'GUARDIAN' ? 'Guardian' : 'Patient' }}</span
+            ><small>{{
+              item.status === 'SENT' && item.sentAt
+                ? time(item.sentAt)
+                : item.status === 'PENDING'
+                  ? 'Scheduled ' + time(item.scheduledFor)
+                  : time(item.createdAt)
+            }}</small>
+            @if (item.lastErrorCode) {
+              <small class="delivery-item__error">{{ label(item.lastErrorCode) }}</small>
+            }
+          </div>
+          <div class="delivery-item__action">
+            <span class="delivery-status" [attr.data-status]="item.status">{{
+              item.status === 'SENT' ? 'Accepted' : label(item.status)
+            }}</span>
+            @if (item.status === 'FAILED' && canRetry) {
+              <button type="button" (click)="retry(item)" [disabled]="retryingId() === item.id">
+                {{ retryingId() === item.id ? 'Queuing…' : 'Retry' }}
+              </button>
+            }
+          </div>
+        </li>
+      }
+    </ol>
+  }
+</section>

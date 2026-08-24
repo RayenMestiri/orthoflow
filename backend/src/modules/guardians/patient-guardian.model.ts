@@ -20,6 +20,7 @@ const patientGuardianSchema = new Schema<PatientGuardianAttributes>(
       enum: CONTACT_PREFERENCE_VALUES,
       default: CONTACT_PREFERENCES.NO_PREFERENCE,
     },
+    communicationAuthorized: { type: Boolean, required: true, default: false },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   {
@@ -31,6 +32,7 @@ const patientGuardianSchema = new Schema<PatientGuardianAttributes>(
 
 patientGuardianSchema.index({ clinicId: 1, patientId: 1, guardianId: 1 }, { unique: true });
 patientGuardianSchema.index({ clinicId: 1, patientId: 1, isPrimary: -1, createdAt: 1 });
+patientGuardianSchema.index({ clinicId: 1, patientId: 1, communicationAuthorized: 1, isPrimary: -1 });
 patientGuardianSchema.index({ clinicId: 1, guardianId: 1, patientId: 1 });
 
 export const PatientGuardianModel = model<PatientGuardianAttributes>(

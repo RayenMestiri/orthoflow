@@ -464,6 +464,7 @@ export class ConsentService {
               patientId: record.patientId.toString(),
               patientName: record.patientNameSnapshot,
               consentTitle: record.titleSnapshot,
+              guardianId: record.guardianId?.toString() ?? null,
               presentedByUserId: record.presentedByUserId.toString(),
               treatmentId: record.treatmentId?.toString() ?? null,
               retentionPlanId: record.retentionPlanId?.toString() ?? null,

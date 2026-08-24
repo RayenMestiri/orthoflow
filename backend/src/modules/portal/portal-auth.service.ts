@@ -15,7 +15,9 @@ import { portalTokenService } from '../../infrastructure/security/portal-token.s
 import { clinicRepository } from '../clinics/clinic.repository.js';
 import { guardianRepository } from '../guardians/guardian.repository.js';
 import { PatientGuardianModel } from '../guardians/patient-guardian.model.js';
-import { emailService } from '../../infrastructure/email/email.service.js';
+import { communicationEventService } from '../notifications/notification.service.js';
+import { EXTERNAL_EVENT_TYPES } from '../communications/communication.types.js';
+import { secretEnvelopeService } from '../../infrastructure/security/secret-envelope.service.js';
 import { auditLogService } from '../audit-logs/audit-log.service.js';
 import { AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '../audit-logs/audit-log.types.js';
 import { portalRepository } from './portal.repository.js';
@@ -59,15 +61,15 @@ export class PortalAuthService {
     clinicId: string,
     guardianId: string,
     actorUserId: string,
-  ): Promise<{ status: string; delivery: 'SENT' | 'UNAVAILABLE'; expiresAt: string }> {
+  ): Promise<{ status: string; delivery: 'QUEUED'; expiresAt: string }> {
     const [guardian, clinic, existing, relationship] = await Promise.all([
       guardianRepository.findByIdInClinic(guardianId, clinicId),
       clinicRepository.findById(clinicId),
       portalRepository.findUserByGuardian(clinicId, guardianId),
-      PatientGuardianModel.exists({
+      PatientGuardianModel.findOne({
         clinicId: new Types.ObjectId(clinicId),
         guardianId: new Types.ObjectId(guardianId),
-      }).exec(),
+      }).lean().exec(),
     ]);
     if (!guardian || !clinic || !relationship)
       throw new ConflictError('Guardian is not linked to a patient in this clinic', {
@@ -81,22 +83,31 @@ export class PortalAuthService {
       throw new ConflictError('Portal access is already active');
     const rawToken = generateOpaqueSecret();
     const expiresAt = new Date(Date.now() + this.invitationTtlSeconds * 1000);
-    await portalRepository.createInvitation({
-      clinicId,
-      guardianId,
-      email: guardian.email,
-      tokenHash: sha256(rawToken),
-      expiresAt,
-      invitedByUserId: actorUserId,
+    await withTransaction(async (session) => {
+      const invitation = await portalRepository.createInvitation({
+        clinicId,
+        guardianId,
+        email: guardian.email!,
+        tokenHash: sha256(rawToken),
+        expiresAt,
+        invitedByUserId: actorUserId,
+      }, session);
+      await communicationEventService.enqueue({
+        clinicId,
+        type: EXTERNAL_EVENT_TYPES.PORTAL_INVITATION,
+        aggregateType: 'PORTAL_INVITATION',
+        aggregateId: invitation._id.toString(),
+        actorUserId,
+        deduplicationKey: `PORTAL_INVITATION:${invitation._id.toString()}`,
+        payload: {
+          patientId: relationship.patientId.toString(),
+          guardianId,
+          activationUrlEncrypted: secretEnvelopeService.seal(
+            `${env.FRONTEND_URL}/portal/activate?token=${encodeURIComponent(rawToken)}`,
+          ),
+        },
+      }, session);
     });
-    const delivery =
-      (await emailService.sendPortalInvitation?.({
-        recipient: guardian.email,
-        recipientName: guardian.firstName,
-        clinicName: clinic.name,
-        activationUrl: `${env.FRONTEND_URL}/portal/activate?token=${encodeURIComponent(rawToken)}`,
-        expiresInHours: Math.ceil(this.invitationTtlSeconds / 3600),
-      })) ?? false;
     await auditLogService.recordSafe({
       clinicId,
       actorUserId,
@@ -104,11 +115,11 @@ export class PortalAuthService {
       action: AUDIT_ACTIONS.PORTAL_INVITED,
       resourceType: AUDIT_RESOURCE_TYPES.GUARDIAN,
       resourceId: guardianId,
-      metadata: { delivery: delivery ? 'SENT' : 'UNAVAILABLE' },
+      metadata: { delivery: 'QUEUED' },
     });
     return {
       status: 'INVITED',
-      delivery: delivery ? 'SENT' : 'UNAVAILABLE',
+      delivery: 'QUEUED',
       expiresAt: expiresAt.toISOString(),
     };
   }

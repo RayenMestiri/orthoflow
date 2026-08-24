@@ -43,6 +43,7 @@ export interface Guardian {
   isPrimary: boolean;
   financiallyResponsible: boolean;
   contactPreference: ContactPreference;
+  communicationAuthorized?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -105,6 +106,7 @@ export interface GuardianInput {
   isPrimary?: boolean;
   financiallyResponsible?: boolean;
   contactPreference?: ContactPreference;
+  communicationAuthorized?: boolean;
 }
 
 export interface PatientListQuery {
@@ -149,6 +151,7 @@ export interface LinkExistingGuardianInput {
   isPrimary?: boolean;
   financiallyResponsible?: boolean;
   contactPreference?: ContactPreference;
+  communicationAuthorized?: boolean;
 }
 
 export interface PortalAccessStatus {

@@ -227,6 +227,11 @@
         <span class="material-icons" aria-hidden="true">history</span>
         <span>Historique</span>
       </button>
+      @if (canViewCommunications) {
+        <button type="button" [class.active]="activeView() === 'communications'" (click)="activeView.set('communications')">
+          <span class="material-icons" aria-hidden="true">forum</span><span>Communications</span>
+        </button>
+      }
       @if (canViewTreatments) {
         <button
           type="button"
@@ -557,6 +562,8 @@
         (itemSelected)="onActivityItemSelected($event)"
         (sectionRequested)="openActivityTarget($event)"
       />
+    } @else if (activeView() === 'communications') {
+      <app-patient-communications [patientId]="current.id" />
     } @else if (activeView() === 'treatments') {
       <!-- Orthodontic treatment — owned by the treatments feature module -->
       <app-patient-treatments [patientId]="current.id" />
@@ -877,6 +884,10 @@
                       <input type="checkbox" formControlName="financiallyResponsible" />
                       <span><strong>Responsable financier</strong> (destinataire des reçus)</span>
                     </label>
+                    <label class="guardian-checkbox">
+                      <input type="checkbox" formControlName="communicationAuthorized" />
+                      <span><strong>Communications autorisées</strong> (rappels opérationnels uniquement)</span>
+                    </label>
                   </div>
 
                   <footer class="guardian-drawer__footer">
@@ -943,6 +954,10 @@
                       <label class="guardian-checkbox">
                         <input type="checkbox" [checked]="existingFinanciallyResponsible()" (change)="existingFinanciallyResponsible.set($any($event.target).checked)" />
                         <span><strong>Responsable financier</strong></span>
+                      </label>
+                      <label class="guardian-checkbox">
+                        <input type="checkbox" [checked]="existingCommunicationAuthorized()" (change)="existingCommunicationAuthorized.set($any($event.target).checked)" />
+                        <span><strong>Communications autorisées</strong></span>
                       </label>
 
                       <button type="button" class="btn-link-submit" [disabled]="existingLinking()" (click)="linkExistingGuardianSubmit()">
@@ -1015,6 +1030,10 @@
                   <label class="guardian-checkbox">
                     <input type="checkbox" formControlName="financiallyResponsible" />
                     <span><strong>Responsable financier</strong></span>
+                  </label>
+                  <label class="guardian-checkbox">
+                    <input type="checkbox" formControlName="communicationAuthorized" />
+                    <span><strong>Communications autorisées</strong></span>
                   </label>
                 </div>
 

@@ -1,0 +1,145 @@
+<form class="settings-section" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <header class="settings-section__header">
+    <div>
+      <h2>Communications</h2>
+      <p>
+        Configure concise transactional messages. Clinical notes and private observations are never
+        included.
+      </p>
+    </div>
+  </header>
+
+  <section class="channel-status" aria-labelledby="channel-title">
+    <div>
+      <h3 id="channel-title">Delivery channels</h3>
+      <p>Messages use the first eligible channel in this order.</p>
+    </div>
+    <div class="channel-status__list">
+      @for (channel of channels; track channel) {
+        <button
+          type="button"
+          class="channel-chip"
+          [class.channel-chip--selected]="selectedChannels().includes(channel)"
+          [disabled]="
+            !canEdit() || (!providerStatus()[channel] && !selectedChannels().includes(channel))
+          "
+          (click)="toggleChannel(channel)"
+          [attr.aria-pressed]="selectedChannels().includes(channel)"
+        >
+          <span class="material-icons" aria-hidden="true">{{
+            channel === 'EMAIL' ? 'mail' : channel === 'SMS' ? 'sms' : 'chat'
+          }}</span>
+          <span>{{ channel === 'WHATSAPP' ? 'WhatsApp' : channel }}</span>
+          <small>{{ providerStatus()[channel] ? 'Ready' : 'Not configured' }}</small>
+        </button>
+      }
+    </div>
+  </section>
+
+  <div class="settings-grid communications-grid">
+    <div class="settings-field">
+      <label for="lead-time">Reminder lead time</label>
+      <select id="lead-time" formControlName="reminderLeadMinutes">
+        <option [value]="120">2 hours before</option>
+        <option [value]="720">12 hours before</option>
+        <option [value]="1440">24 hours before</option>
+        <option [value]="2880">48 hours before</option>
+      </select>
+      <p class="settings-field__hint">
+        Calculated in the clinic timezone and rescheduled automatically.
+      </p>
+    </div>
+    <div class="settings-field">
+      <label for="phone-region">Default phone region</label>
+      <input
+        id="phone-region"
+        maxlength="2"
+        placeholder="TN"
+        formControlName="defaultPhoneRegion"
+      />
+      <p class="settings-field__hint">
+        ISO country code used only to normalize local phone numbers.
+      </p>
+    </div>
+
+    @for (
+      item of [
+        {
+          key: 'appointmentRemindersEnabled',
+          label: 'Appointment reminders',
+          hint: 'Schedule one reminder before eligible appointments.',
+        },
+        {
+          key: 'appointmentConfirmationsEnabled',
+          label: 'Appointment confirmations',
+          hint: 'Send when the clinic explicitly confirms an appointment.',
+        },
+        {
+          key: 'appointmentCancellationNoticesEnabled',
+          label: 'Cancellation notices',
+          hint: 'Cancel stale reminders and send a concise cancellation notice.',
+        },
+        {
+          key: 'receiptNoticesEnabled',
+          label: 'Receipt available',
+          hint: 'Link financially authorized guardians to the secure portal.',
+        },
+        {
+          key: 'consentConfirmationsEnabled',
+          label: 'Consent confirmation',
+          hint: 'Confirm signature without attaching the signature image.',
+        },
+        {
+          key: 'documentShareNoticesEnabled',
+          label: 'Shared documents',
+          hint: 'Notify only after an explicit guardian portal share.',
+        },
+      ];
+      track item.key
+    ) {
+      <div class="settings-field settings-field--wide">
+        <div class="settings-switch">
+          <button
+            type="button"
+            role="switch"
+            class="settings-switch__control"
+            [attr.aria-checked]="form.get(item.key)?.value"
+            [disabled]="!canEdit()"
+            (click)="toggle($any(item.key))"
+          >
+            <span class="settings-switch__track" aria-hidden="true"
+              ><span class="settings-switch__thumb"></span
+            ></span>
+          </button>
+          <div class="settings-switch__copy">
+            <span class="settings-switch__label"
+              >{{ item.label }}
+              <strong>{{ form.get(item.key)?.value ? 'On' : 'Off' }}</strong></span
+            >
+            <p class="settings-field__hint">{{ item.hint }}</p>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (canEdit()) {
+    <footer class="settings-actions">
+      @if (justSaved()) {
+        <span class="settings-actions__saved" role="status"
+          ><span class="material-icons" aria-hidden="true">check_circle</span> Saved</span
+        >
+      }
+      <button type="button" class="settings-btn" [disabled]="!isDirty()" (click)="reset()">
+        Reset
+      </button>
+      <button
+        type="submit"
+        class="settings-btn settings-btn--primary"
+        [disabled]="!isDirty() || isSaving()"
+      >
+        {{ isSaving() ? 'Saving…' : 'Save communications' }}
+      </button>
+    </footer>
+  }
+</form>

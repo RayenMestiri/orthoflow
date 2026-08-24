@@ -11,6 +11,7 @@ import { SettingsGeneral } from '../../components/settings-general/settings-gene
 import { SettingsScheduling } from '../../components/settings-scheduling/settings-scheduling';
 import { SettingsWorkingHours } from '../../components/settings-working-hours/settings-working-hours';
 import { SettingsCareContinuity } from '../../components/settings-care-continuity/settings-care-continuity';
+import { SettingsCommunications } from '../../components/settings-communications/settings-communications';
 import { ClinicSettingsStore } from '../../data-access/clinic-settings.store';
 import { SettingsConsentTemplates } from '../../../consents/components/settings-consent-templates/settings-consent-templates';
 import { SettingsDocumentTemplates } from '../../../generated-documents/components/settings-document-templates/settings-document-templates';
@@ -37,6 +38,7 @@ interface SectionTab {
     SettingsWorkingHours,
     SettingsScheduling,
     SettingsCareContinuity,
+    SettingsCommunications,
     SettingsConsentTemplates,
     SettingsDocumentTemplates,
   ],
@@ -83,6 +85,12 @@ export class SettingsPage implements OnInit {
       label: 'Care continuity',
       icon: 'health_and_safety',
       description: 'Operational inactivity and rebooking thresholds',
+    },
+    {
+      id: 'communications',
+      label: 'Communications',
+      icon: 'mark_email_read',
+      description: 'Transactional reminders and delivery readiness',
     },
     {
       id: 'consents',

@@ -61,6 +61,9 @@ vi.mock('../../src/modules/receipts/receipt.repository.js', async () => ({
 vi.mock('../../src/modules/audit-logs/audit-log.repository.js', async () => ({
   auditLogRepository: (await import('../helpers/repository-mocks.js')).auditLogRepositoryMock,
 }));
+vi.mock('../../src/modules/notifications/notification.service.js', () => ({
+  communicationEventService: { enqueue: vi.fn(async () => undefined) },
+}));
 
 const CASH_RECORDS_URL = `/api/v1/patients/${PATIENT_ID}/cash-records`;
 

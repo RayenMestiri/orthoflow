@@ -15,6 +15,8 @@ export function toGuardianDto(
     isPrimary: relationship.isPrimary,
     financiallyResponsible: relationship.financiallyResponsible,
     contactPreference: relationship.contactPreference,
+    // Legacy relationships remain opted out until staff records authorization.
+    communicationAuthorized: relationship.communicationAuthorized ?? false,
     createdAt: guardian.createdAt.toISOString(),
     updatedAt: guardian.updatedAt.toISOString(),
   };

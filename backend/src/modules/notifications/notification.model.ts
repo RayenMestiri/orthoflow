@@ -4,6 +4,7 @@ import {
   NOTIFICATION_RECIPIENT_TYPE_VALUES,
   NOTIFICATION_TARGET_VALUES,
   NOTIFICATION_TYPE_VALUES,
+  COMMUNICATION_EVENT_TYPE_VALUES,
   OUTBOX_STATUS_VALUES,
   type CommunicationEventAttributes,
   type NotificationAttributes,
@@ -59,7 +60,7 @@ const communicationEventSchema = new Schema<CommunicationEventAttributes>(
   {
     clinicId: { type: Schema.Types.ObjectId, ref: 'Clinic', required: true, immutable: true },
     eventId: { type: String, required: true, immutable: true },
-    type: { type: String, enum: NOTIFICATION_TYPE_VALUES, required: true },
+    type: { type: String, enum: COMMUNICATION_EVENT_TYPE_VALUES, required: true },
     aggregateType: { type: String, required: true, maxlength: 80 },
     aggregateId: { type: Schema.Types.ObjectId, required: true },
     actorUserId: { type: Schema.Types.ObjectId, ref: 'User', default: null },

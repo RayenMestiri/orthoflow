@@ -12,6 +12,7 @@ import {
   WEEKDAYS,
   type ClinicSchedulingSettings,
   type ClinicCareContinuitySettings,
+  type ClinicCommunicationSettings,
   type ClinicSettingsDto,
   type UpdateGeneralSettingsInput,
   type WeeklyWorkingHours,
@@ -77,6 +78,35 @@ export function toClinicSettingsDto(record: ClinicRecord): ClinicSettingsDto {
       missedAppointmentRebookGraceDays:
         stored?.careContinuity?.missedAppointmentRebookGraceDays ??
         DEFAULT_CLINIC_SETTINGS.careContinuity.missedAppointmentRebookGraceDays,
+    },
+    communications: {
+      appointmentRemindersEnabled:
+        stored?.communications?.appointmentRemindersEnabled ??
+        DEFAULT_CLINIC_SETTINGS.communications.appointmentRemindersEnabled,
+      reminderLeadMinutes:
+        stored?.communications?.reminderLeadMinutes ??
+        DEFAULT_CLINIC_SETTINGS.communications.reminderLeadMinutes,
+      channelPriority:
+        stored?.communications?.channelPriority ??
+        DEFAULT_CLINIC_SETTINGS.communications.channelPriority,
+      appointmentConfirmationsEnabled:
+        stored?.communications?.appointmentConfirmationsEnabled ??
+        DEFAULT_CLINIC_SETTINGS.communications.appointmentConfirmationsEnabled,
+      appointmentCancellationNoticesEnabled:
+        stored?.communications?.appointmentCancellationNoticesEnabled ??
+        DEFAULT_CLINIC_SETTINGS.communications.appointmentCancellationNoticesEnabled,
+      receiptNoticesEnabled:
+        stored?.communications?.receiptNoticesEnabled ??
+        DEFAULT_CLINIC_SETTINGS.communications.receiptNoticesEnabled,
+      consentConfirmationsEnabled:
+        stored?.communications?.consentConfirmationsEnabled ??
+        DEFAULT_CLINIC_SETTINGS.communications.consentConfirmationsEnabled,
+      documentShareNoticesEnabled:
+        stored?.communications?.documentShareNoticesEnabled ??
+        DEFAULT_CLINIC_SETTINGS.communications.documentShareNoticesEnabled,
+      defaultPhoneRegion:
+        stored?.communications?.defaultPhoneRegion ??
+        DEFAULT_CLINIC_SETTINGS.communications.defaultPhoneRegion,
     },
     updatedAt: record.updatedAt.toISOString(),
   };
@@ -196,6 +226,31 @@ export class ClinicSettingsService {
       resourceType: AUDIT_RESOURCE_TYPES.CLINIC,
       resourceId: clinicId,
       metadata: { section: 'careContinuity', ...careContinuity },
+      ip: context.ip,
+      userAgent: context.userAgent,
+    });
+    return dto;
+  }
+
+  async updateCommunications(
+    clinicId: string,
+    communications: ClinicCommunicationSettings,
+    context: MutationContext,
+  ): Promise<ClinicSettingsDto> {
+    const dto = this.requireUpdated(
+      await this.settings.updateCommunications(clinicId, communications),
+    );
+    await this.audit.record({
+      clinicId,
+      actorUserId: context.actorUserId,
+      action: AUDIT_ACTIONS.CLINIC_COMMUNICATION_SETTINGS_UPDATED,
+      resourceType: AUDIT_RESOURCE_TYPES.CLINIC,
+      resourceId: clinicId,
+      metadata: {
+        section: 'communications',
+        channels: communications.channelPriority,
+        reminderLeadMinutes: communications.reminderLeadMinutes,
+      },
       ip: context.ip,
       userAgent: context.userAgent,
     });

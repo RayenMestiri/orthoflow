@@ -23,6 +23,7 @@ import { PatientActivityTimeline } from '../../components/patient-activity/patie
 import { CreateTaskDrawerComponent } from '../../../tasks/components/create-task-drawer/create-task-drawer.component';
 import { PatientConsents } from '../../../consents/components/patient-consents/patient-consents';
 import { PatientGeneratedDocuments } from '../../../generated-documents/components/patient-generated-documents/patient-generated-documents';
+import { PatientCommunications } from '../../../communications/components/patient-communications/patient-communications';
 import { TasksStore } from '../../../tasks/data-access/tasks.store';
 import { PatientsApiService } from '../../data-access/patients-api.service';
 import type {
@@ -50,6 +51,7 @@ import type {
     CreateTaskDrawerComponent,
     PatientConsents,
     PatientGeneratedDocuments,
+    PatientCommunications,
     ReactiveFormsModule,
     RouterLink,
   ],
@@ -94,11 +96,12 @@ export class PatientDetailPage {
     this.route.snapshot.queryParamMap.get('receiptId'),
   );
   readonly activeView = signal<
-    'overview' | 'activity' | 'treatments' | 'visits' | 'payments' | 'media' | 'consents'
+    'overview' | 'activity' | 'communications' | 'treatments' | 'visits' | 'payments' | 'media' | 'consents'
   >(
     (this.route.snapshot.queryParamMap.get('tab') as
       | 'overview'
       | 'activity'
+      | 'communications'
       | 'treatments'
       | 'visits'
       | 'payments'
@@ -137,6 +140,7 @@ export class PatientDetailPage {
   readonly canRevokeConsents = this.permissions.can(PERMISSIONS.CONSENTS_REVOKE);
   readonly canVoidConsents = this.permissions.can(PERMISSIONS.CONSENTS_VOID);
   readonly canManagePortalAccess = this.permissions.can(PERMISSIONS.PORTAL_ACCESS_MANAGE);
+  readonly canViewCommunications = this.permissions.can(PERMISSIONS.COMMUNICATIONS_VIEW);
   readonly manageableMediaCategories: readonly PatientMediaCategory[] = this.permissions.can(
     PERMISSIONS.PATIENT_MEDIA_MANAGE_CLINICAL,
   )
@@ -175,6 +179,7 @@ export class PatientDetailPage {
   readonly existingRelationship = signal<GuardianRelationship>('MOTHER');
   readonly existingIsPrimary = signal(false);
   readonly existingFinanciallyResponsible = signal(false);
+  readonly existingCommunicationAuthorized = signal(false);
   readonly existingContactPreference = signal<ContactPreference>('NO_PREFERENCE');
   readonly existingLinking = signal(false);
 
@@ -209,6 +214,7 @@ export class PatientDetailPage {
     isPrimary: new FormControl(false, { nonNullable: true }),
     financiallyResponsible: new FormControl(false, { nonNullable: true }),
     contactPreference: new FormControl<ContactPreference>('NO_PREFERENCE', { nonNullable: true }),
+    communicationAuthorized: new FormControl(false, { nonNullable: true }),
   });
 
   constructor() {
@@ -217,7 +223,7 @@ export class PatientDetailPage {
       const tab = params.get('tab');
       if (
         tab &&
-        ['overview', 'activity', 'treatments', 'visits', 'payments', 'media', 'consents'].includes(
+        ['overview', 'activity', 'communications', 'treatments', 'visits', 'payments', 'media', 'consents'].includes(
           tab,
         )
       ) {
@@ -352,6 +358,7 @@ export class PatientDetailPage {
     this.existingRelationship.set('MOTHER');
     this.existingIsPrimary.set(this.guardians().length === 0);
     this.existingFinanciallyResponsible.set(false);
+    this.existingCommunicationAuthorized.set(false);
     this.existingContactPreference.set('NO_PREFERENCE');
     this.guardianError.set(null);
     this.guardianForm.reset({
@@ -363,6 +370,7 @@ export class PatientDetailPage {
       isPrimary: this.guardians().length === 0,
       financiallyResponsible: false,
       contactPreference: 'NO_PREFERENCE',
+      communicationAuthorized: false,
     });
     this.guardianPanelOpen.set(true);
   }
@@ -381,6 +389,7 @@ export class PatientDetailPage {
       isPrimary: guardian.isPrimary,
       financiallyResponsible: guardian.financiallyResponsible,
       contactPreference: guardian.contactPreference,
+      communicationAuthorized: guardian.communicationAuthorized ?? false,
     });
   }
 
@@ -425,9 +434,9 @@ export class PatientDetailPage {
       const result = await firstValueFrom(this.api.invitePortalAccess(guardian.id));
       await this.loadPortalAccess(guardian.id);
       this.notice.set(
-        result.delivery === 'SENT'
-          ? `Invitation portail envoyée à ${guardian.email}.`
-          : 'Invitation créée, mais le service email est indisponible.',
+        result.delivery === 'QUEUED'
+          ? `Invitation portail mise en file d’envoi pour ${guardian.email}.`
+          : 'Invitation portail créée.',
       );
     } catch (error) {
       this.guardianError.set(getApiProblem(error).message);
@@ -542,7 +551,8 @@ export class PatientDetailPage {
           guardianId: selected.id,
           relationship: this.existingRelationship(),
           isPrimary: this.existingIsPrimary(),
-          financiallyResponsible: this.existingFinanciallyResponsible(),
+      financiallyResponsible: this.existingFinanciallyResponsible(),
+      communicationAuthorized: this.existingCommunicationAuthorized(),
           contactPreference: this.existingContactPreference(),
         }),
       );
@@ -665,6 +675,7 @@ export class PatientDetailPage {
       isPrimary: value.isPrimary,
       financiallyResponsible: value.financiallyResponsible,
       contactPreference: value.contactPreference,
+      communicationAuthorized: value.communicationAuthorized,
     };
   }
 

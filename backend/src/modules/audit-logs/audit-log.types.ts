@@ -31,6 +31,8 @@ export const AUDIT_ACTIONS = {
   CLINIC_WORKING_HOURS_UPDATED: 'clinic.working_hours_updated',
   CLINIC_SCHEDULING_SETTINGS_UPDATED: 'clinic.scheduling_settings_updated',
   CLINIC_CARE_CONTINUITY_SETTINGS_UPDATED: 'clinic.care_continuity_settings_updated',
+  CLINIC_COMMUNICATION_SETTINGS_UPDATED: 'clinic.communication_settings_updated',
+  COMMUNICATION_RETRY_REQUESTED: 'communication.retry_requested',
 
   MEMBERSHIP_CREATED: 'membership.created',
   MEMBERSHIP_ROLE_CHANGED: 'membership.role_changed',
@@ -147,6 +149,7 @@ export const AUDIT_RESOURCE_TYPES = {
   CASH_RECORD: 'cash_record',
   RECEIPT: 'receipt',
   TASK: 'task',
+  COMMUNICATION_JOB: 'communication_job',
   AUTH_SESSION: 'auth_session',
   PORTAL_USER: 'portal_user',
   PORTAL_SESSION: 'portal_session',

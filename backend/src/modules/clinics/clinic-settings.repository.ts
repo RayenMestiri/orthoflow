@@ -4,6 +4,7 @@ import type { ClinicRecord } from './clinic.types.js';
 import type {
   ClinicSchedulingSettings,
   ClinicCareContinuitySettings,
+  ClinicCommunicationSettings,
   UpdateGeneralSettingsInput,
   WeeklyWorkingHours,
 } from './clinic-settings.types.js';
@@ -79,6 +80,13 @@ export class ClinicSettingsRepository {
     careContinuity: ClinicCareContinuitySettings,
   ): Promise<ClinicRecord | null> {
     return this.applyUpdate(clinicId, { 'settings.careContinuity': careContinuity });
+  }
+
+  async updateCommunications(
+    clinicId: string,
+    communications: ClinicCommunicationSettings,
+  ): Promise<ClinicRecord | null> {
+    return this.applyUpdate(clinicId, { 'settings.communications': communications });
   }
 
   private async applyUpdate(

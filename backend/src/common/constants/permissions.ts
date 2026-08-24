@@ -93,6 +93,8 @@ export const PERMISSIONS = {
   TASK_MANAGE_ALL: 'task:manage-all',
 
   NOTIFICATION_READ: 'notification:read',
+  COMMUNICATION_READ: 'communication:read',
+  COMMUNICATION_MANAGE: 'communication:manage',
 
   AUDIT_LOG_READ: 'audit-log:read',
   /** Read-only clinic aggregate analytics. Domain permissions still gate each section. */
@@ -152,6 +154,7 @@ const PRACTITIONER_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.TASK_UPDATE,
   PERMISSIONS.TASK_CANCEL,
   PERMISSIONS.NOTIFICATION_READ,
+  PERMISSIONS.COMMUNICATION_READ,
   PERMISSIONS.REPORT_READ,
 ];
 
@@ -194,6 +197,7 @@ const SECRETARY_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.TASK_UPDATE,
   PERMISSIONS.TASK_CANCEL,
   PERMISSIONS.NOTIFICATION_READ,
+  PERMISSIONS.COMMUNICATION_READ,
   PERMISSIONS.REPORT_READ,
 ];
 

@@ -7,6 +7,9 @@ import { PatientGuardianModel } from '../guardians/patient-guardian.model.js';
 import { portalRepository } from './portal.repository.js';
 import { auditLogService } from '../audit-logs/audit-log.service.js';
 import { AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '../audit-logs/audit-log.types.js';
+import { withTransaction } from '../../infrastructure/database/transaction.js';
+import { communicationEventService } from '../notifications/notification.service.js';
+import { EXTERNAL_EVENT_TYPES } from '../communications/communication.types.js';
 
 export class PortalManagementService {
   async shareDocument(
@@ -34,21 +37,38 @@ export class PortalManagementService {
       throw new NotFoundError('Guardian is not linked to this patient', {
         code: ERROR_CODES.GUARDIAN_NOT_FOUND,
       });
-    const share = await portalRepository.shareDocument({
-      clinicId,
-      patientId: document.patientId.toString(),
-      guardianId,
-      documentId,
-      actorUserId,
-    });
-    await auditLogService.recordSafe({
-      clinicId,
-      actorUserId,
-      actorKind: 'STAFF',
-      action: AUDIT_ACTIONS.PORTAL_DOCUMENT_SHARED,
-      resourceType: AUDIT_RESOURCE_TYPES.GENERATED_DOCUMENT,
-      resourceId: documentId,
-      metadata: { patientId: document.patientId.toString(), guardianId },
+    const share = await withTransaction(async (session) => {
+      const created = await portalRepository.shareDocument({
+        clinicId,
+        patientId: document.patientId.toString(),
+        guardianId,
+        documentId,
+        actorUserId,
+      }, session);
+      await auditLogService.record({
+        clinicId,
+        actorUserId,
+        actorKind: 'STAFF',
+        action: AUDIT_ACTIONS.PORTAL_DOCUMENT_SHARED,
+        resourceType: AUDIT_RESOURCE_TYPES.GENERATED_DOCUMENT,
+        resourceId: documentId,
+        metadata: { patientId: document.patientId.toString(), guardianId },
+      }, session);
+      await communicationEventService.enqueue({
+        clinicId,
+        type: EXTERNAL_EVENT_TYPES.DOCUMENT_SHARED,
+        aggregateType: 'GENERATED_DOCUMENT',
+        aggregateId: documentId,
+        actorUserId,
+        deduplicationKey: `DOCUMENT_SHARED:${documentId}:${guardianId}:${created.sharedAt.toISOString()}`,
+        payload: {
+          patientId: document.patientId.toString(),
+          guardianId,
+          documentTitle: document.titleSnapshot,
+        },
+        occurredAt: created.sharedAt,
+      }, session);
+      return created;
     });
     return {
       guardianId,

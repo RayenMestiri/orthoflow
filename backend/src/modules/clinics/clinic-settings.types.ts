@@ -78,11 +78,28 @@ export interface ClinicCareContinuitySettings {
   missedAppointmentRebookGraceDays: number;
 }
 
+export const CLINIC_COMMUNICATION_CHANNELS = ['EMAIL', 'SMS', 'WHATSAPP'] as const;
+export type ClinicCommunicationChannel = (typeof CLINIC_COMMUNICATION_CHANNELS)[number];
+
+export interface ClinicCommunicationSettings {
+  appointmentRemindersEnabled: boolean;
+  reminderLeadMinutes: number;
+  channelPriority: ClinicCommunicationChannel[];
+  appointmentConfirmationsEnabled: boolean;
+  appointmentCancellationNoticesEnabled: boolean;
+  receiptNoticesEnabled: boolean;
+  consentConfirmationsEnabled: boolean;
+  documentShareNoticesEnabled: boolean;
+  /** ISO 3166-1 alpha-2. Required before a phone-based channel can be enabled. */
+  defaultPhoneRegion: string | null;
+}
+
 export interface ClinicSettings {
   general: ClinicGeneralSettings;
   workingHours: WeeklyWorkingHours;
   scheduling: ClinicSchedulingSettings;
   careContinuity: ClinicCareContinuitySettings;
+  communications: ClinicCommunicationSettings;
 }
 
 /**
@@ -129,6 +146,17 @@ export const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
     retentionInactivityDays: 120,
     missedAppointmentRebookGraceDays: 14,
   },
+  communications: {
+    appointmentRemindersEnabled: true,
+    reminderLeadMinutes: 1440,
+    channelPriority: ['EMAIL'],
+    appointmentConfirmationsEnabled: true,
+    appointmentCancellationNoticesEnabled: true,
+    receiptNoticesEnabled: true,
+    consentConfirmationsEnabled: true,
+    documentShareNoticesEnabled: true,
+    defaultPhoneRegion: null,
+  },
 };
 
 // --- API shapes -------------------------------------------------------------
@@ -154,6 +182,7 @@ export interface ClinicSettingsDto {
   workingHours: WeeklyWorkingHours;
   scheduling: ClinicSchedulingSettings;
   careContinuity: ClinicCareContinuitySettings;
+  communications: ClinicCommunicationSettings;
   updatedAt: string;
 }
 

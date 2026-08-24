@@ -5,6 +5,10 @@ import {
   type CommunicationOutboxRepository,
 } from './notification.repository.js';
 import { notificationDispatcher, type NotificationDispatcher } from './notification.dispatcher.js';
+import {
+  externalCommunicationProjector,
+  type ExternalCommunicationProjector,
+} from '../communications/external-communication.projector.js';
 
 const LEASE_MS = 60_000;
 const MAX_BATCH = 50;
@@ -17,6 +21,7 @@ export class NotificationWorker {
   constructor(
     private readonly outbox: CommunicationOutboxRepository = communicationOutboxRepository,
     private readonly dispatcher: NotificationDispatcher = notificationDispatcher,
+    private readonly externalProjector: ExternalCommunicationProjector = externalCommunicationProjector,
   ) {}
 
   start(intervalMs: number, log: FastifyBaseLogger): void {
@@ -41,6 +46,7 @@ export class NotificationWorker {
         if (!event) break;
         try {
           await this.dispatcher.dispatch(event);
+          await this.externalProjector.dispatch(event);
           await this.outbox.markProcessed(event.eventId, this.workerId, new Date());
           processed += 1;
         } catch (error) {

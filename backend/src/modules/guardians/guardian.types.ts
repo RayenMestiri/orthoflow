@@ -47,6 +47,7 @@ export interface PatientGuardianAttributes {
   isPrimary: boolean;
   financiallyResponsible: boolean;
   contactPreference: ContactPreference;
+  communicationAuthorized: boolean;
   createdBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -65,6 +66,7 @@ export interface GuardianDto {
   isPrimary: boolean;
   financiallyResponsible: boolean;
   contactPreference: ContactPreference;
+  communicationAuthorized: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -78,6 +80,7 @@ export interface CreateGuardianInput {
   isPrimary?: boolean;
   financiallyResponsible?: boolean;
   contactPreference?: ContactPreference;
+  communicationAuthorized?: boolean;
 }
 
 export interface UpdateGuardianInput {
@@ -89,6 +92,7 @@ export interface UpdateGuardianInput {
   isPrimary?: boolean;
   financiallyResponsible?: boolean;
   contactPreference?: ContactPreference;
+  communicationAuthorized?: boolean;
 }
 
 export interface LinkExistingGuardianInput {
@@ -97,6 +101,7 @@ export interface LinkExistingGuardianInput {
   isPrimary?: boolean;
   financiallyResponsible?: boolean;
   contactPreference?: ContactPreference;
+  communicationAuthorized?: boolean;
 }
 
 export interface GuardianChildDto {
@@ -117,4 +122,3 @@ export interface GuardianSearchDto {
   email: string | null;
   linkedPatientsCount: number;
 }
-

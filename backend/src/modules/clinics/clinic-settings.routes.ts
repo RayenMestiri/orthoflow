@@ -7,6 +7,7 @@ import {
   updateCareContinuitySettingsHandler,
   updateSchedulingSettingsHandler,
   updateWorkingHoursHandler,
+  updateCommunicationSettingsHandler,
 } from './clinic-settings.controller.js';
 import {
   clinicSettingsDtoSchema,
@@ -14,6 +15,7 @@ import {
   updateCareContinuitySettingsBodySchema,
   updateSchedulingSettingsBodySchema,
   updateWorkingHoursBodySchema,
+  updateCommunicationSettingsBodySchema,
 } from './clinic-settings.schema.js';
 
 /**
@@ -130,5 +132,23 @@ export const clinicSettingsRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     updateCareContinuitySettingsHandler,
+  );
+
+  app.put(
+    '/communications',
+    {
+      preHandler: [app.requirePermission(PERMISSIONS.CLINIC_UPDATE)],
+      schema: {
+        tags: ['clinic-settings'],
+        summary: 'Update transactional communication policy',
+        security: [{ bearerAuth: [] }],
+        body: updateCommunicationSettingsBodySchema,
+        response: {
+          200: successSchema(clinicSettingsDtoSchema),
+          ...errorResponses(400, 401, 403, 404),
+        },
+      },
+    },
+    updateCommunicationSettingsHandler,
   );
 };

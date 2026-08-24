@@ -5,6 +5,7 @@ import type { ApiEnvelope } from '../../../core/auth/auth.models';
 import { API_BASE_URL } from '../../../core/config/api.config';
 import type {
   ClinicCareContinuitySettings,
+  ClinicCommunicationSettings,
   ClinicSchedulingSettings,
   ClinicSettings,
   UpdateGeneralSettingsInput,
@@ -46,6 +47,12 @@ export class ClinicSettingsApiService {
   ): Observable<ClinicSettings> {
     return this.http
       .put<ApiEnvelope<ClinicSettings>>(`${this.settingsUrl}/care-continuity`, careContinuity)
+      .pipe(map((response) => response.data));
+  }
+
+  updateCommunications(communications: ClinicCommunicationSettings): Observable<ClinicSettings> {
+    return this.http
+      .put<ApiEnvelope<ClinicSettings>>(`${this.settingsUrl}/communications`, communications)
       .pipe(map((response) => response.data));
   }
 

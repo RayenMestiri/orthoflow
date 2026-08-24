@@ -25,6 +25,11 @@ import {
 import { userRepository, type UserRepository } from '../users/user.repository.js';
 import { receiptService, type ReceiptService } from '../receipts/receipt.service.js';
 import { receiptRepository, type ReceiptRepository } from '../receipts/receipt.repository.js';
+import {
+  communicationEventService,
+  type CommunicationEventService,
+} from '../notifications/notification.service.js';
+import { EXTERNAL_EVENT_TYPES } from '../communications/communication.types.js';
 import { toCashRecordDto } from './cash-record.mapper.js';
 import { cashRecordRepository, type CashRecordRepository } from './cash-record.repository.js';
 import {
@@ -99,6 +104,7 @@ export class CashRecordService {
     private readonly patientGuardians: PatientGuardianRepository = patientGuardianRepository,
     private readonly users: UserRepository = userRepository,
     private readonly audit: AuditLogService = auditLogService,
+    private readonly communicationEvents: CommunicationEventService = communicationEventService,
   ) {}
 
   // --- reads ----------------------------------------------------------------
@@ -275,6 +281,24 @@ export class CashRecordService {
           },
           ip: context.ip,
           userAgent: context.userAgent,
+        },
+        session,
+      );
+
+      await this.communicationEvents.enqueue(
+        {
+          clinicId,
+          type: EXTERNAL_EVENT_TYPES.RECEIPT_AVAILABLE,
+          aggregateType: 'RECEIPT',
+          aggregateId: receipt._id.toString(),
+          actorUserId: context.actorUserId,
+          deduplicationKey: `RECEIPT_AVAILABLE:${receipt._id.toString()}`,
+          payload: {
+            patientId: input.patientId,
+            guardianId,
+            receiptReference: receipt.receiptNumber,
+          },
+          occurredAt: receipt.issuedAt,
         },
         session,
       );

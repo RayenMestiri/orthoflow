@@ -65,6 +65,7 @@ export class GuardianService {
           isPrimary: input.isPrimary ?? false,
           financiallyResponsible: input.financiallyResponsible ?? false,
           contactPreference: input.contactPreference ?? CONTACT_PREFERENCES.NO_PREFERENCE,
+          communicationAuthorized: input.communicationAuthorized ?? false,
         },
         session,
       );
@@ -135,6 +136,7 @@ export class GuardianService {
           isPrimary: input.isPrimary ?? false,
           financiallyResponsible: input.financiallyResponsible ?? false,
           contactPreference: input.contactPreference ?? CONTACT_PREFERENCES.NO_PREFERENCE,
+          communicationAuthorized: input.communicationAuthorized ?? false,
         },
         session,
       );
@@ -194,6 +196,9 @@ export class GuardianService {
         ...(changes.contactPreference === undefined
           ? {}
           : { contactPreference: changes.contactPreference }),
+        ...(changes.communicationAuthorized === undefined
+          ? {}
+          : { communicationAuthorized: changes.communicationAuthorized }),
       };
       const guardian =
         Object.keys(identityChanges).length > 0
@@ -370,4 +375,3 @@ export class GuardianService {
 }
 
 export const guardianService = new GuardianService();
-

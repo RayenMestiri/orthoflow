@@ -45,6 +45,17 @@ function buildSettings(overrides: Partial<ClinicSettings> = {}): ClinicSettings 
       defaultConcurrentCapacity: 2,
       allowOwnerOverbooking: true,
     },
+    communications: {
+      appointmentRemindersEnabled: true,
+      reminderLeadMinutes: 1440,
+      channelPriority: ['EMAIL'],
+      appointmentConfirmationsEnabled: true,
+      appointmentCancellationNoticesEnabled: true,
+      receiptNoticesEnabled: true,
+      consentConfirmationsEnabled: true,
+      documentShareNoticesEnabled: true,
+      defaultPhoneRegion: null,
+    },
     updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
@@ -57,6 +68,8 @@ describe('ClinicSettingsStore', () => {
     updateGeneral: ReturnType<typeof vi.fn>;
     updateWorkingHours: ReturnType<typeof vi.fn>;
     updateScheduling: ReturnType<typeof vi.fn>;
+    updateCareContinuity: ReturnType<typeof vi.fn>;
+    updateCommunications: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -67,6 +80,8 @@ describe('ClinicSettingsStore', () => {
       ),
       updateWorkingHours: vi.fn((workingHours) => of(buildSettings({ workingHours }))),
       updateScheduling: vi.fn((scheduling) => of(buildSettings({ scheduling }))),
+      updateCareContinuity: vi.fn((careContinuity) => of(buildSettings({ careContinuity }))),
+      updateCommunications: vi.fn((communications) => of(buildSettings({ communications }))),
     };
 
     TestBed.configureTestingModule({

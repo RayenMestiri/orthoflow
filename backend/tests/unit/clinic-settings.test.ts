@@ -240,6 +240,7 @@ describe('settings response contract', () => {
       workingHours: DEFAULT_WORKING_HOURS,
       scheduling: DEFAULT_CLINIC_SETTINGS.scheduling,
       careContinuity: DEFAULT_CLINIC_SETTINGS.careContinuity,
+      communications: DEFAULT_CLINIC_SETTINGS.communications,
       updatedAt: '2026-01-01T00:00:00.000Z',
     });
 

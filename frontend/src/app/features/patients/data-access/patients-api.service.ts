@@ -134,9 +134,9 @@ export class PatientsApiService {
 
   invitePortalAccess(
     guardianId: string,
-  ): Observable<{ status: string; delivery: 'SENT' | 'UNAVAILABLE'; expiresAt: string }> {
+  ): Observable<{ status: string; delivery: 'QUEUED'; expiresAt: string }> {
     return this.http
-      .post<ApiEnvelope<{ status: string; delivery: 'SENT' | 'UNAVAILABLE'; expiresAt: string }>>(
+      .post<ApiEnvelope<{ status: string; delivery: 'QUEUED'; expiresAt: string }>>(
         `${this.baseUrl}/portal-management/guardians/${guardianId}/invite`,
         {},
       )

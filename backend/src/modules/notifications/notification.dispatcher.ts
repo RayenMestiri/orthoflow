@@ -15,6 +15,8 @@ import {
   NOTIFICATION_PRIORITIES,
   NOTIFICATION_TARGETS,
   NOTIFICATION_TYPES,
+  NOTIFICATION_TYPE_VALUES,
+  type NotificationType,
   type CommunicationEventRecord,
 } from './notification.types.js';
 import { PERMISSIONS } from '../../common/constants/permissions.js';
@@ -31,7 +33,7 @@ function optional(payload: Payload, key: string): string | null {
   return typeof value === 'string' && value ? value : null;
 }
 
-function requiredPermission(type: CommunicationEventRecord['type']): Permission {
+function requiredPermission(type: NotificationType): Permission {
   switch (type) {
     case NOTIFICATION_TYPES.TASK_ASSIGNED:
     case NOTIFICATION_TYPES.TASK_REASSIGNED:
@@ -57,6 +59,8 @@ export class NotificationDispatcher {
   ) {}
 
   async dispatch(event: CommunicationEventRecord): Promise<void> {
+    if (!NOTIFICATION_TYPE_VALUES.includes(event.type as NotificationType)) return;
+    const internalEvent = event as CommunicationEventRecord & { type: NotificationType };
     const clinicId = event.clinicId.toString();
     const actorId = event.actorUserId?.toString() ?? null;
     const memberships = await this.memberships.findActiveByClinic(clinicId);
@@ -67,7 +71,7 @@ export class NotificationDispatcher {
         .filter((user) => user.status === USER_STATUSES.ACTIVE)
         .map((user) => user._id.toString()),
     );
-    const permission = requiredPermission(event.type);
+    const permission = requiredPermission(internalEvent.type);
     const eligible = memberships.filter(
       (membership) =>
         membership.status === MEMBERSHIP_STATUSES.ACTIVE &&
@@ -75,21 +79,21 @@ export class NotificationDispatcher {
         ROLE_PERMISSIONS[membership.role].includes(permission),
     );
     const recipientIds = this.resolveRecipientIds(
-      event,
+      internalEvent,
       eligible.map((membership) => ({
         userId: membership.userId.toString(),
         role: membership.role,
       })),
     );
 
-    const display = this.render(event);
+    const display = this.render(internalEvent);
     await Promise.all(
       recipientIds.map((recipientId) =>
         this.notifications.createForRecipient({
           clinicId,
           recipientId,
           sourceEventId: event.eventId,
-          type: event.type,
+          type: internalEvent.type,
           priority: display.priority,
           title: display.title,
           message: display.message,
@@ -107,7 +111,7 @@ export class NotificationDispatcher {
   }
 
   private resolveRecipientIds(
-    event: CommunicationEventRecord,
+    event: CommunicationEventRecord & { type: NotificationType },
     eligible: Array<{ userId: string; role: string }>,
   ): string[] {
     const payload = event.payload;
@@ -159,7 +163,7 @@ export class NotificationDispatcher {
   }
 
   private render(
-    event: CommunicationEventRecord,
+    event: CommunicationEventRecord & { type: NotificationType },
   ): Omit<
     CreateRecipientNotificationInput,
     'clinicId' | 'recipientId' | 'sourceEventId' | 'type' | 'deduplicationKey' | 'occurredAt'

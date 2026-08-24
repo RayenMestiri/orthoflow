@@ -56,6 +56,8 @@ const appointmentSchema = new Schema<AppointmentAttributes>(
 
 /** The calendar's primary read: one clinic, one visible date range. */
 appointmentSchema.index({ clinicId: 1, startAt: 1 });
+appointmentSchema.index({ clinicId: 1, status: 1, startAt: 1 });
+appointmentSchema.index({ status: 1, startAt: 1, clinicId: 1 });
 
 /** Overlap detection scans the doctor's day: filter by end, sort by start. */
 appointmentSchema.index({ clinicId: 1, doctorId: 1, startAt: 1, endAt: 1 });

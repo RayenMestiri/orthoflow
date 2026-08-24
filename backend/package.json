@@ -37,11 +37,13 @@
     "fastify-plugin": "^6.0.0",
     "fastify-type-provider-zod": "^7.0.0",
     "jsonwebtoken": "^9.0.2",
+    "libphonenumber-js": "^1.13.11",
     "mongoose": "^9.9.1",
     "nodemailer": "^9.0.5",
     "pdfkit": "^0.20.0",
     "pino": "^10.3.1",
     "pngjs": "^7.0.0",
+    "temporal-polyfill": "^1.0.4",
     "zod": "^4.4.3"
   },
   "devDependencies": {

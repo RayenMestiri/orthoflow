@@ -103,6 +103,13 @@ export const envSchema = z
     NOTIFICATION_WORKER_ENABLED: z.stringbool().default(true),
     NOTIFICATION_WORKER_INTERVAL_MS: z.coerce.number().int().min(1000).default(5000),
     NOTIFICATION_CONDITION_SWEEP_INTERVAL_MS: z.coerce.number().int().min(60_000).default(900_000),
+    COMMUNICATION_WORKER_ENABLED: z.stringbool().default(true),
+    COMMUNICATION_WORKER_INTERVAL_MS: z.coerce.number().int().min(1000).default(5000),
+    COMMUNICATION_REMINDER_SWEEP_INTERVAL_MS: z.coerce.number().int().min(60_000).default(300_000),
+    COMMUNICATION_PAYLOAD_SECRET: z
+      .string()
+      .min(32)
+      .default('communication-development-secret-32chars'),
   })
   .superRefine((value, ctx) => {
     if (value.JWT_ACCESS_SECRET === value.JWT_REFRESH_SECRET) {
@@ -133,7 +140,7 @@ export const envSchema = z
     }
 
     if (value.NODE_ENV === 'production') {
-      if (value.NOTIFICATION_WORKER_ENABLED && !value.MONGODB_TRANSACTIONS_ENABLED) {
+      if ((value.NOTIFICATION_WORKER_ENABLED || value.COMMUNICATION_WORKER_ENABLED) && !value.MONGODB_TRANSACTIONS_ENABLED) {
         ctx.addIssue({
           code: 'custom',
           path: ['MONGODB_TRANSACTIONS_ENABLED'],
@@ -183,6 +190,13 @@ export const envSchema = z
         ctx.addIssue({
           code: 'custom',
           path: ['AUTH_CODE_SECRET'],
+          message: 'placeholder secret detected — set a real random secret in production',
+        });
+      }
+      if (value.COMMUNICATION_PAYLOAD_SECRET.toLowerCase().includes('development')) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['COMMUNICATION_PAYLOAD_SECRET'],
           message: 'placeholder secret detected — set a real random secret in production',
         });
       }

@@ -7,6 +7,7 @@ import type {
   UpdateCareContinuitySettingsBody,
   UpdateSchedulingSettingsBody,
   UpdateWorkingHoursBody,
+  UpdateCommunicationSettingsBody,
 } from './clinic-settings.schema.js';
 
 /**
@@ -16,6 +17,18 @@ import type {
 
 export async function getClinicSettingsHandler(request: FastifyRequest, reply: FastifyReply) {
   const settings = await clinicSettingsService.get(requireTenant(request).clinicId);
+  return reply.send(ok(settings));
+}
+
+export async function updateCommunicationSettingsHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const settings = await clinicSettingsService.updateCommunications(
+    requireTenant(request).clinicId,
+    validatedBody<UpdateCommunicationSettingsBody>(request),
+    mutationContext(request),
+  );
   return reply.send(ok(settings));
 }
 

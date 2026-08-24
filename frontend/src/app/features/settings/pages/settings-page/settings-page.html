@@ -76,6 +76,9 @@
           @case ('care-continuity') {
             <app-settings-care-continuity [settings]="settings.careContinuity ?? careContinuityDefaults" [canEdit]="canEdit()" />
           }
+          @case ('communications') {
+            <app-settings-communications [settings]="settings.communications" [canEdit]="canEdit()" />
+          }
           @case ('consents') {
             @if (canViewConsentTemplates) {
               <app-settings-consent-templates [canEdit]="canEdit()" />

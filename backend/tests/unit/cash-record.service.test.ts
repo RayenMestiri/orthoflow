@@ -452,6 +452,7 @@ describe('CashRecordService', () => {
       patientGuardians as unknown as PatientGuardianRepository,
       users as unknown as UserRepository,
       audit as unknown as AuditLogService,
+      { enqueue: async () => undefined } as never,
     );
   });
 

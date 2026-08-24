@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { emailSchema, objectIdSchema, phoneSchema } from '../../common/validation/common.schemas.js';
 import {
   MAX_CONCURRENT_CAPACITY,
+  CLINIC_COMMUNICATION_CHANNELS,
   SLOT_INTERVAL_OPTIONS,
   SUPPORTED_LANGUAGES,
   WEEKDAYS,
@@ -121,6 +122,31 @@ export const careContinuitySettingsSchema = z.object({
   missedAppointmentRebookGraceDays: z.number().int().min(1).max(90),
 });
 export const updateCareContinuitySettingsBodySchema = careContinuitySettingsSchema;
+export const communicationSettingsSchema = z
+  .object({
+    appointmentRemindersEnabled: z.boolean(),
+    reminderLeadMinutes: z.number().int().min(30).max(10080),
+    channelPriority: z
+      .array(z.enum(CLINIC_COMMUNICATION_CHANNELS))
+      .min(1)
+      .max(3)
+      .refine((channels) => new Set(channels).size === channels.length, {
+        message: 'channels must be unique',
+      }),
+    appointmentConfirmationsEnabled: z.boolean(),
+    appointmentCancellationNoticesEnabled: z.boolean(),
+    receiptNoticesEnabled: z.boolean(),
+    consentConfirmationsEnabled: z.boolean(),
+    documentShareNoticesEnabled: z.boolean(),
+    defaultPhoneRegion: z.string().regex(/^[A-Z]{2}$/).nullable(),
+  })
+  .refine(
+    (settings) =>
+      !settings.channelPriority.some((channel) => channel !== 'EMAIL') ||
+      settings.defaultPhoneRegion !== null,
+    { message: 'defaultPhoneRegion is required for SMS or WhatsApp', path: ['defaultPhoneRegion'] },
+  );
+export const updateCommunicationSettingsBodySchema = communicationSettingsSchema;
 
 // --- responses --------------------------------------------------------------
 
@@ -155,6 +181,7 @@ export const clinicSettingsDtoSchema = z.object({
     allowOwnerOverbooking: z.boolean(),
   }),
   careContinuity: careContinuitySettingsSchema,
+  communications: communicationSettingsSchema,
   updatedAt: z.string(),
 });
 
@@ -164,6 +191,7 @@ export type UpdateSchedulingSettingsBody = z.infer<typeof updateSchedulingSettin
 export type UpdateCareContinuitySettingsBody = z.infer<
   typeof updateCareContinuitySettingsBodySchema
 >;
+export type UpdateCommunicationSettingsBody = z.infer<typeof updateCommunicationSettingsBodySchema>;
 
 /** Exported for tests and for the working-hours utilities. */
 export function periodsOverlap(periods: TimePeriod[]): boolean {

@@ -18,6 +18,7 @@ export const guardianDtoSchema = z.object({
   isPrimary: z.boolean(),
   financiallyResponsible: z.boolean(),
   contactPreference: z.enum(CONTACT_PREFERENCE_VALUES),
+  communicationAuthorized: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -31,6 +32,7 @@ export const createGuardianBodySchema = z.object({
   isPrimary: z.boolean().optional(),
   financiallyResponsible: z.boolean().optional(),
   contactPreference: z.enum(CONTACT_PREFERENCE_VALUES).optional(),
+  communicationAuthorized: z.boolean().optional(),
 });
 
 export const updateGuardianBodySchema = createGuardianBodySchema
@@ -52,6 +54,7 @@ export const linkExistingGuardianBodySchema = z.object({
   isPrimary: z.boolean().optional(),
   financiallyResponsible: z.boolean().optional(),
   contactPreference: z.enum(CONTACT_PREFERENCE_VALUES).optional(),
+  communicationAuthorized: z.boolean().optional(),
 });
 
 export const guardianChildDtoSchema = z.object({
@@ -83,4 +86,3 @@ export type LinkExistingGuardianBody = z.infer<typeof linkExistingGuardianBodySc
 export type PatientGuardianParam = z.infer<typeof patientGuardianParamSchema>;
 export type PatientParam = z.infer<typeof patientParamSchema>;
 export type GuardianSearchQuery = z.infer<typeof guardianSearchQuerySchema>;
-

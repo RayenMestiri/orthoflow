@@ -3,6 +3,7 @@ import {
   DEFAULT_CLINIC_SETTINGS,
   DEFAULT_WORKING_HOURS,
   MAX_CONCURRENT_CAPACITY,
+  CLINIC_COMMUNICATION_CHANNELS,
   SUPPORTED_LANGUAGES,
   WEEKDAYS,
 } from './clinic-settings.types.js';
@@ -109,6 +110,29 @@ const clinicSettingsSchema = new Schema(
       ),
       required: true,
       default: () => DEFAULT_CLINIC_SETTINGS.careContinuity,
+    },
+    communications: {
+      type: new Schema(
+        {
+          appointmentRemindersEnabled: { type: Boolean, required: true, default: true },
+          reminderLeadMinutes: { type: Number, required: true, min: 30, max: 10080, default: 1440 },
+          channelPriority: {
+            type: [String],
+            enum: CLINIC_COMMUNICATION_CHANNELS,
+            required: true,
+            default: () => ['EMAIL'],
+          },
+          appointmentConfirmationsEnabled: { type: Boolean, required: true, default: true },
+          appointmentCancellationNoticesEnabled: { type: Boolean, required: true, default: true },
+          receiptNoticesEnabled: { type: Boolean, required: true, default: true },
+          consentConfirmationsEnabled: { type: Boolean, required: true, default: true },
+          documentShareNoticesEnabled: { type: Boolean, required: true, default: true },
+          defaultPhoneRegion: { type: String, default: null, uppercase: true, minlength: 2, maxlength: 2 },
+        },
+        { _id: false },
+      ),
+      required: true,
+      default: () => DEFAULT_CLINIC_SETTINGS.communications,
     },
   },
   { _id: false },

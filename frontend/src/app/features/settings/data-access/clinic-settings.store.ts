@@ -3,6 +3,7 @@ import { firstValueFrom } from 'rxjs';
 import { getApiProblem } from '../../../core/http/api-error';
 import type {
   ClinicCareContinuitySettings,
+  ClinicCommunicationSettings,
   ClinicSchedulingSettings,
   ClinicSettings,
   SettingsSection,
@@ -67,6 +68,10 @@ export class ClinicSettingsStore {
 
   async saveCareContinuity(settings: ClinicCareContinuitySettings): Promise<boolean> {
     return this.save('care-continuity', () => this.api.updateCareContinuity(settings));
+  }
+
+  async saveCommunications(settings: ClinicCommunicationSettings): Promise<boolean> {
+    return this.save('communications', () => this.api.updateCommunications(settings));
   }
 
   dismissError(): void {

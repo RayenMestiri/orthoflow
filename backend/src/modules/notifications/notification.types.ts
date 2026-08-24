@@ -1,4 +1,5 @@
 import type { Types } from 'mongoose';
+import { EXTERNAL_EVENT_TYPES, type ExternalEventType } from '../communications/communication.types.js';
 
 export const NOTIFICATION_RECIPIENT_TYPES = {
   STAFF: 'STAFF',
@@ -26,6 +27,10 @@ export const NOTIFICATION_TYPE_VALUES = Object.values(NOTIFICATION_TYPES) as [
   NotificationType,
   ...NotificationType[],
 ];
+export type CommunicationEventType = NotificationType | ExternalEventType;
+export const COMMUNICATION_EVENT_TYPE_VALUES = [
+  ...new Set([...NOTIFICATION_TYPE_VALUES, ...Object.values(EXTERNAL_EVENT_TYPES)]),
+] as [CommunicationEventType, ...CommunicationEventType[]];
 
 export const NOTIFICATION_PRIORITIES = { NORMAL: 'NORMAL', IMPORTANT: 'IMPORTANT' } as const;
 export type NotificationPriority =
@@ -121,7 +126,7 @@ export const OUTBOX_STATUS_VALUES = Object.values(OUTBOX_STATUSES) as [
 export interface CommunicationEventAttributes {
   clinicId: Types.ObjectId;
   eventId: string;
-  type: NotificationType;
+  type: CommunicationEventType;
   aggregateType: string;
   aggregateId: Types.ObjectId;
   actorUserId: Types.ObjectId | null;
@@ -144,7 +149,7 @@ export type CommunicationEventRecord = CommunicationEventAttributes & { _id: Typ
 
 export interface EnqueueCommunicationEventInput {
   clinicId: string;
-  type: NotificationType;
+  type: CommunicationEventType;
   aggregateType: string;
   aggregateId: string;
   actorUserId?: string | null;

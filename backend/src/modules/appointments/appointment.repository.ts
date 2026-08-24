@@ -135,6 +135,7 @@ export class AppointmentRepository {
     appointmentId: string,
     clinicId: string,
     changes: UpdateAppointmentFields,
+    session?: ClientSession,
   ): Promise<AppointmentRecord | null> {
     const set: Record<string, unknown> = {
       updatedBy: toObjectId(changes.updatedBy, 'updatedBy'),
@@ -170,16 +171,16 @@ export class AppointmentRepository {
           : toObjectId(changes.overbookingApprovedBy, 'overbookingApprovedBy');
     }
 
-    return AppointmentModel.findOneAndUpdate(
+    const query = AppointmentModel.findOneAndUpdate(
       {
         _id: toObjectId(appointmentId, 'appointmentId'),
         clinicId: toObjectId(clinicId, 'clinicId'),
       },
       { $set: set },
       { new: true, runValidators: true },
-    )
-      .lean<AppointmentRecord | null>()
-      .exec();
+    );
+    if (session) query.session(session);
+    return query.lean<AppointmentRecord | null>().exec();
   }
 
   /**

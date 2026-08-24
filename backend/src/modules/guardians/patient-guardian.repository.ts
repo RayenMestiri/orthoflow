@@ -17,6 +17,7 @@ interface CreatePatientGuardianInput {
   isPrimary: boolean;
   financiallyResponsible: boolean;
   contactPreference: ContactPreference;
+  communicationAuthorized: boolean;
 }
 
 interface UpdatePatientGuardianInput {
@@ -24,6 +25,7 @@ interface UpdatePatientGuardianInput {
   isPrimary?: boolean;
   financiallyResponsible?: boolean;
   contactPreference?: ContactPreference;
+  communicationAuthorized?: boolean;
 }
 
 export class PatientGuardianRepository {
@@ -85,6 +87,7 @@ export class PatientGuardianRepository {
           isPrimary: input.isPrimary,
           financiallyResponsible: input.financiallyResponsible,
           contactPreference: input.contactPreference,
+          communicationAuthorized: input.communicationAuthorized,
         },
       ],
       { session, ordered: true },

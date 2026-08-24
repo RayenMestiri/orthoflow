@@ -122,8 +122,8 @@ export class PortalRepository {
     tokenHash: string;
     expiresAt: Date;
     invitedByUserId: string;
-  }): Promise<PortalInvitationRecord> {
-    await PortalInvitationModel.updateMany(
+  }, session?: ClientSession): Promise<PortalInvitationRecord> {
+    const revokeQuery = PortalInvitationModel.updateMany(
       {
         clinicId: toObjectId(input.clinicId, 'clinicId'),
         guardianId: toObjectId(input.guardianId, 'guardianId'),
@@ -131,7 +131,9 @@ export class PortalRepository {
         revokedAt: null,
       },
       { $set: { revokedAt: new Date() } },
-    ).exec();
+    );
+    if (session) revokeQuery.session(session);
+    await revokeQuery.exec();
     const [created] = await PortalInvitationModel.create([
       {
         ...input,
@@ -141,7 +143,7 @@ export class PortalRepository {
         consumedAt: null,
         revokedAt: null,
       },
-    ]);
+    ], { session, ordered: true });
     if (!created) throw new Error('Portal invitation creation failed');
     return created.toObject<PortalInvitationRecord>();
   }
@@ -269,8 +271,8 @@ export class PortalRepository {
     guardianId: string;
     documentId: string;
     actorUserId: string;
-  }): Promise<PortalDocumentShareRecord> {
-    return PortalDocumentShareModel.findOneAndUpdate(
+  }, session?: ClientSession): Promise<PortalDocumentShareRecord> {
+    const query = PortalDocumentShareModel.findOneAndUpdate(
       {
         clinicId: toObjectId(input.clinicId, 'clinicId'),
         patientId: toObjectId(input.patientId, 'patientId'),
@@ -286,9 +288,9 @@ export class PortalRepository {
         },
       },
       { new: true, upsert: true, runValidators: true },
-    )
-      .lean<PortalDocumentShareRecord>()
-      .exec();
+    );
+    if (session) query.session(session);
+    return query.lean<PortalDocumentShareRecord>().exec();
   }
   async revokeDocumentShare(input: {
     clinicId: string;
