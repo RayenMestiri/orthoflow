@@ -1,0 +1,127 @@
+<div class="notification-center">
+  <button
+    #trigger
+    class="notification-center__trigger"
+    type="button"
+    [attr.aria-label]="accessibleLabel()"
+    [attr.aria-expanded]="open()"
+    aria-haspopup="dialog"
+    (click)="toggle()"
+  >
+    <span class="material-icons" aria-hidden="true">notifications_none</span>
+    @if (store.unreadCount() > 0) {
+      <span class="notification-center__badge" aria-hidden="true">{{ badge() }}</span>
+    }
+  </button>
+
+  @if (open()) {
+    <button
+      class="notification-center__scrim"
+      type="button"
+      aria-label="Close notifications"
+      (click)="close(true)"
+    ></button>
+    <section
+      class="notification-center__panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="notification-center-title"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+    >
+      <header>
+        <div>
+          <p>Clinic updates</p>
+          <h2 id="notification-center-title">Notifications</h2>
+        </div>
+        <div class="notification-center__header-actions">
+          @if (store.unreadCount() > 0) {
+            <button type="button" (click)="store.markAllRead()">Mark all read</button>
+          }
+          <button type="button" aria-label="Close notifications" (click)="close(true)">
+            <span class="material-icons" aria-hidden="true">close</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="notification-center__body">
+        @if (store.loading() && store.recent().length === 0) {
+          <div class="notification-center__status" role="status">
+            <span class="notification-center__spinner" aria-hidden="true"></span>
+            <p>Loading clinic updates…</p>
+          </div>
+        } @else if (store.error() && store.recent().length === 0) {
+          <div class="notification-center__status" role="alert">
+            <span class="material-icons" aria-hidden="true">cloud_off</span>
+            <p>{{ store.error() }}</p>
+            <button type="button" (click)="store.loadRecent(true)">Try again</button>
+          </div>
+        } @else if (store.recent().length === 0) {
+          <div class="notification-center__status">
+            <span class="material-icons" aria-hidden="true">notifications_paused</span>
+            <p><strong>You're all caught up</strong></p>
+            <small>Important clinic changes will appear here.</small>
+          </div>
+        } @else {
+          @if (today().length > 0) {
+            <div class="notification-center__group">
+              <h3>Today</h3>
+              @for (item of today(); track item.id) {
+                <button
+                  class="notification-center__item"
+                  [class.notification-center__item--unread]="!item.readAt"
+                  type="button"
+                  (click)="openItem(item)"
+                >
+                  <span class="notification-center__icon material-icons" aria-hidden="true">{{
+                    icon(item.type)
+                  }}</span>
+                  <span class="notification-center__copy">
+                    <strong>{{ item.title }}</strong>
+                    <small>{{ item.message }}</small>
+                    @if (!item.readAt) {
+                      <em>Unread</em>
+                    }
+                  </span>
+                  <time [attr.datetime]="item.occurredAt">{{ timeAgo(item.occurredAt) }}</time>
+                </button>
+              }
+            </div>
+          }
+          @if (earlier().length > 0) {
+            <div class="notification-center__group">
+              <h3>Earlier</h3>
+              @for (item of earlier(); track item.id) {
+                <button
+                  class="notification-center__item"
+                  [class.notification-center__item--unread]="!item.readAt"
+                  type="button"
+                  (click)="openItem(item)"
+                >
+                  <span class="notification-center__icon material-icons" aria-hidden="true">{{
+                    icon(item.type)
+                  }}</span>
+                  <span class="notification-center__copy">
+                    <strong>{{ item.title }}</strong>
+                    <small>{{ item.message }}</small>
+                    @if (!item.readAt) {
+                      <em>Unread</em>
+                    }
+                  </span>
+                  <time [attr.datetime]="item.occurredAt">{{ timeAgo(item.occurredAt) }}</time>
+                </button>
+              }
+            </div>
+          }
+        }
+      </div>
+
+      <footer>
+        <a routerLink="/app/notifications" (click)="close(false)">
+          View all notifications
+          <span class="material-icons" aria-hidden="true">arrow_forward</span>
+        </a>
+      </footer>
+    </section>
+  }
+</div>

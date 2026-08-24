@@ -703,6 +703,9 @@
   .app-shell__topbar {
     min-height: 4.25rem;
     padding-inline: var(--gutter);
+    // A filtered ancestor becomes the containing block for fixed descendants.
+    // Keep the notification sheet and its scrim anchored to the mobile viewport.
+    backdrop-filter: none;
   }
 
   .app-shell__clinic > .material-icons,

@@ -1,0 +1,91 @@
+<section class="notifications-page" aria-labelledby="notifications-title">
+  <header class="notifications-page__header">
+    <div>
+      <p>Clinic activity</p>
+      <h1 id="notifications-title">Notifications</h1>
+      <span>Important operational changes addressed to you.</span>
+    </div>
+    @if (store.unreadCount() > 0) {
+      <button type="button" class="notifications-page__mark-all" (click)="store.markAllRead()">
+        <span class="material-icons" aria-hidden="true">done_all</span>
+        Mark all read
+      </button>
+    }
+  </header>
+
+  <div class="notifications-page__toolbar" role="group" aria-label="Notification filters">
+    <button
+      type="button"
+      [attr.aria-pressed]="store.filter() === 'ALL'"
+      [class.is-active]="store.filter() === 'ALL'"
+      (click)="setFilter('ALL')"
+    >
+      All
+    </button>
+    <button
+      type="button"
+      [attr.aria-pressed]="store.filter() === 'UNREAD'"
+      [class.is-active]="store.filter() === 'UNREAD'"
+      (click)="setFilter('UNREAD')"
+    >
+      Unread <span>{{ store.unreadCount() }}</span>
+    </button>
+  </div>
+
+  <div class="notifications-page__list" aria-live="polite">
+    @if (store.loading() && store.items().length === 0) {
+      <div class="notifications-page__state" role="status">
+        <span class="notifications-page__spinner" aria-hidden="true"></span>
+        <p>Loading notifications…</p>
+      </div>
+    } @else if (store.error() && store.items().length === 0) {
+      <div class="notifications-page__state" role="alert">
+        <span class="material-icons" aria-hidden="true">cloud_off</span>
+        <h2>Notifications unavailable</h2>
+        <p>{{ store.error() }}</p>
+        <button type="button" (click)="store.loadPage(store.filter(), 1)">Try again</button>
+      </div>
+    } @else if (store.items().length === 0) {
+      <div class="notifications-page__state">
+        <span class="material-icons" aria-hidden="true">notifications_paused</span>
+        <h2>
+          {{ store.filter() === 'UNREAD' ? 'No unread notifications' : "You're all caught up" }}
+        </h2>
+        <p>Relevant clinic updates will appear here without replacing your tasks.</p>
+      </div>
+    } @else {
+      @for (item of store.items(); track item.id) {
+        <button
+          type="button"
+          class="notifications-page__item"
+          [class.notifications-page__item--unread]="!item.readAt"
+          (click)="openItem(item)"
+        >
+          <span class="notifications-page__icon material-icons" aria-hidden="true">{{
+            icon(item.type)
+          }}</span>
+          <span class="notifications-page__copy">
+            <span class="notifications-page__title-line">
+              <strong>{{ item.title }}</strong>
+              @if (!item.readAt) {
+                <em>Unread</em>
+              }
+            </span>
+            <small>{{ item.message }}</small>
+          </span>
+          <time [attr.datetime]="item.occurredAt">{{ dateLabel(item.occurredAt) }}</time>
+          <span class="material-icons notifications-page__arrow" aria-hidden="true"
+            >chevron_right</span
+          >
+        </button>
+      }
+      @if (store.hasMore()) {
+        <div class="notifications-page__more">
+          <button type="button" [disabled]="store.loadingMore()" (click)="store.loadMore()">
+            {{ store.loadingMore() ? 'Loading…' : 'Load earlier notifications' }}
+          </button>
+        </div>
+      }
+    }
+  </div>
+</section>

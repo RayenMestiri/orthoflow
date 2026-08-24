@@ -1,22 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AuthStore } from '../../../../core/auth/auth.store';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { CreateTaskDrawerComponent } from '../../components/create-task-drawer/create-task-drawer.component';
 import { TaskDetailDrawerComponent } from '../../components/task-detail-drawer/task-detail-drawer.component';
 import { TasksStore } from '../../data-access/tasks.store';
-import type { TaskAttachment, TaskDto, TaskPriority, TaskScope, TaskStatus } from '../../models/task.models';
+import type { TaskAttachment, TaskDto, TaskScope, TaskStatus } from '../../models/task.models';
 
 @Component({
   selector: 'app-tasks-page',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    CreateTaskDrawerComponent,
-    TaskDetailDrawerComponent,
-  ],
+  imports: [CommonModule, FormsModule, CreateTaskDrawerComponent, TaskDetailDrawerComponent],
   template: `
     <div class="tasks-workspace">
       <!-- Masthead -->
@@ -24,14 +19,13 @@ import type { TaskAttachment, TaskDto, TaskPriority, TaskScope, TaskStatus } fro
         <div class="tasks-masthead__titles">
           <span class="tasks-masthead__eyebrow">COORDINATION CLINIQUE & DÉLÉGATION</span>
           <h1>Tâches internes</h1>
-          <p>Déléguez des actions au cabinet, suivez les urgences et pilotez les consignes d'équipe.</p>
+          <p>
+            Déléguez des actions au cabinet, suivez les urgences et pilotez les consignes d'équipe.
+          </p>
         </div>
 
         <div class="tasks-masthead__actions">
-          <button 
-            type="button" 
-            class="btn-new-task"
-            (click)="store.openCreateDrawer()">
+          <button type="button" class="btn-new-task" (click)="store.openCreateDrawer()">
             <span class="material-icons" aria-hidden="true">add_task</span>
             <span>Nouvelle tâche</span>
           </button>
@@ -56,9 +50,7 @@ import type { TaskAttachment, TaskDto, TaskPriority, TaskScope, TaskStatus } fro
           </div>
         </div>
 
-        <div 
-          class="metric-card" 
-          [class.is-overdue-alert]="store.summary().overdue > 0">
+        <div class="metric-card" [class.is-overdue-alert]="store.summary().overdue > 0">
           <span class="metric-card__label">En retard</span>
           <div class="metric-card__value-row">
             <span class="metric-card__value">{{ store.summary().overdue }}</span>
@@ -66,9 +58,7 @@ import type { TaskAttachment, TaskDto, TaskPriority, TaskScope, TaskStatus } fro
           </div>
         </div>
 
-        <div 
-          class="metric-card" 
-          [class.is-urgent-alert]="store.summary().urgent > 0">
+        <div class="metric-card" [class.is-urgent-alert]="store.summary().urgent > 0">
           <span class="metric-card__label">Urgentes</span>
           <div class="metric-card__value-row">
             <span class="metric-card__value">{{ store.summary().urgent }}</span>
@@ -88,33 +78,37 @@ import type { TaskAttachment, TaskDto, TaskPriority, TaskScope, TaskStatus } fro
       <!-- Scope Tabs & Controls Bar -->
       <section class="tasks-controls">
         <div class="tasks-scope-tabs">
-          <button 
-            type="button" 
+          <button
+            type="button"
             class="scope-tab"
             [class.is-active]="selectedScope() === 'MINE'"
-            (click)="setScope('MINE')">
+            (click)="setScope('MINE')"
+          >
             <span>Mes tâches</span>
-            <span 
+            <span
               class="badge-count"
-              [class.has-overdue]="store.overdueCount() > 0 && selectedScope() === 'MINE'">
+              [class.has-overdue]="store.overdueCount() > 0 && selectedScope() === 'MINE'"
+            >
               {{ store.activeCount() }}
             </span>
           </button>
 
-          <button 
-            type="button" 
+          <button
+            type="button"
             class="scope-tab"
             [class.is-active]="selectedScope() === 'ASSIGNED_BY_ME'"
-            (click)="setScope('ASSIGNED_BY_ME')">
+            (click)="setScope('ASSIGNED_BY_ME')"
+          >
             <span>Assignées par moi</span>
           </button>
 
           @if (canViewTeamTasks()) {
-            <button 
-              type="button" 
+            <button
+              type="button"
               class="scope-tab"
               [class.is-active]="selectedScope() === 'TEAM'"
-              (click)="setScope('TEAM')">
+              (click)="setScope('TEAM')"
+            >
               <span>Toute l'équipe</span>
             </button>
           }
@@ -122,62 +116,68 @@ import type { TaskAttachment, TaskDto, TaskPriority, TaskScope, TaskStatus } fro
 
         <div class="tasks-filter-bar">
           <div class="filter-pills">
-            <button 
-              type="button" 
+            <button
+              type="button"
               class="pill-btn"
               [class.is-active]="selectedStatus() === 'ACTIVE'"
-              (click)="setStatusFilter('ACTIVE')">
+              (click)="setStatusFilter('ACTIVE')"
+            >
               Actives (À faire & En cours)
             </button>
 
-            <button 
-              type="button" 
+            <button
+              type="button"
               class="pill-btn pill-overdue"
               [class.is-active]="selectedStatus() === 'OVERDUE'"
-              (click)="setStatusFilter('OVERDUE')">
+              (click)="setStatusFilter('OVERDUE')"
+            >
               En retard
               @if (store.overdueCount() > 0) {
                 <span>• {{ store.overdueCount() }}</span>
               }
             </button>
 
-            <button 
-              type="button" 
+            <button
+              type="button"
               class="pill-btn"
               [class.is-active]="selectedStatus() === 'TODO'"
-              (click)="setStatusFilter('TODO')">
+              (click)="setStatusFilter('TODO')"
+            >
               À faire
             </button>
 
-            <button 
-              type="button" 
+            <button
+              type="button"
               class="pill-btn"
               [class.is-active]="selectedStatus() === 'IN_PROGRESS'"
-              (click)="setStatusFilter('IN_PROGRESS')">
+              (click)="setStatusFilter('IN_PROGRESS')"
+            >
               En cours
             </button>
 
-            <button 
-              type="button" 
+            <button
+              type="button"
               class="pill-btn"
               [class.is-active]="selectedStatus() === 'COMPLETED'"
-              (click)="setStatusFilter('COMPLETED')">
+              (click)="setStatusFilter('COMPLETED')"
+            >
               Terminées
             </button>
 
-            <button 
-              type="button" 
+            <button
+              type="button"
               class="pill-btn"
               [class.is-active]="selectedStatus() === 'ALL'"
-              (click)="setStatusFilter('ALL')">
+              (click)="setStatusFilter('ALL')"
+            >
               Toutes
             </button>
           </div>
 
           <div class="search-box">
             <span class="material-icons" aria-hidden="true">search</span>
-            <input 
-              type="text" 
+            <input
+              type="text"
               [(ngModel)]="searchQuery"
               (ngModelChange)="onSearchChange($event)"
               placeholder="Rechercher une tâche, patient..."
@@ -196,12 +196,16 @@ import type { TaskAttachment, TaskDto, TaskPriority, TaskScope, TaskStatus } fro
         <div class="tasks-empty-state">
           <span class="material-icons" aria-hidden="true">task_alt</span>
           <h3>Aucune tâche trouvée</h3>
-          <p>Toutes les actions sont à jour pour cette sélection. Créez une nouvelle tâche pour déléguer une action interne.</p>
-          <button 
-            type="button" 
-            class="btn-new-task" 
+          <p>
+            Toutes les actions sont à jour pour cette sélection. Créez une nouvelle tâche pour
+            déléguer une action interne.
+          </p>
+          <button
+            type="button"
+            class="btn-new-task"
             style="margin-top: 0.5rem;"
-            (click)="store.openCreateDrawer()">
+            (click)="store.openCreateDrawer()"
+          >
             <span class="material-icons" aria-hidden="true">add</span>
             <span>Créer une tâche</span>
           </button>
@@ -209,20 +213,21 @@ import type { TaskAttachment, TaskDto, TaskPriority, TaskScope, TaskStatus } fro
       } @else {
         <div class="tasks-list">
           @for (task of store.items(); track task.id) {
-            <article 
+            <article
               class="task-card"
               [class.is-overdue]="task.isOverdue"
               [class.is-completed]="task.status === 'COMPLETED'"
-              (click)="store.openDetailDrawer(task)">
-              
+              (click)="store.openDetailDrawer(task)"
+            >
               <!-- Quick check button -->
-              <button 
+              <button
                 type="button"
                 class="task-card__check-btn"
                 [class.is-checked]="task.status === 'COMPLETED'"
                 [disabled]="task.status === 'CANCELLED'"
                 (click)="$event.stopPropagation(); quickToggleComplete(task)"
-                title="Marquer comme terminée">
+                title="Marquer comme terminée"
+              >
                 <span class="material-icons" aria-hidden="true">check</span>
               </button>
 
@@ -244,20 +249,27 @@ import type { TaskAttachment, TaskDto, TaskPriority, TaskScope, TaskStatus } fro
                   @if (task.context) {
                     <span class="task-chip-context">
                       <span class="material-icons" aria-hidden="true">link</span>
-                      {{ task.context.label || (task.patient ? task.patient.fullName : 'Contexte') }}
+                      {{
+                        task.context.label || (task.patient ? task.patient.fullName : 'Contexte')
+                      }}
                     </span>
                   }
 
                   @if (task.dueAt) {
                     <span class="task-chip-due" [class.is-overdue]="task.isOverdue">
                       <span class="material-icons" aria-hidden="true">event</span>
-                      {{ task.dueAt | date:'mediumDate' }}
+                      {{ task.dueAt | date: 'mediumDate' }}
                     </span>
                   }
 
                   @if (task.attachments && task.attachments.length > 0) {
-                    <span class="task-chip-context" style="background: var(--color-porcelain); color: var(--color-slate);">
-                      <span class="material-icons" aria-hidden="true" style="font-size: 0.85rem;">attachment</span>
+                    <span
+                      class="task-chip-context"
+                      style="background: var(--color-porcelain); color: var(--color-slate);"
+                    >
+                      <span class="material-icons" aria-hidden="true" style="font-size: 0.85rem;"
+                        >attachment</span
+                      >
                       {{ task.attachments.length }} doc{{ task.attachments.length > 1 ? 's' : '' }}
                     </span>
                   }
@@ -271,7 +283,9 @@ import type { TaskAttachment, TaskDto, TaskPriority, TaskScope, TaskStatus } fro
                         @if (isImage(att)) {
                           <img [src]="att.url" [alt]="att.name" class="task-thumb-img" />
                         } @else {
-                          <span class="material-icons task-thumb-pdf" aria-hidden="true">picture_as_pdf</span>
+                          <span class="material-icons task-thumb-pdf" aria-hidden="true"
+                            >picture_as_pdf</span
+                          >
                         }
                         <span class="task-thumb-name">{{ att.name }}</span>
                       </div>
@@ -290,7 +304,9 @@ import type { TaskAttachment, TaskDto, TaskPriority, TaskScope, TaskStatus } fro
                   {{ getInitials(task.assignedTo.displayName) }}
                 </div>
 
-                <span class="material-icons task-card__chevron" aria-hidden="true">chevron_right</span>
+                <span class="material-icons task-card__chevron" aria-hidden="true"
+                  >chevron_right</span
+                >
               </div>
             </article>
           }
@@ -307,6 +323,7 @@ import type { TaskAttachment, TaskDto, TaskPriority, TaskScope, TaskStatus } fro
 export class TasksPageComponent implements OnInit {
   readonly store = inject(TasksStore);
   private readonly permissions = inject(PermissionService);
+  private readonly route = inject(ActivatedRoute);
 
   selectedScope = signal<TaskScope>('MINE');
   selectedStatus = signal<TaskStatus | 'ALL' | 'ACTIVE' | 'OVERDUE'>('ACTIVE');
@@ -315,7 +332,13 @@ export class TasksPageComponent implements OnInit {
   readonly canViewTeamTasks = computed(() => this.permissions.can(PERMISSIONS.TASKS_MANAGE));
 
   ngOnInit(): void {
-    this.store.load({ scope: 'MINE', status: 'ACTIVE' });
+    void this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
+    await this.store.load({ scope: 'MINE', status: 'ACTIVE' });
+    const taskId = this.route.snapshot.queryParamMap.get('taskId');
+    if (taskId) await this.store.openRemote(taskId);
   }
 
   setScope(scope: TaskScope): void {
@@ -335,7 +358,12 @@ export class TasksPageComponent implements OnInit {
   isImage(att: TaskAttachment): boolean {
     if (att.mimeType?.startsWith('image/')) return true;
     const lower = (att.name || '').toLowerCase();
-    return lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp');
+    return (
+      lower.endsWith('.jpg') ||
+      lower.endsWith('.jpeg') ||
+      lower.endsWith('.png') ||
+      lower.endsWith('.webp')
+    );
   }
 
   getInitials(name: string): string {

@@ -16,6 +16,8 @@ import { CLINIC_ROLES, PLATFORM_ROLES } from '../../core/auth/auth.models';
 import { PermissionService, PERMISSIONS } from '../../core/auth/permissions';
 import { ClinicSettingsStore } from '../../features/settings/data-access/clinic-settings.store';
 import { GlobalSearchComponent } from '../../shared/components/global-search/global-search.component';
+import { NotificationCenter } from '../../features/notifications/components/notification-center/notification-center';
+import { NotificationsStore } from '../../features/notifications/data-access/notifications.store';
 
 interface AppNavigationItem {
   label: string;
@@ -27,7 +29,8 @@ interface AppNavigationItem {
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, GlobalSearchComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, GlobalSearchComponent, NotificationCenter],
+  providers: [NotificationsStore],
   templateUrl: './app-shell.html',
   styleUrl: './app-shell.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

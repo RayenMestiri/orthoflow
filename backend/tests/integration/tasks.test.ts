@@ -34,6 +34,10 @@ vi.mock('../../src/modules/tasks/task.repository.js', async () => ({
 vi.mock('../../src/modules/audit-logs/audit-log.repository.js', async () => ({
   auditLogRepository: (await import('../helpers/repository-mocks.js')).auditLogRepositoryMock,
 }));
+vi.mock('../../src/modules/notifications/notification.repository.js', () => ({
+  communicationOutboxRepository: { enqueue: vi.fn(async () => undefined) },
+  notificationRepository: {},
+}));
 
 describe('Tasks API', () => {
   let app: FastifyInstance;

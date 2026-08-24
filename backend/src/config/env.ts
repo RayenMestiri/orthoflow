@@ -98,6 +98,11 @@ export const envSchema = z
       .regex(durationPattern, 'must look like 1m, 5m')
       .default('1m'),
     AUTH_CODE_MAX_ATTEMPTS: z.coerce.number().int().min(3).max(10).default(5),
+
+    // --- Internal communication worker ----------------------------------
+    NOTIFICATION_WORKER_ENABLED: z.stringbool().default(true),
+    NOTIFICATION_WORKER_INTERVAL_MS: z.coerce.number().int().min(1000).default(5000),
+    NOTIFICATION_CONDITION_SWEEP_INTERVAL_MS: z.coerce.number().int().min(60_000).default(900_000),
   })
   .superRefine((value, ctx) => {
     if (value.JWT_ACCESS_SECRET === value.JWT_REFRESH_SECRET) {
@@ -128,6 +133,13 @@ export const envSchema = z
     }
 
     if (value.NODE_ENV === 'production') {
+      if (value.NOTIFICATION_WORKER_ENABLED && !value.MONGODB_TRANSACTIONS_ENABLED) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['MONGODB_TRANSACTIONS_ENABLED'],
+          message: 'must be enabled in production when the notification outbox worker is enabled',
+        });
+      }
       if (value.MONGODB_URI.includes('localhost') || value.MONGODB_URI.includes('127.0.0.1')) {
         ctx.addIssue({
           code: 'custom',

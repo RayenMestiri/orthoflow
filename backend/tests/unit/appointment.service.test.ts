@@ -330,6 +330,7 @@ function buildService(scheduling: Partial<ClinicSchedulingSettings> = {}): Fakes
         : [],
     ),
   };
+  const communicationEvents = { enqueue: vi.fn(async () => undefined) };
 
   const service = new AppointmentService(
     store as never,
@@ -341,6 +342,8 @@ function buildService(scheduling: Partial<ClinicSchedulingSettings> = {}): Fakes
     audit as never,
     users as never,
     treatments as never,
+    undefined,
+    communicationEvents as never,
   );
 
   return { service, store, patients, memberships, audit, users, treatments };

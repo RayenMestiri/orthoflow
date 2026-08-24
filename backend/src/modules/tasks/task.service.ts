@@ -1,11 +1,20 @@
 import { BusinessRuleError, NotFoundError, ValidationError } from '../../common/errors/index.js';
 import type { PaginationParams } from '../../common/types/common.types.js';
 import { toObjectId } from '../../common/utils/object-id.js';
+import { withTransaction } from '../../infrastructure/database/transaction.js';
 import { AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '../audit-logs/audit-log.types.js';
 import { auditLogService, type AuditLogService } from '../audit-logs/audit-log.service.js';
-import { membershipRepository, type MembershipRepository } from '../memberships/membership.repository.js';
+import {
+  membershipRepository,
+  type MembershipRepository,
+} from '../memberships/membership.repository.js';
 import { patientRepository, type PatientRepository } from '../patients/patient.repository.js';
 import { userRepository, type UserRepository } from '../users/user.repository.js';
+import {
+  communicationEventService,
+  type CommunicationEventService,
+} from '../notifications/notification.service.js';
+import { NOTIFICATION_TYPES } from '../notifications/notification.types.js';
 import { taskRepository, type TaskRepository } from './task.repository.js';
 import {
   TASK_PRIORITIES,
@@ -31,13 +40,19 @@ export class TaskService {
     private readonly users: UserRepository = userRepository,
     private readonly patients: PatientRepository = patientRepository,
     private readonly auditLogs: AuditLogService = auditLogService,
+    private readonly communicationEvents: CommunicationEventService = communicationEventService,
   ) {}
 
   async create(clinicId: string, actorUserId: string, input: CreateTaskInput): Promise<TaskDto> {
     // 1. Validate Assignee membership in this clinic
-    const assigneeMembership = await this.memberships.findByUserAndClinic(input.assignedToUserId, clinicId);
+    const assigneeMembership = await this.memberships.findByUserAndClinic(
+      input.assignedToUserId,
+      clinicId,
+    );
     if (!assigneeMembership || assigneeMembership.status !== 'ACTIVE') {
-      throw new ValidationError('The assigned staff member does not have an active membership in this clinic');
+      throw new ValidationError(
+        'The assigned staff member does not have an active membership in this clinic',
+      );
     }
 
     // 2. Validate Patient if present in context
@@ -55,40 +70,61 @@ export class TaskService {
       }
     }
 
-    // 3. Persist Task
-    const created = await this.tasks.create({
-      clinicId: toObjectId(clinicId, 'clinicId'),
-      title: input.title.trim(),
-      description: input.description?.trim() || null,
-      priority: input.priority ?? TASK_PRIORITIES.NORMAL,
-      status: TASK_STATUSES.TODO,
-      assignedToUserId: toObjectId(input.assignedToUserId, 'assignedToUserId'),
-      createdByUserId: toObjectId(actorUserId, 'createdByUserId'),
-      dueAt: input.dueAt ? new Date(input.dueAt) : null,
-      context: input.context
-        ? {
-            type: input.context.type,
-            entityId: toObjectId(input.context.entityId, 'entityId'),
-            patientId: patientObjId,
-            labelSnapshot,
-          }
-        : null,
-      attachments: input.attachments ?? [],
-    });
-
-    // 4. Audit Log
-    await this.auditLogs.record({
-      clinicId,
-      actorUserId,
-      action: AUDIT_ACTIONS.TASK_CREATED,
-      resourceType: AUDIT_RESOURCE_TYPES.TASK,
-      resourceId: created._id.toString(),
-      metadata: {
-        title: created.title,
-        priority: created.priority,
-        assignedToUserId: input.assignedToUserId,
-        contextType: input.context?.type ?? null,
-      },
+    const created = await withTransaction(async (session) => {
+      const record = await this.tasks.create(
+        {
+          clinicId: toObjectId(clinicId, 'clinicId'),
+          title: input.title.trim(),
+          description: input.description?.trim() || null,
+          priority: input.priority ?? TASK_PRIORITIES.NORMAL,
+          status: TASK_STATUSES.TODO,
+          assignedToUserId: toObjectId(input.assignedToUserId, 'assignedToUserId'),
+          createdByUserId: toObjectId(actorUserId, 'createdByUserId'),
+          dueAt: input.dueAt ? new Date(input.dueAt) : null,
+          context: input.context
+            ? {
+                type: input.context.type,
+                entityId: toObjectId(input.context.entityId, 'entityId'),
+                patientId: patientObjId,
+                labelSnapshot,
+              }
+            : null,
+          attachments: input.attachments ?? [],
+        },
+        session,
+      );
+      const auditEvent = {
+        clinicId,
+        actorUserId,
+        action: AUDIT_ACTIONS.TASK_CREATED,
+        resourceType: AUDIT_RESOURCE_TYPES.TASK,
+        resourceId: record._id.toString(),
+        metadata: {
+          title: record.title,
+          priority: record.priority,
+          assignedToUserId: input.assignedToUserId,
+          contextType: input.context?.type ?? null,
+        },
+      } as const;
+      if (session) await this.auditLogs.record(auditEvent, session);
+      else await this.auditLogs.record(auditEvent);
+      const communicationEvent = {
+        clinicId,
+        type: NOTIFICATION_TYPES.TASK_ASSIGNED,
+        aggregateType: 'TASK',
+        aggregateId: record._id.toString(),
+        actorUserId,
+        deduplicationKey: `TASK_ASSIGNED:${record._id.toString()}`,
+        payload: {
+          taskTitle: record.title,
+          assignedToUserId: record.assignedToUserId.toString(),
+          createdByUserId: record.createdByUserId.toString(),
+          patientId: record.context?.patientId?.toString() ?? null,
+        },
+      } as const;
+      if (session) await this.communicationEvents.enqueue(communicationEvent, session);
+      else await this.communicationEvents.enqueue(communicationEvent);
+      return record;
     });
 
     const [hydrated] = await this.hydrateTasks(clinicId, [created]);
@@ -150,7 +186,10 @@ export class TaskService {
       throw new NotFoundError('Task not found');
     }
 
-    if (existing.status === TASK_STATUSES.COMPLETED || existing.status === TASK_STATUSES.CANCELLED) {
+    if (
+      existing.status === TASK_STATUSES.COMPLETED ||
+      existing.status === TASK_STATUSES.CANCELLED
+    ) {
       throw new BusinessRuleError('Cannot modify a completed or cancelled task');
     }
 
@@ -173,30 +212,55 @@ export class TaskService {
     }
 
     let reassigned = false;
-    if (updates.assignedToUserId !== undefined && updates.assignedToUserId !== existing.assignedToUserId.toString()) {
-      const membership = await this.memberships.findByUserAndClinic(updates.assignedToUserId, clinicId);
+    if (
+      updates.assignedToUserId !== undefined &&
+      updates.assignedToUserId !== existing.assignedToUserId.toString()
+    ) {
+      const membership = await this.memberships.findByUserAndClinic(
+        updates.assignedToUserId,
+        clinicId,
+      );
       if (!membership || membership.status !== 'ACTIVE') {
-        throw new ValidationError('The assigned staff member does not have an active membership in this clinic');
+        throw new ValidationError(
+          'The assigned staff member does not have an active membership in this clinic',
+        );
       }
       patch.assignedToUserId = toObjectId(updates.assignedToUserId, 'assignedToUserId');
       reassigned = true;
     }
 
-    const updated = await this.tasks.update(clinicId, taskId, patch);
-    if (!updated) {
-      throw new NotFoundError('Task not found');
-    }
-
-    await this.auditLogs.record({
-      clinicId,
-      actorUserId,
-      action: reassigned ? AUDIT_ACTIONS.TASK_REASSIGNED : AUDIT_ACTIONS.TASK_UPDATED,
-      resourceType: AUDIT_RESOURCE_TYPES.TASK,
-      resourceId: updated._id.toString(),
-      metadata: {
-        reassigned,
-        newAssignedToUserId: updates.assignedToUserId ?? null,
-      },
+    const updated = await withTransaction(async (session) => {
+      const record = await this.tasks.update(clinicId, taskId, patch, session);
+      if (!record) throw new NotFoundError('Task not found');
+      const auditEvent = {
+        clinicId,
+        actorUserId,
+        action: reassigned ? AUDIT_ACTIONS.TASK_REASSIGNED : AUDIT_ACTIONS.TASK_UPDATED,
+        resourceType: AUDIT_RESOURCE_TYPES.TASK,
+        resourceId: record._id.toString(),
+        metadata: { reassigned, newAssignedToUserId: updates.assignedToUserId ?? null },
+      } as const;
+      if (session) await this.auditLogs.record(auditEvent, session);
+      else await this.auditLogs.record(auditEvent);
+      if (reassigned) {
+        const communicationEvent = {
+          clinicId,
+          type: NOTIFICATION_TYPES.TASK_REASSIGNED,
+          aggregateType: 'TASK',
+          aggregateId: record._id.toString(),
+          actorUserId,
+          deduplicationKey: `TASK_REASSIGNED:${record._id.toString()}:${record.assignedToUserId.toString()}:${record.updatedAt.toISOString()}`,
+          payload: {
+            taskTitle: record.title,
+            assignedToUserId: record.assignedToUserId.toString(),
+            createdByUserId: record.createdByUserId.toString(),
+            patientId: record.context?.patientId?.toString() ?? null,
+          },
+        } as const;
+        if (session) await this.communicationEvents.enqueue(communicationEvent, session);
+        else await this.communicationEvents.enqueue(communicationEvent);
+      }
+      return record;
     });
 
     const [hydrated] = await this.hydrateTasks(clinicId, [updated]);
@@ -264,20 +328,37 @@ export class TaskService {
         : input.completionNote.trim();
     }
 
-    const updated = await this.tasks.update(clinicId, taskId, patch);
-    if (!updated) {
-      throw new NotFoundError('Task not found');
-    }
-
-    await this.auditLogs.record({
-      clinicId,
-      actorUserId,
-      action: AUDIT_ACTIONS.TASK_COMPLETED,
-      resourceType: AUDIT_RESOURCE_TYPES.TASK,
-      resourceId: updated._id.toString(),
-      metadata: {
-        completionNote: input.completionNote ?? null,
-      },
+    const actor = await this.users.findById(actorUserId);
+    const updated = await withTransaction(async (session) => {
+      const record = await this.tasks.update(clinicId, taskId, patch, session);
+      if (!record) throw new NotFoundError('Task not found');
+      const auditEvent = {
+        clinicId,
+        actorUserId,
+        action: AUDIT_ACTIONS.TASK_COMPLETED,
+        resourceType: AUDIT_RESOURCE_TYPES.TASK,
+        resourceId: record._id.toString(),
+        metadata: { completionNote: input.completionNote ?? null },
+      } as const;
+      if (session) await this.auditLogs.record(auditEvent, session);
+      else await this.auditLogs.record(auditEvent);
+      const communicationEvent = {
+        clinicId,
+        type: NOTIFICATION_TYPES.TASK_COMPLETED,
+        aggregateType: 'TASK',
+        aggregateId: record._id.toString(),
+        actorUserId,
+        deduplicationKey: `TASK_COMPLETED:${record._id.toString()}`,
+        payload: {
+          taskTitle: record.title,
+          createdByUserId: record.createdByUserId.toString(),
+          completedByName: actor ? `${actor.firstName} ${actor.lastName}`.trim() : 'A team member',
+          patientId: record.context?.patientId?.toString() ?? null,
+        },
+      } as const;
+      if (session) await this.communicationEvents.enqueue(communicationEvent, session);
+      else await this.communicationEvents.enqueue(communicationEvent);
+      return record;
     });
 
     const [hydrated] = await this.hydrateTasks(clinicId, [updated]);
@@ -328,7 +409,11 @@ export class TaskService {
     return hydrated!;
   }
 
-  async getSummary(clinicId: string, actorUserId: string, now: Date = new Date()): Promise<TaskSummaryDto> {
+  async getSummary(
+    clinicId: string,
+    actorUserId: string,
+    now: Date = new Date(),
+  ): Promise<TaskSummaryDto> {
     return this.tasks.getSummary(clinicId, actorUserId, now);
   }
 
@@ -358,9 +443,11 @@ export class TaskService {
       this.patients.findManyByIdsInClinic(Array.from(patientIds), clinicId),
     ]);
 
-    const userMap = new Map(userDocs.map((u) => [((u as any)._id?.toString() ?? (u as any).id), u]));
+    const userMap = new Map(userDocs.map((u) => [(u as any)._id?.toString() ?? (u as any).id, u]));
     const membershipMap = new Map(memberships.map((m) => [m.userId.toString(), m]));
-    const patientMap = new Map(patientDocs.map((p) => [((p as any)._id?.toString() ?? (p as any).id), p]));
+    const patientMap = new Map(
+      patientDocs.map((p) => [(p as any)._id?.toString() ?? (p as any).id, p]),
+    );
 
     const formatActor = (userIdStr: string): TaskActorSummary => {
       const u = userMap.get(userIdStr);
@@ -410,7 +497,9 @@ export class TaskService {
         isOverdue,
         assignedTo: formatActor(record.assignedToUserId.toString()),
         createdBy: formatActor(record.createdByUserId.toString()),
-        completedBy: record.completedByUserId ? formatActor(record.completedByUserId.toString()) : null,
+        completedBy: record.completedByUserId
+          ? formatActor(record.completedByUserId.toString())
+          : null,
         dueAt: record.dueAt ? record.dueAt.toISOString() : null,
         startedAt: record.startedAt ? record.startedAt.toISOString() : null,
         completedAt: record.completedAt ? record.completedAt.toISOString() : null,

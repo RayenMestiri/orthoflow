@@ -50,6 +50,7 @@ import {
 } from './generated-documents/generated-document.routes.js';
 import { portalAuthRoutes } from './portal/portal-auth.routes.js';
 import { portalManagementRoutes, portalRoutes } from './portal/portal.routes.js';
+import { notificationRoutes } from './notifications/notification.routes.js';
 
 /**
  * The API surface, in one place.
@@ -104,4 +105,5 @@ export const registerModules: FastifyPluginAsyncZod = async (app) => {
   await app.register(documentTemplateRoutes, { prefix: `${API_PREFIX}/document-templates` });
   await app.register(patientGeneratedDocumentRoutes, { prefix: `${API_PREFIX}/patients` });
   await app.register(generatedDocumentRoutes, { prefix: `${API_PREFIX}/generated-documents` });
+  await app.register(notificationRoutes, { prefix: `${API_PREFIX}/notifications` });
 };

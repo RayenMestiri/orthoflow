@@ -1,10 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { ClientSession } from 'mongoose';
 import { ERROR_CODES } from '../../common/constants/error-codes.js';
-import {
-  AUDIT_ACTIONS,
-  AUDIT_RESOURCE_TYPES,
-} from '../audit-logs/audit-log.types.js';
+import { AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '../audit-logs/audit-log.types.js';
 import {
   BusinessRuleError,
   ConflictError,
@@ -27,9 +24,20 @@ import {
   type PatientGuardianRepository,
 } from '../guardians/patient-guardian.repository.js';
 import { patientRepository, type PatientRepository } from '../patients/patient.repository.js';
-import { retentionRepository, type RetentionRepository } from '../retention/retention.repository.js';
-import { treatmentRepository, type TreatmentRepository } from '../treatments/treatment.repository.js';
+import {
+  retentionRepository,
+  type RetentionRepository,
+} from '../retention/retention.repository.js';
+import {
+  treatmentRepository,
+  type TreatmentRepository,
+} from '../treatments/treatment.repository.js';
 import { userRepository, type UserRepository } from '../users/user.repository.js';
+import {
+  communicationEventService,
+  type CommunicationEventService,
+} from '../notifications/notification.service.js';
+import { NOTIFICATION_TYPES } from '../notifications/notification.types.js';
 import { toConsentTemplateDto, toSignedConsentDto } from './consent.mapper.js';
 import { consentPdfService, type ConsentPdfService } from './consent-pdf.service.js';
 import {
@@ -175,9 +183,14 @@ export class ConsentTemplateService {
       (latest?.version ?? source.version) + 1,
       context.actorUserId,
     );
-    await this.recordTemplateAudit(AUDIT_ACTIONS.CONSENT_TEMPLATE_VERSION_CREATED, created, context, {
-      sourceTemplateId,
-    });
+    await this.recordTemplateAudit(
+      AUDIT_ACTIONS.CONSENT_TEMPLATE_VERSION_CREATED,
+      created,
+      context,
+      {
+        sourceTemplateId,
+      },
+    );
     return toConsentTemplateDto(created);
   }
 
@@ -190,7 +203,12 @@ export class ConsentTemplateService {
     if (existing.status !== CONSENT_TEMPLATE_STATUSES.DRAFT) throw this.notDraft();
     assertSafeConsentTemplate(existing.content);
     const activated = await withTransaction(async (session) => {
-      const record = await this.templates.activate(existing, context.actorUserId, new Date(), session);
+      const record = await this.templates.activate(
+        existing,
+        context.actorUserId,
+        new Date(),
+        session,
+      );
       if (!record) throw this.notDraft();
       await this.recordTemplateAudit(
         AUDIT_ACTIONS.CONSENT_TEMPLATE_VERSION_ACTIVATED,
@@ -210,7 +228,12 @@ export class ConsentTemplateService {
     context: ConsentMutationContext,
   ): Promise<ConsentTemplateDto> {
     await this.requireTemplate(clinicId, templateId);
-    const archived = await this.templates.archive(templateId, clinicId, context.actorUserId, new Date());
+    const archived = await this.templates.archive(
+      templateId,
+      clinicId,
+      context.actorUserId,
+      new Date(),
+    );
     if (!archived) {
       throw new BusinessRuleError('This consent template is already archived', {
         code: ERROR_CODES.CONSENT_TEMPLATE_NOT_DRAFT,
@@ -220,7 +243,10 @@ export class ConsentTemplateService {
     return toConsentTemplateDto(archived);
   }
 
-  private async requireTemplate(clinicId: string, templateId: string): Promise<ConsentTemplateRecord> {
+  private async requireTemplate(
+    clinicId: string,
+    templateId: string,
+  ): Promise<ConsentTemplateRecord> {
     const template = await this.templates.findByIdInClinic(templateId, clinicId);
     if (!template) {
       throw new NotFoundError('Consent template not found', {
@@ -273,6 +299,7 @@ export class ConsentService {
     private readonly storage: ConsentStorage = mediaService,
     private readonly pdf: ConsentPdfService = consentPdfService,
     private readonly audit: AuditLogService = auditLogService,
+    private readonly communicationEvents: CommunicationEventService = communicationEventService,
   ) {}
 
   async listForPatient(
@@ -425,6 +452,26 @@ export class ConsentService {
           session,
         );
         await this.recordConsentAudit(AUDIT_ACTIONS.CONSENT_SIGNED, record, context, session);
+        await this.communicationEvents.enqueue(
+          {
+            clinicId,
+            type: NOTIFICATION_TYPES.CONSENT_SIGNED,
+            aggregateType: 'CONSENT',
+            aggregateId: record._id.toString(),
+            actorUserId: context.actorUserId,
+            deduplicationKey: `CONSENT_SIGNED:${record._id.toString()}`,
+            payload: {
+              patientId: record.patientId.toString(),
+              patientName: record.patientNameSnapshot,
+              consentTitle: record.titleSnapshot,
+              presentedByUserId: record.presentedByUserId.toString(),
+              treatmentId: record.treatmentId?.toString() ?? null,
+              retentionPlanId: record.retentionPlanId?.toString() ?? null,
+            },
+            occurredAt: record.signedAt,
+          },
+          session,
+        );
         return record;
       });
       return toSignedConsentDto(created);
@@ -455,9 +502,12 @@ export class ConsentService {
       consent.finalizedPdf.deliveryType,
     );
     if (hashBytes(content) !== consent.finalizedPdf.sha256) {
-      throw new ServiceUnavailableError('The finalized consent artifact failed its integrity check', {
-        code: ERROR_CODES.CONSENT_ARTIFACT_INTEGRITY_FAILED,
-      });
+      throw new ServiceUnavailableError(
+        'The finalized consent artifact failed its integrity check',
+        {
+          code: ERROR_CODES.CONSENT_ARTIFACT_INTEGRITY_FAILED,
+        },
+      );
     }
     return { fileName: `${consent.consentRef}.pdf`, content };
   }
@@ -524,7 +574,10 @@ export class ConsentService {
   private async resolveSnapshot(
     clinicId: string,
     patientId: string,
-    input: Pick<ConsentSigningInput, 'templateId' | 'signerType' | 'guardianId' | 'treatmentId' | 'retentionPlanId'>,
+    input: Pick<
+      ConsentSigningInput,
+      'templateId' | 'signerType' | 'guardianId' | 'treatmentId' | 'retentionPlanId'
+    >,
     context: ConsentMutationContext,
   ): Promise<ResolvedConsentSnapshot> {
     const [patient, template, clinic, presenter] = await Promise.all([
@@ -533,7 +586,8 @@ export class ConsentService {
       this.clinics.findById(clinicId),
       this.users.findById(context.actorUserId),
     ]);
-    if (!patient) throw new NotFoundError('Patient not found', { code: ERROR_CODES.PATIENT_NOT_FOUND });
+    if (!patient)
+      throw new NotFoundError('Patient not found', { code: ERROR_CODES.PATIENT_NOT_FOUND });
     if (!template) {
       throw new NotFoundError('Consent template not found', {
         code: ERROR_CODES.CONSENT_TEMPLATE_NOT_FOUND,
@@ -598,8 +652,10 @@ export class ConsentService {
       treatmentLabel ||= 'Retention plan';
     }
 
-    const signerName = input.signerType === CONSENT_SIGNER_TYPES.PATIENT ? patientName : guardianName;
-    const presentedByName = `${presenter.firstName} ${presenter.lastName}`.trim() || presenter.email;
+    const signerName =
+      input.signerType === CONSENT_SIGNER_TYPES.PATIENT ? patientName : guardianName;
+    const presentedByName =
+      `${presenter.firstName} ${presenter.lastName}`.trim() || presenter.email;
     const doctorName = clinic.settings?.general?.doctorDisplayName ?? presentedByName;
     const signedAtLabel = new Intl.DateTimeFormat('fr-FR', {
       dateStyle: 'long',
@@ -623,9 +679,10 @@ export class ConsentService {
       guardianId,
       presentedByName,
       clinicName: clinic.name,
-      clinicAddress: [clinic.address.line1, clinic.address.city, clinic.address.country]
-        .filter(Boolean)
-        .join(', ') || null,
+      clinicAddress:
+        [clinic.address.line1, clinic.address.city, clinic.address.country]
+          .filter(Boolean)
+          .join(', ') || null,
       clinicPhone: clinic.phone,
       signedAt,
       signedAtLabel,

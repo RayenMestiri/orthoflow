@@ -36,6 +36,18 @@ export class ClinicRepository {
       .exec();
   }
 
+  /** Bounded cursor used by background clinic-scoped maintenance jobs. */
+  async listActiveAfter(afterId: string | null, limit: number): Promise<ClinicRecord[]> {
+    return ClinicModel.find({
+      status: CLINIC_STATUSES.ACTIVE,
+      ...(afterId ? { _id: { $gt: toObjectId(afterId, 'afterId') } } : {}),
+    })
+      .sort({ _id: 1 })
+      .limit(limit)
+      .lean<ClinicRecord[]>()
+      .exec();
+  }
+
   async existsBySlug(slug: string): Promise<boolean> {
     const found = await ClinicModel.exists({ slug: slug.toLowerCase() }).exec();
     return found !== null;

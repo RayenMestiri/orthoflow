@@ -113,6 +113,11 @@ export class TasksStore {
     this.activeDrawerState.set('DETAIL');
   }
 
+  async openRemote(taskId: string): Promise<void> {
+    const task = await firstValueFrom(this.api.getById(taskId));
+    this.openDetailDrawer(task);
+  }
+
   closeDrawer(): void {
     this.activeDrawerState.set(null);
     this.drawerPrefillState.set(null);
@@ -154,9 +159,7 @@ export class TasksStore {
   }
 
   private updateItemInState(task: TaskDto): void {
-    this.itemsState.update((items) =>
-      items.map((it) => (it.id === task.id ? task : it)),
-    );
+    this.itemsState.update((items) => items.map((it) => (it.id === task.id ? task : it)));
     if (this.selectedTaskState()?.id === task.id) {
       this.selectedTaskState.set(task);
     }

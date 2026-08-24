@@ -8,6 +8,8 @@ import {
 } from '../../common/errors/app-error.js';
 import { clockToMinutes, toWallClock } from '../../common/utils/clinic-time.js';
 import type { MutationContext } from '../../common/utils/request-context.js';
+import { databaseConfig } from '../../config/database.js';
+import { withTransaction } from '../../infrastructure/database/transaction.js';
 import { auditLogService, type AuditLogService } from '../audit-logs/audit-log.service.js';
 import { AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '../audit-logs/audit-log.types.js';
 import {
@@ -36,7 +38,15 @@ import {
   treatmentRepository,
   type TreatmentRepository,
 } from '../treatments/treatment.repository.js';
-import { retentionRepository, type RetentionRepository } from '../retention/retention.repository.js';
+import {
+  retentionRepository,
+  type RetentionRepository,
+} from '../retention/retention.repository.js';
+import {
+  communicationEventService,
+  type CommunicationEventService,
+} from '../notifications/notification.service.js';
+import { NOTIFICATION_TYPES } from '../notifications/notification.types.js';
 import { toAppointmentDto } from './appointment.mapper.js';
 import type { ClientSession } from 'mongoose';
 import { appointmentRepository, type AppointmentRepository } from './appointment.repository.js';
@@ -130,6 +140,7 @@ export class AppointmentService {
     private readonly users: UserRepository = userRepository,
     private readonly treatments: TreatmentRepository = treatmentRepository,
     private readonly retention: RetentionRepository = retentionRepository,
+    private readonly communicationEvents: CommunicationEventService = communicationEventService,
   ) {}
 
   // --- reads ---------------------------------------------------------------
@@ -227,7 +238,8 @@ export class AppointmentService {
     const retentionPlan = command.retentionPlanId
       ? await this.requireRetentionForPatient(clinicId, command.retentionPlanId, command.patientId)
       : null;
-    const resolvedTreatmentId = command.treatmentId ?? retentionPlan?.treatmentId.toString() ?? null;
+    const resolvedTreatmentId =
+      command.treatmentId ?? retentionPlan?.treatmentId.toString() ?? null;
     if (
       retentionPlan &&
       command.treatmentId &&
@@ -484,6 +496,11 @@ export class AppointmentService {
     context: AppointmentActorContext,
     session?: ClientSession,
   ): Promise<AppointmentDto> {
+    if (!session && databaseConfig.transactionsEnabled) {
+      return withTransaction((transactionSession) =>
+        this.changeStatus(clinicId, appointmentId, toStatus, context, transactionSession),
+      );
+    }
     const existing = await this.requireAppointment(clinicId, appointmentId);
     this.assertTransition(existing.status, toStatus);
     this.assertMayPerform(toStatus, context);
@@ -526,6 +543,26 @@ export class AppointmentService {
     if (session) await this.audit.record(auditEvent, session);
     else await this.audit.record(auditEvent);
 
+    if (toStatus === APPOINTMENT_STATUSES.NO_SHOW) {
+      const patient = await this.patients.findByIdInClinic(existing.patientId.toString(), clinicId);
+      const communicationEvent = {
+        clinicId,
+        type: NOTIFICATION_TYPES.APPOINTMENT_NO_SHOW,
+        aggregateType: 'APPOINTMENT',
+        aggregateId: appointmentId,
+        actorUserId: context.actorUserId,
+        deduplicationKey: `APPOINTMENT_NO_SHOW:${appointmentId}`,
+        payload: {
+          patientId: existing.patientId.toString(),
+          patientName: patient ? `${patient.firstName} ${patient.lastName}`.trim() : 'Patient',
+          doctorId: existing.doctorId.toString(),
+          scheduledLabel: existing.startAt.toISOString(),
+        },
+      } as const;
+      if (session) await this.communicationEvents.enqueue(communicationEvent, session);
+      else await this.communicationEvents.enqueue(communicationEvent);
+    }
+
     return this.joinOneWithCapacity(clinicId, updated);
   }
 
@@ -541,35 +578,57 @@ export class AppointmentService {
   ): Promise<AppointmentDto> {
     const existing = await this.requireAppointment(clinicId, appointmentId);
     this.assertTransition(existing.status, APPOINTMENT_STATUSES.CANCELLED);
+    const patient = await this.patients.findByIdInClinic(existing.patientId.toString(), clinicId);
 
-    const updated = await this.appointments.transitionStatus(
-      appointmentId,
-      clinicId,
-      existing.status,
-      APPOINTMENT_STATUSES.CANCELLED,
-      context.actorUserId,
-      { reason },
-    );
-
-    if (!updated) {
-      throw new ConflictError('The appointment status changed — reload and try again', {
-        code: ERROR_CODES.APPOINTMENT_INVALID_STATUS_TRANSITION,
-      });
-    }
-
-    await this.audit.record({
-      clinicId,
-      actorUserId: context.actorUserId,
-      action: AUDIT_ACTIONS.APPOINTMENT_CANCELLED,
-      resourceType: AUDIT_RESOURCE_TYPES.APPOINTMENT,
-      resourceId: appointmentId,
-      metadata: {
-        from: existing.status,
-        hasReason: reason !== null,
-        ...(reason === null ? {} : { cancellationReason: reason }),
-      },
-      ip: context.ip,
-      userAgent: context.userAgent,
+    const updated = await withTransaction(async (session) => {
+      const record = await this.appointments.transitionStatus(
+        appointmentId,
+        clinicId,
+        existing.status,
+        APPOINTMENT_STATUSES.CANCELLED,
+        context.actorUserId,
+        { reason },
+        undefined,
+        session,
+      );
+      if (!record) {
+        throw new ConflictError('The appointment status changed — reload and try again', {
+          code: ERROR_CODES.APPOINTMENT_INVALID_STATUS_TRANSITION,
+        });
+      }
+      const auditEvent = {
+        clinicId,
+        actorUserId: context.actorUserId,
+        action: AUDIT_ACTIONS.APPOINTMENT_CANCELLED,
+        resourceType: AUDIT_RESOURCE_TYPES.APPOINTMENT,
+        resourceId: appointmentId,
+        metadata: {
+          from: existing.status,
+          hasReason: reason !== null,
+          ...(reason === null ? {} : { cancellationReason: reason }),
+        },
+        ip: context.ip,
+        userAgent: context.userAgent,
+      } as const;
+      if (session) await this.audit.record(auditEvent, session);
+      else await this.audit.record(auditEvent);
+      const communicationEvent = {
+        clinicId,
+        type: NOTIFICATION_TYPES.APPOINTMENT_CANCELLED,
+        aggregateType: 'APPOINTMENT',
+        aggregateId: appointmentId,
+        actorUserId: context.actorUserId,
+        deduplicationKey: `APPOINTMENT_CANCELLED:${appointmentId}`,
+        payload: {
+          patientId: existing.patientId.toString(),
+          patientName: patient ? `${patient.firstName} ${patient.lastName}`.trim() : 'Patient',
+          doctorId: existing.doctorId.toString(),
+          scheduledLabel: existing.startAt.toISOString(),
+        },
+      } as const;
+      if (session) await this.communicationEvents.enqueue(communicationEvent, session);
+      else await this.communicationEvents.enqueue(communicationEvent);
+      return record;
     });
 
     return this.joinOneWithCapacity(clinicId, updated);

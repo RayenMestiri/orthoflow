@@ -1,7 +1,11 @@
 import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CLINIC_ROLES, MEMBERSHIP_STATUSES } from '../../src/common/constants/roles.js';
-import { BusinessRuleError, NotFoundError, ValidationError } from '../../src/common/errors/index.js';
+import {
+  BusinessRuleError,
+  NotFoundError,
+  ValidationError,
+} from '../../src/common/errors/index.js';
 import { TaskService } from '../../src/modules/tasks/task.service.js';
 import type { TaskRecord } from '../../src/modules/tasks/task.types.js';
 
@@ -16,6 +20,7 @@ describe('TaskService', () => {
   let userRepo: any;
   let patientRepo: any;
   let auditLogs: any;
+  let communicationEvents: any;
   let service: TaskService;
 
   beforeEach(() => {
@@ -58,6 +63,11 @@ describe('TaskService', () => {
     };
 
     userRepo = {
+      findById: vi.fn(async (id: string) => ({
+        _id: new Types.ObjectId(id),
+        firstName: id === DOCTOR_ID ? 'Rayen' : 'Sarah',
+        lastName: id === DOCTOR_ID ? 'Mestiri' : 'Trabelsi',
+      })),
       findManyByIds: vi.fn(async (ids: string[]) =>
         ids.map((id) => ({
           id,
@@ -90,8 +100,16 @@ describe('TaskService', () => {
     auditLogs = {
       record: vi.fn().mockResolvedValue(undefined),
     };
+    communicationEvents = { enqueue: vi.fn().mockResolvedValue(undefined) };
 
-    service = new TaskService(taskRepo, membershipRepo, userRepo, patientRepo, auditLogs);
+    service = new TaskService(
+      taskRepo,
+      membershipRepo,
+      userRepo,
+      patientRepo,
+      auditLogs,
+      communicationEvents,
+    );
   });
 
   it('creates a task for an active clinic staff member with patient context', async () => {
@@ -237,9 +255,9 @@ describe('TaskService', () => {
 
     taskRepo.findById.mockResolvedValue(completedRecord);
 
-    await expect(service.complete(CLINIC_ID, DOCTOR_ID, '652f1c9b8a1e4f0012ab9999')).rejects.toThrow(
-      BusinessRuleError,
-    );
+    await expect(
+      service.complete(CLINIC_ID, DOCTOR_ID, '652f1c9b8a1e4f0012ab9999'),
+    ).rejects.toThrow(BusinessRuleError);
     await expect(
       service.update(CLINIC_ID, DOCTOR_ID, '652f1c9b8a1e4f0012ab9999', { title: 'Nouveau titre' }),
     ).rejects.toThrow(BusinessRuleError);
@@ -312,7 +330,14 @@ describe('TaskService', () => {
 
     taskRepo.list.mockResolvedValueOnce({ items: records, total: 3 });
 
-    const listRes = await service.list(CLINIC_ID, DOCTOR_ID, CLINIC_ROLES.CLINIC_OWNER, {}, { page: 1, limit: 20 }, nowDate);
+    const listRes = await service.list(
+      CLINIC_ID,
+      DOCTOR_ID,
+      CLINIC_ROLES.CLINIC_OWNER,
+      {},
+      { page: 1, limit: 20 },
+      nowDate,
+    );
 
     expect(listRes.result.items[0]?.isOverdue).toBe(true); // TODO and due in past -> overdue
     expect(listRes.result.items[1]?.isOverdue).toBe(false); // COMPLETED -> never overdue

@@ -18,8 +18,7 @@ vi.mock('../../src/modules/users/user.repository.js', async () => ({
   userRepository: (await import('../helpers/repository-mocks.js')).userRepositoryMock,
 }));
 vi.mock('../../src/modules/auth/auth-session.repository.js', async () => ({
-  authSessionRepository: (await import('../helpers/repository-mocks.js'))
-    .authSessionRepositoryMock,
+  authSessionRepository: (await import('../helpers/repository-mocks.js')).authSessionRepositoryMock,
 }));
 vi.mock('../../src/modules/memberships/membership.repository.js', async () => ({
   membershipRepository: (await import('../helpers/repository-mocks.js')).membershipRepositoryMock,
@@ -31,8 +30,7 @@ vi.mock('../../src/modules/patients/patient.repository.js', async () => ({
   patientRepository: (await import('../helpers/repository-mocks.js')).patientRepositoryMock,
 }));
 vi.mock('../../src/modules/appointments/appointment.repository.js', async () => ({
-  appointmentRepository: (await import('../helpers/repository-mocks.js'))
-    .appointmentRepositoryMock,
+  appointmentRepository: (await import('../helpers/repository-mocks.js')).appointmentRepositoryMock,
 }));
 vi.mock('../../src/modules/appointment-types/appointment-type.repository.js', async () => ({
   appointmentTypeRepository: (await import('../helpers/repository-mocks.js'))
@@ -40,6 +38,10 @@ vi.mock('../../src/modules/appointment-types/appointment-type.repository.js', as
 }));
 vi.mock('../../src/modules/audit-logs/audit-log.repository.js', async () => ({
   auditLogRepository: (await import('../helpers/repository-mocks.js')).auditLogRepositoryMock,
+}));
+vi.mock('../../src/modules/notifications/notification.repository.js', () => ({
+  communicationOutboxRepository: { enqueue: vi.fn(async () => undefined) },
+  notificationRepository: {},
 }));
 
 /** Valid Monday-morning slot inside the default working hours (09:00 Tunis). */
@@ -74,10 +76,7 @@ describe('appointments API', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(appointmentRepositoryMock.listInRange).toHaveBeenCalledWith(
-      CLINIC_A,
-      expect.anything(),
-    );
+    expect(appointmentRepositoryMock.listInRange).toHaveBeenCalledWith(CLINIC_A, expect.anything());
     const body = response.json();
     expect(body.data[0]).toMatchObject({
       clinicId: CLINIC_A,

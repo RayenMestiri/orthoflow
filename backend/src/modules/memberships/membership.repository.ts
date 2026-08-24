@@ -45,10 +45,7 @@ export class MembershipRepository {
    * Used when a timeline needs to say "Sarah · Secretary" for each actor it
    * lists — one lookup per row would be a query per audit entry.
    */
-  async findManyByUsersInClinic(
-    userIds: string[],
-    clinicId: string,
-  ): Promise<MembershipRecord[]> {
+  async findManyByUsersInClinic(userIds: string[], clinicId: string): Promise<MembershipRecord[]> {
     if (userIds.length === 0) {
       return [];
     }
@@ -56,6 +53,17 @@ export class MembershipRepository {
       clinicId: toObjectId(clinicId, 'clinicId'),
       userId: { $in: userIds.map((userId) => toObjectId(userId, 'userId')) },
     })
+      .lean<MembershipRecord[]>()
+      .exec();
+  }
+
+  /** Bounded active recipient set for clinic-scoped operational fan-out. */
+  async findActiveByClinic(clinicId: string): Promise<MembershipRecord[]> {
+    return ClinicMembershipModel.find({
+      clinicId: toObjectId(clinicId, 'clinicId'),
+      status: MEMBERSHIP_STATUSES.ACTIVE,
+    })
+      .sort({ joinedAt: 1, _id: 1 })
       .lean<MembershipRecord[]>()
       .exec();
   }

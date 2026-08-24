@@ -51,6 +51,7 @@ export const PERMISSIONS = {
   TASKS_VIEW: 'tasks.view',
   TASKS_CREATE: 'tasks.create',
   TASKS_MANAGE: 'tasks.manage',
+  NOTIFICATIONS_VIEW: 'notifications.view',
   STAFF_MANAGE: 'staff.manage',
   CLINIC_SETTINGS_MANAGE: 'clinic-settings.manage',
   PORTAL_ACCESS_MANAGE: 'portal-access.manage',
@@ -93,6 +94,7 @@ const clinicalPermissions: Permission[] = [
   PERMISSIONS.TASKS_VIEW,
   PERMISSIONS.TASKS_CREATE,
   PERMISSIONS.TASKS_MANAGE,
+  PERMISSIONS.NOTIFICATIONS_VIEW,
 ];
 
 export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
@@ -133,6 +135,7 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
     PERMISSIONS.CASH_RECORDS_RECORD,
     PERMISSIONS.TASKS_VIEW,
     PERMISSIONS.TASKS_CREATE,
+    PERMISSIONS.NOTIFICATIONS_VIEW,
   ],
   [CLINIC_ROLES.ASSISTANT]: [
     PERMISSIONS.DASHBOARD_VIEW,
@@ -142,6 +145,7 @@ export const ROLE_PERMISSIONS: Record<ClinicRole, readonly Permission[]> = {
     PERMISSIONS.TREATMENTS_VIEW,
     PERMISSIONS.TASKS_VIEW,
     PERMISSIONS.TASKS_CREATE,
+    PERMISSIONS.NOTIFICATIONS_VIEW,
   ],
 };
 

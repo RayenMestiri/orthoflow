@@ -92,6 +92,8 @@ export const PERMISSIONS = {
   TASK_CANCEL: 'task:cancel',
   TASK_MANAGE_ALL: 'task:manage-all',
 
+  NOTIFICATION_READ: 'notification:read',
+
   AUDIT_LOG_READ: 'audit-log:read',
   /** Read-only clinic aggregate analytics. Domain permissions still gate each section. */
   REPORT_READ: 'report:read',
@@ -149,6 +151,7 @@ const PRACTITIONER_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.TASK_CREATE,
   PERMISSIONS.TASK_UPDATE,
   PERMISSIONS.TASK_CANCEL,
+  PERMISSIONS.NOTIFICATION_READ,
   PERMISSIONS.REPORT_READ,
 ];
 
@@ -190,6 +193,7 @@ const SECRETARY_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.TASK_CREATE,
   PERMISSIONS.TASK_UPDATE,
   PERMISSIONS.TASK_CANCEL,
+  PERMISSIONS.NOTIFICATION_READ,
   PERMISSIONS.REPORT_READ,
 ];
 
@@ -205,6 +209,7 @@ const ASSISTANT_PERMISSIONS: readonly Permission[] = [
   PERMISSIONS.TREATMENT_READ,
   PERMISSIONS.TASK_READ,
   PERMISSIONS.TASK_UPDATE,
+  PERMISSIONS.NOTIFICATION_READ,
 ];
 
 export const ROLE_PERMISSIONS: Readonly<Record<ClinicRole, readonly Permission[]>> = {

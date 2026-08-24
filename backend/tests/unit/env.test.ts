@@ -74,6 +74,23 @@ describe('parseEnv', () => {
     ).toThrow(EnvValidationError);
   });
 
+  it('requires MongoDB transactions for the production notification outbox', () => {
+    try {
+      parseEnv({
+        ...validEnv,
+        NODE_ENV: 'production',
+        MONGODB_TRANSACTIONS_ENABLED: 'false',
+        NOTIFICATION_WORKER_ENABLED: 'true',
+      });
+      expect.unreachable('parseEnv should have rejected a non-transactional production outbox');
+    } catch (error) {
+      expect(error).toBeInstanceOf(EnvValidationError);
+      expect((error as EnvValidationError).issues).toContain(
+        'MONGODB_TRANSACTIONS_ENABLED: must be enabled in production when the notification outbox worker is enabled',
+      );
+    }
+  });
+
   it('reports every problem at once instead of failing on the first', () => {
     try {
       parseEnv({ JWT_ACCESS_SECRET: 'short' });

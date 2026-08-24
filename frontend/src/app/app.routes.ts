@@ -152,6 +152,16 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'notifications',
+        title: 'Notifications — OrthoFlow',
+        canActivate: [permissionGuard],
+        data: { permission: PERMISSIONS.NOTIFICATIONS_VIEW },
+        loadComponent: () =>
+          import('./features/notifications/pages/notifications-page/notifications-page').then(
+            (component) => component.NotificationsPage,
+          ),
+      },
+      {
         path: 'schedule',
         title: 'Schedule — OrthoFlow',
         canActivate: [permissionGuard],
