@@ -21,69 +21,71 @@
       </div>
     </div>
   } @else if (summary(); as figures) {
-    <!-- Asymmetric top: the month figure leads, collection health supports it -->
-    <div class="fin-top">
-      <article class="fin-pulse" aria-labelledby="fin-pulse-title">
-        <h2 id="fin-pulse-title">Financial pulse</h2>
+    @if (canViewFinancialOverview()) {
+      <!-- Asymmetric top: the month figure leads, collection health supports it -->
+      <div class="fin-top">
+        <article class="fin-pulse" aria-labelledby="fin-pulse-title">
+          <h2 id="fin-pulse-title">Financial pulse</h2>
 
-        <p class="fin-pulse__amount">
-          {{ money(figures.receivedMonthMinor) }}
-        </p>
-        <p class="fin-pulse__caption">Received this month</p>
+          <p class="fin-pulse__amount">
+            {{ money(figures.receivedMonthMinor) }}
+          </p>
+          <p class="fin-pulse__caption">Received this month</p>
 
-        <dl class="fin-pulse__facts">
-          <div>
-            <dt>Today</dt>
-            <dd>+{{ money(figures.receivedTodayMinor) }}</dd>
+          <dl class="fin-pulse__facts">
+            <div>
+              <dt>Today</dt>
+              <dd>+{{ money(figures.receivedTodayMinor) }}</dd>
+            </div>
+            <div>
+              <dt>Payments</dt>
+              <dd>{{ figures.receivedMonthCount }}</dd>
+            </div>
+            <div>
+              <dt>Settled patients</dt>
+              <dd>{{ distribution()?.paid ?? 0 }}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="fin-collection" aria-labelledby="fin-collection-title">
+          <h2 id="fin-collection-title">Collection health</h2>
+
+          <p class="fin-collection__rate">{{ figures.collectedPercent }}<span>%</span></p>
+          <p class="fin-collection__caption">of agreed treatment value collected</p>
+
+          <div
+            class="fin-rail"
+            role="progressbar"
+            [attr.aria-valuenow]="figures.collectedPercent"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            [attr.aria-label]="
+              'Collected ' + figures.collectedPercent + ' percent of agreed treatment value'
+            "
+          >
+            <span class="fin-rail__fill" [style.width.%]="figures.collectedPercent"></span>
           </div>
-          <div>
-            <dt>Payments</dt>
-            <dd>{{ figures.receivedMonthCount }}</dd>
-          </div>
-          <div>
-            <dt>Settled patients</dt>
-            <dd>{{ distribution()?.paid ?? 0 }}</dd>
-          </div>
-        </dl>
-      </article>
 
-      <article class="fin-collection" aria-labelledby="fin-collection-title">
-        <h2 id="fin-collection-title">Collection health</h2>
+          <dl class="fin-collection__facts">
+            <div>
+              <dt>Recorded</dt>
+              <dd>{{ money(figures.totalRecordedMinor) }}</dd>
+            </div>
+            <div class="fin-collection__outstanding">
+              <dt>Outstanding</dt>
+              <dd>{{ money(figures.outstandingMinor) }}</dd>
+            </div>
+          </dl>
 
-        <p class="fin-collection__rate">{{ figures.collectedPercent }}<span>%</span></p>
-        <p class="fin-collection__caption">of agreed treatment value collected</p>
-
-        <div
-          class="fin-rail"
-          role="progressbar"
-          [attr.aria-valuenow]="figures.collectedPercent"
-          aria-valuemin="0"
-          aria-valuemax="100"
-          [attr.aria-label]="
-            'Collected ' + figures.collectedPercent + ' percent of agreed treatment value'
-          "
-        >
-          <span class="fin-rail__fill" [style.width.%]="figures.collectedPercent"></span>
-        </div>
-
-        <dl class="fin-collection__facts">
-          <div>
-            <dt>Recorded</dt>
-            <dd>{{ money(figures.totalRecordedMinor) }}</dd>
-          </div>
-          <div class="fin-collection__outstanding">
-            <dt>Outstanding</dt>
-            <dd>{{ money(figures.outstandingMinor) }}</dd>
-          </div>
-        </dl>
-
-        <p class="fin-collection__foot">
-          {{ figures.activeTreatmentPatientCount }} active treatment patient{{
-            figures.activeTreatmentPatientCount === 1 ? '' : 's'
-          }}
-        </p>
-      </article>
-    </div>
+          <p class="fin-collection__foot">
+            {{ figures.activeTreatmentPatientCount }} active treatment patient{{
+              figures.activeTreatmentPatientCount === 1 ? '' : 's'
+            }}
+          </p>
+        </article>
+      </div>
+    }
   }
 
   <!-- Needs attention: a compact rail, not four cards -->
@@ -109,7 +111,7 @@
   }
 
   <!-- Distribution: one segmented bar, no donut -->
-  @if (healthSegments().length > 0) {
+  @if (canViewFinancialOverview() && healthSegments().length > 0) {
     <section class="fin-health" aria-labelledby="fin-health-title">
       <div class="fin-health__head">
         <h2 id="fin-health-title">Patient financial health</h2>
@@ -376,21 +378,81 @@
     }
   </section>
 
-  <!-- Recent money movement (Multi-column with intelligent column distribution) -->
+  <!-- Recent money movement (Professional Transaction Journal) -->
   <section class="fin-activity" aria-labelledby="fin-activity-title">
     <div class="fin-activity__header">
-      <div>
-        <h2 id="fin-activity-title">Recent money movement</h2>
+      <div class="fin-activity__titles">
+        <div class="fin-activity__title-row">
+          <span class="material-icons fin-activity__icon" aria-hidden="true">receipt_long</span>
+          <h2 id="fin-activity-title">Recent money movement</h2>
+        </div>
         <p class="fin-activity__subtitle">
-          Journal des flux de caisse et encaissements du cabinet
+          Journal des flux de caisse et traçabilité des encaissements
         </p>
       </div>
+
       @if (store.activity().length > 0) {
-        <span class="fin-activity__badge">
-          {{ store.activity().length }} mouvement{{ store.activity().length === 1 ? '' : 's' }}
-        </span>
+        <div class="fin-activity__summary-chips">
+          <span class="fin-summary-chip">
+            <strong>{{ store.activity().length }}</strong> mouvements
+          </span>
+          <span class="fin-summary-chip fin-summary-chip--highlight">
+            +{{ money(activityRecordedTotalMinor()) }}
+          </span>
+        </div>
       }
     </div>
+
+    <!-- Quick Filter Control Row -->
+    @if (store.activity().length > 0) {
+      <div class="fin-activity__filters" role="tablist" aria-label="Filtrer les mouvements financiers">
+        <button
+          type="button"
+          class="fin-filter-tab"
+          [class.active]="activityFilter() === 'ALL'"
+          (click)="setActivityFilter('ALL')"
+        >
+          <span>Tous</span>
+          <span class="tab-count">{{ store.activity().length }}</span>
+        </button>
+        <button
+          type="button"
+          class="fin-filter-tab"
+          [class.active]="activityFilter() === 'CASH'"
+          (click)="setActivityFilter('CASH')"
+        >
+          <span class="material-icons tab-icon" aria-hidden="true">payments</span>
+          <span>Espèces</span>
+        </button>
+        <button
+          type="button"
+          class="fin-filter-tab"
+          [class.active]="activityFilter() === 'CARD'"
+          (click)="setActivityFilter('CARD')"
+        >
+          <span class="material-icons tab-icon" aria-hidden="true">credit_card</span>
+          <span>Carte</span>
+        </button>
+        <button
+          type="button"
+          class="fin-filter-tab"
+          [class.active]="activityFilter() === 'TRANSFER'"
+          (click)="setActivityFilter('TRANSFER')"
+        >
+          <span class="material-icons tab-icon" aria-hidden="true">account_balance</span>
+          <span>Virement</span>
+        </button>
+        <button
+          type="button"
+          class="fin-filter-tab"
+          [class.active]="activityFilter() === 'CANCELLED'"
+          (click)="setActivityFilter('CANCELLED')"
+        >
+          <span class="material-icons tab-icon" aria-hidden="true">cancel</span>
+          <span>Annulés</span>
+        </button>
+      </div>
+    }
 
     @if (store.activityError(); as message) {
       <div class="fin-alert" role="alert">
@@ -399,87 +461,127 @@
         <button type="button" (click)="store.loadActivity()">Retry</button>
       </div>
     } @else if (store.isActivityLoading() && store.activity().length === 0) {
-      <ul class="fin-skeleton-rows" aria-hidden="true">
-        @for (skeleton of [1, 2, 3]; track skeleton) {
-          <li><span></span><span></span><span></span></li>
+      <div class="fin-skeleton-journal" aria-hidden="true">
+        @for (skeleton of [1, 2, 3, 4]; track skeleton) {
+          <div class="fin-skeleton-journal-row">
+            <span class="sk-time"></span>
+            <span class="sk-avatar"></span>
+            <div class="sk-patient">
+              <span class="sk-line-long"></span>
+              <span class="sk-line-short"></span>
+            </div>
+            <span class="sk-method"></span>
+            <span class="sk-receipt"></span>
+            <span class="sk-amount"></span>
+          </div>
         }
-      </ul>
-    } @else if (store.activity().length === 0) {
-      <p class="fin-activity__empty">No payments have been recorded yet.</p>
+      </div>
+    } @else if (filteredActivity().length === 0) {
+      <div class="fin-empty-journal">
+        <span class="material-icons empty-icon" aria-hidden="true">receipt_long</span>
+        <h3>Aucun mouvement financier trouvé</h3>
+        <p>Les encaissements enregistrés par le cabinet apparaîtront ici.</p>
+      </div>
     } @else {
-      <div
-        class="fin-activity__grid"
-        [class.fin-activity__grid--cols-1]="activityColumns().length === 1"
-        [class.fin-activity__grid--cols-2]="activityColumns().length === 2"
-        [class.fin-activity__grid--cols-3]="activityColumns().length === 3"
-      >
-        @for (column of activityColumns(); track $index; let colIndex = $index) {
-          <div class="fin-activity__col" [attr.data-col]="colIndex + 1">
-            <ol class="fin-feed">
-              @for (entry of column; track trackActivity($index, entry)) {
-                <li
-                  class="fin-feed__item"
-                  [attr.data-status]="entry.status"
+      <!-- Transaction Journal Grouped By Date -->
+      <div class="fin-journal">
+        @for (group of groupedActivity(); track group.dateKey) {
+          <div class="fin-journal__group">
+            <div class="fin-journal__date-divider">
+              <span class="date-chip" [class.date-chip--today]="group.isToday">
+                <span class="material-icons" aria-hidden="true">calendar_today</span>
+                <span>{{ group.dateLabel }}</span>
+              </span>
+              <span class="date-count">{{ group.entries.length }} opération(s)</span>
+              <div class="date-rule"></div>
+            </div>
+
+            <div class="fin-journal__table">
+              @for (entry of group.entries; track trackActivity($index, entry)) {
+                <article
+                  class="fin-tx-row"
+                  [class.fin-tx-row--cancelled]="entry.status === 'CANCELLED'"
                   tabindex="0"
                   role="button"
-                  (click)="openPatientPayment(entry)"
-                  (keydown.enter)="openPatientPayment(entry)"
-                  [attr.aria-label]="'Ouvrir le paiement de ' + entry.patientName"
+                  (click)="openActivityDetail(entry)"
+                  (keydown.enter)="openActivityDetail(entry)"
+                  (keydown.space)="openActivityDetail(entry); $event.preventDefault()"
+                  [attr.aria-label]="'Détails du paiement de ' + entry.patientName"
                 >
-                  <time class="fin-feed__time" [attr.datetime]="entry.receivedAt">
+                  <!-- 1. Time -->
+                  <div class="fin-tx-time">
                     <strong>{{ entry.receivedAt | date: 'HH:mm' }}</strong>
-                    <span>{{ entry.receivedAt | date: 'dd MMM' }}</span>
-                  </time>
-
-                  <span class="fin-feed__rail" aria-hidden="true"></span>
-
-                  <div class="fin-feed__body">
-                    <div class="fin-feed__top">
-                      <p
-                        class="fin-feed__amount"
-                        [class.fin-feed__amount--cancelled]="entry.status === 'CANCELLED'"
-                      >
-                        {{ entry.status === 'CANCELLED' ? '' : '+' }}{{ money(entry.amountMinor) }}
-                        @if (entry.status === 'CANCELLED') {
-                          <span class="fin-status fin-status--cancelled" data-status="CANCELLED"
-                            >Cancelled</span
-                          >
-                        }
-                      </p>
-                      @if (entry.receiptNumber) {
-                        <span class="fin-receipt-badge">{{ entry.receiptNumber }}</span>
-                      }
-                    </div>
-
-                    <div class="fin-feed__patient-row">
-                      <span class="fin-avatar fin-avatar--sm" aria-hidden="true">{{
-                        initials(entry.patientName)
-                      }}</span>
-                      <span class="fin-feed__patient">{{ entry.patientName }}</span>
-                    </div>
-
-                    <p class="fin-feed__meta">
-                      @if (entry.status === 'CANCELLED') {
-                        <span class="fin-feed__meta-cancelled">
-                          Cancelled by {{ entry.cancelledByName ?? 'clinic staff' }}
-                          @if (entry.cancellationReason) {
-                            ·
-                            <span class="fin-feed__meta-reason">{{ entry.cancellationReason }}</span>
-                          }
-                        </span>
-                      } @else {
-                        <span class="fin-feed__method-tag">{{ entry.paymentMethod }}</span>
-                        <span>· {{ entry.receivedByName }}</span>
-                      }
-                    </p>
                   </div>
 
-                  <span class="fin-feed__arrow material-icons" aria-hidden="true"
-                    >chevron_right</span
-                  >
-                </li>
+                  <!-- 2. Patient Identity & Treatment Context -->
+                  <div class="fin-tx-patient">
+                    <span class="fin-avatar fin-avatar--sm" aria-hidden="true">
+                      {{ initials(entry.patientName) }}
+                    </span>
+                    <div class="fin-tx-patient-info">
+                      <span class="patient-name">{{ entry.patientName }}</span>
+                      <span class="tx-treatment">
+                        {{ entry.treatmentLabel || 'Paiement libre / Non affecté' }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- 3. Payment Method & Payer Context -->
+                  <div class="fin-tx-method">
+                    <span class="method-badge">
+                      <span class="material-icons method-icon" aria-hidden="true">
+                        {{ methodIcon(entry.paymentMethod) }}
+                      </span>
+                      <span>{{ friendlyMethod(entry.paymentMethod) }}</span>
+                    </span>
+                    <span class="payer-context">
+                      · {{ friendlyPayer(entry) }}
+                    </span>
+                  </div>
+
+                  <!-- 4. Recorded By -->
+                  <div class="fin-tx-recorder">
+                    <span class="recorder-name">Par {{ entry.receivedByName }}</span>
+                  </div>
+
+                  <!-- 5. Receipt Reference -->
+                  <div class="fin-tx-receipt">
+                    @if (entry.receiptNumber) {
+                      <button
+                        type="button"
+                        class="receipt-link-btn"
+                        (click)="openPatientPayment(entry, $event)"
+                        title="Consulter le reçu dans la fiche patient"
+                      >
+                        <span class="material-icons receipt-btn-icon" aria-hidden="true">receipt</span>
+                        <span>{{ entry.receiptNumber }}</span>
+                        <span class="material-icons arrow-icon" aria-hidden="true">arrow_forward</span>
+                      </button>
+                    } @else {
+                      <span class="receipt-none">—</span>
+                    }
+                  </div>
+
+                  <!-- 6. Amount -->
+                  <div class="fin-tx-amount-col">
+                    <p
+                      class="fin-tx-amount"
+                      [class.fin-tx-amount--cancelled]="entry.status === 'CANCELLED'"
+                    >
+                      {{ entry.status === 'CANCELLED' ? '−' : '+' }}{{ money(entry.amountMinor) }}
+                    </p>
+                    @if (entry.status === 'CANCELLED') {
+                      <span class="cancelled-tag">Annulé</span>
+                    }
+                  </div>
+
+                  <!-- 7. Hover Chevron -->
+                  <div class="fin-tx-chevron" aria-hidden="true">
+                    <span class="material-icons">chevron_right</span>
+                  </div>
+                </article>
               }
-            </ol>
+            </div>
           </div>
         }
       </div>
@@ -499,12 +601,125 @@
               {{
                 showAllActivity()
                   ? 'Voir moins'
-                  : 'Voir plus (' + (store.activity().length - 27) + ' restants)'
+                  : 'Afficher tous les mouvements (' + filteredActivity().length + ' au total)'
               }}
             </span>
           </button>
         </div>
       }
+    }
+
+    <!-- Transaction Detail Presentation Drawer / Dialog -->
+    @if (selectedActivityDetail(); as detail) {
+      <div class="tx-drawer-overlay" (click)="closeActivityDetail()">
+        <article
+          class="tx-drawer-dialog"
+          (click)="$event.stopPropagation()"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="tx-drawer-title"
+        >
+          <header class="tx-drawer-header">
+            <div>
+              <span class="tx-drawer-kicker">Détail du mouvement</span>
+              <h3 id="tx-drawer-title" class="tx-drawer-title">
+                {{ detail.status === 'CANCELLED' ? 'Règlement Annulé' : 'Règlement Enregistré' }}
+              </h3>
+            </div>
+            <button
+              type="button"
+              class="tx-drawer-close"
+              (click)="closeActivityDetail()"
+              aria-label="Fermer"
+            >
+              <span class="material-icons">close</span>
+            </button>
+          </header>
+
+          <div class="tx-drawer-hero" [class.tx-drawer-hero--cancelled]="detail.status === 'CANCELLED'">
+            <span class="hero-amount">
+              {{ detail.status === 'CANCELLED' ? '−' : '+' }}{{ money(detail.amountMinor) }}
+            </span>
+            <span class="hero-date">
+              {{ detail.receivedAt | date: 'dd MMMM yyyy à HH:mm' }}
+            </span>
+          </div>
+
+          <div class="tx-drawer-grid">
+            <div class="tx-drawer-row">
+              <span class="tx-lbl">Patient</span>
+              <div class="tx-val patient-link-val">
+                <span class="fin-avatar fin-avatar--sm">{{ initials(detail.patientName) }}</span>
+                <strong>{{ detail.patientName }}</strong>
+              </div>
+            </div>
+
+            <div class="tx-drawer-row">
+              <span class="tx-lbl">Traitement / Soin</span>
+              <span class="tx-val">{{ detail.treatmentLabel || 'Paiement libre / Non affecté' }}</span>
+            </div>
+
+            <div class="tx-drawer-row">
+              <span class="tx-lbl">Mode de règlement</span>
+              <span class="tx-val">
+                <strong>{{ friendlyMethod(detail.paymentMethod) }}</strong> · {{ friendlyPayer(detail) }}
+              </span>
+            </div>
+
+            <div class="tx-drawer-row">
+              <span class="tx-lbl">Reçu de paiement</span>
+              <span class="tx-val">
+                {{ detail.receiptNumber || 'Aucun reçu généré' }}
+              </span>
+            </div>
+
+            <div class="tx-drawer-row">
+              <span class="tx-lbl">Enregistré par</span>
+              <span class="tx-val">{{ detail.receivedByName }}</span>
+            </div>
+
+            @if (detail.status === 'CANCELLED') {
+              <div class="tx-drawer-row tx-drawer-row--cancel">
+                <span class="tx-lbl">Annulation</span>
+                <span class="tx-val cancel-reason-val">
+                  Annulé le {{ detail.cancelledAt | date: 'dd/MM/yyyy HH:mm' }}
+                  @if (detail.cancelledByName) {
+                    par {{ detail.cancelledByName }}
+                  }
+                  @if (detail.cancellationReason) {
+                    <small>Motif : {{ detail.cancellationReason }}</small>
+                  }
+                </span>
+              </div>
+            }
+
+            @if (detail.note) {
+              <div class="tx-drawer-row">
+                <span class="tx-lbl">Note</span>
+                <span class="tx-val">{{ detail.note }}</span>
+              </div>
+            }
+          </div>
+
+          <footer class="tx-drawer-footer">
+            <button
+              type="button"
+              class="fin-btn fin-btn--primary"
+              (click)="openPatientPayment(detail)"
+            >
+              <span class="material-icons">folder_shared</span>
+              <span>Ouvrir dans le dossier patient</span>
+            </button>
+            <button
+              type="button"
+              class="fin-btn fin-btn--secondary"
+              (click)="closeActivityDetail()"
+            >
+              <span>Fermer</span>
+            </button>
+          </footer>
+        </article>
+      </div>
     }
   </section>
 </section>

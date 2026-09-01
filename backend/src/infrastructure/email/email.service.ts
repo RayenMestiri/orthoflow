@@ -21,6 +21,13 @@ export interface EmailServiceContract {
     expiresInHours: number;
     clinicName: string;
   }): Promise<boolean>;
+  sendPortalPasswordReset?(message: {
+    recipient: string;
+    recipientName: string;
+    resetUrl: string;
+    expiresInHours: number;
+    clinicName: string;
+  }): Promise<boolean>;
 }
 
 export interface TransactionalEmail {
@@ -224,12 +231,227 @@ export class SmtpEmailService implements EmailServiceContract {
     const name = escapeHtml(message.recipientName);
     const clinic = escapeHtml(message.clinicName);
     const url = escapeHtml(message.activationUrl);
+    const subject = `${message.clinicName} vous invite sur votre espace patient`;
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(subject)}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F6F3EC; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #17201E;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F6F3EC; padding: 36px 16px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; margin: 0 auto; background-color: #FFFEFB; border-radius: 16px; overflow: hidden; border: 1px solid #DCE2DE; box-shadow: 0 12px 36px rgba(13, 41, 37, 0.07);">
+
+          <!-- Top Header with Deep Pine Gradient -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0D2925 0%, #173F38 100%); padding: 32px 36px; text-align: center; border-bottom: 3px solid #C86445;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <div style="display: inline-block; background: rgba(255, 254, 251, 0.08); border: 1px solid rgba(255, 254, 251, 0.16); border-radius: 12px; padding: 9px 22px; margin-bottom: 6px;">
+                      <span style="font-size: 22px; font-weight: 700; color: #FFFEFB; letter-spacing: -0.3px;">${clinic}<span style="color: #C86445;">.</span></span>
+                    </div>
+                    <div style="font-size: 12px; color: #DCE2DE; font-weight: 500; letter-spacing: 0.6px; text-transform: uppercase;">Cabinet Dentaire & Orthodontie</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 36px 36px 28px 36px; text-align: left;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    <!-- Badge Pill -->
+                    <span style="display: inline-block; background-color: #F7EBE8; color: #A94830; border: 1px solid #F3D2C9; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 16px;">
+                      ✨ Espace Patient & Famille
+                    </span>
+
+                    <!-- Main Headline -->
+                    <h1 style="margin: 0 0 14px 0; font-size: 22px; font-weight: 700; color: #0D2925; line-height: 1.35;">
+                      Votre espace personnel de suivi en ligne
+                    </h1>
+
+                    <!-- Body Paragraph -->
+                    <p style="margin: 0 0 16px 0; font-size: 15px; color: #56635F; line-height: 1.65;">
+                      Bonjour <strong>${name}</strong>,<br>
+                      Le cabinet <strong>${clinic}</strong> vous invite à activer votre espace privé sécurisé OrthoFlow afin de consulter les rendez-vous, soins et documents en toute simplicité.
+                    </p>
+
+                    <!-- CTA Button -->
+                    <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin: 28px 0 20px 0; width: 100%;">
+                      <tr>
+                        <td align="center">
+                          <a href="${url}" style="display: inline-block; background-color: #173F38; color: #FFFFFF; font-weight: 700; font-size: 15px; padding: 14px 32px; border-radius: 10px; text-decoration: none; box-shadow: 0 4px 14px rgba(23, 63, 56, 0.22); letter-spacing: 0.2px;">
+                            Activer mon espace privé →
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Security Notice Box -->
+                    <div style="background-color: #F6F3EC; border-left: 3px solid #173F38; border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 22px 0 10px 0;">
+                      <p style="margin: 0; font-size: 13px; color: #56635F; line-height: 1.55;">
+                        🔒 <strong>Lien sécurisé :</strong> Ce lien d'accès personnel expire dans <strong>${message.expiresInHours} heures</strong>. Ne le partagez avec personne.
+                      </p>
+                    </div>
+
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #F6F3EC; padding: 24px 36px; text-align: center; border-top: 1px solid #DCE2DE;">
+              <p style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600; color: #173F38;">
+                ${clinic} · OrthoFlow
+              </p>
+              <p style="margin: 0; font-size: 12px; color: #73847F; line-height: 1.45;">
+                Message automatique et confidentiel transmis par votre cabinet dentaire.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
     await this.transporter.sendMail({
       from: { name: env.SMTP_FROM_NAME, address: env.SMTP_FROM_ADDRESS },
       to: message.recipient,
-      subject: `${message.clinicName} vous invite sur OrthoFlow`,
-      text: `Bonjour ${message.recipientName},\n\n${message.clinicName} vous invite à consulter le suivi de votre enfant. Activez votre accès: ${message.activationUrl}\n\nCe lien expire dans ${message.expiresInHours} heures.`,
-      html: `<div style="font-family:Manrope,Arial,sans-serif;max-width:560px;margin:auto;background:#fffefb;color:#17201e;padding:32px;border:1px solid #dce2de;border-radius:16px"><h1 style="color:#0d2925">Votre espace parent</h1><p>Bonjour <strong>${name}</strong>,</p><p><strong>${clinic}</strong> vous invite à consulter le suivi de votre enfant dans un espace privé OrthoFlow.</p><p><a href="${url}" style="display:inline-block;background:#173f38;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none">Activer mon accès</a></p><p style="color:#56635f;font-size:13px">Ce lien personnel expire dans ${message.expiresInHours} heures. Ne le transférez pas.</p></div>`,
+      subject,
+      text: `Bonjour ${message.recipientName},\n\n${message.clinicName} vous invite à consulter votre suivi médical sur votre espace privé OrthoFlow. Activez votre accès : ${message.activationUrl}\n\nCe lien sécurisé expire dans ${message.expiresInHours} heures.`,
+      html: htmlContent,
+    });
+    return true;
+  }
+
+  async sendPortalPasswordReset(message: {
+    recipient: string;
+    recipientName: string;
+    resetUrl: string;
+    expiresInHours: number;
+    clinicName: string;
+  }): Promise<boolean> {
+    if (!this.transporter || env.SMTP_FROM_ADDRESS === '') return false;
+    const name = escapeHtml(message.recipientName);
+    const clinic = escapeHtml(message.clinicName);
+    const url = escapeHtml(message.resetUrl);
+    const subject = `Réinitialisation de votre mot de passe · Portail Famille ${message.clinicName}`;
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(subject)}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #FBF9F5; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #17201E;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #FBF9F5; padding: 36px 16px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; margin: 0 auto; background-color: #FFFFFF; border-radius: 18px; overflow: hidden; border: 1px solid #DCE6E1; box-shadow: 0 16px 40px rgba(13, 41, 37, 0.08);">
+
+          <!-- Top Header with Deep Emerald Gradient -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0C332B 0%, #175447 100%); padding: 32px 36px; text-align: center; border-bottom: 3px solid #10B981;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <div style="display: inline-block; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 12px; padding: 9px 24px; margin-bottom: 6px;">
+                      <span style="font-size: 22px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.3px;">${clinic}</span>
+                    </div>
+                    <div style="font-size: 12px; color: #D1EAE4; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;">Portail Patient & Famille OrthoFlow</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 36px 36px 28px 36px; text-align: left;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    <!-- Badge Pill -->
+                    <span style="display: inline-block; background-color: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 16px;">
+                      🔑 Réinitialisation de sécurité
+                    </span>
+
+                    <!-- Main Headline -->
+                    <h1 style="margin: 0 0 14px 0; font-size: 22px; font-weight: 800; color: #0C332B; line-height: 1.35;">
+                      Nouveau mot de passe de votre espace famille
+                    </h1>
+
+                    <!-- Body Paragraph -->
+                    <p style="margin: 0 0 16px 0; font-size: 15px; color: #52635D; line-height: 1.65;">
+                      Bonjour <strong>${name}</strong>,<br>
+                      Une demande de réinitialisation de mot de passe a été initiée pour votre compte Portail Famille auprès du cabinet <strong>${clinic}</strong>.
+                    </p>
+
+                    <!-- CTA Button -->
+                    <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin: 28px 0 20px 0; width: 100%;">
+                      <tr>
+                        <td align="center">
+                          <a href="${url}" style="display: inline-block; background: linear-gradient(135deg, #0C332B 0%, #175447 100%); color: #FFFFFF; font-weight: 700; font-size: 15px; padding: 15px 34px; border-radius: 12px; text-decoration: none; box-shadow: 0 6px 18px rgba(12, 51, 43, 0.25); letter-spacing: 0.2px;">
+                            Choisir mon nouveau mot de passe →
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Security Notice Box -->
+                    <div style="background-color: #F8FAF9; border-left: 3.5px solid #0C332B; border-radius: 0 10px 10px 0; padding: 14px 18px; margin: 24px 0 10px 0;">
+                      <p style="margin: 0; font-size: 13px; color: #52635D; line-height: 1.55;">
+                        🔒 <strong>Lien sécurisé :</strong> Ce lien à usage unique expire dans <strong>${message.expiresInHours} heures</strong>. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail en toute sécurité.
+                      </p>
+                    </div>
+
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #F8FAF9; padding: 24px 36px; text-align: center; border-top: 1px solid #E2EAE6;">
+              <p style="margin: 0 0 6px 0; font-size: 13px; font-weight: 700; color: #0C332B;">
+                ${clinic} · OrthoFlow Famille
+              </p>
+              <p style="margin: 0; font-size: 12px; color: #768782; line-height: 1.45;">
+                Accès privé et sécurisé pour le suivi des soins orthodontiques.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    await this.transporter.sendMail({
+      from: { name: env.SMTP_FROM_NAME, address: env.SMTP_FROM_ADDRESS },
+      to: message.recipient,
+      subject,
+      text: `Bonjour ${message.recipientName},\n\nPour réinitialiser votre mot de passe pour le Portail Famille ${message.clinicName}, cliquez sur le lien suivant : ${message.resetUrl}\n\nCe lien expire dans ${message.expiresInHours} heures.`,
+      html: htmlContent,
     });
     return true;
   }

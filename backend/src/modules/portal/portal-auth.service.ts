@@ -12,14 +12,18 @@ import {
 } from '../../infrastructure/security/crypto.js';
 import { passwordService } from '../../infrastructure/security/password.service.js';
 import { portalTokenService } from '../../infrastructure/security/portal-token.service.js';
+import { logger } from '../../config/logger.js';
 import { clinicRepository } from '../clinics/clinic.repository.js';
 import { guardianRepository } from '../guardians/guardian.repository.js';
+import { GuardianModel } from '../guardians/guardian.model.js';
 import { PatientGuardianModel } from '../guardians/patient-guardian.model.js';
 import { communicationEventService } from '../notifications/notification.service.js';
 import { EXTERNAL_EVENT_TYPES } from '../communications/communication.types.js';
 import { secretEnvelopeService } from '../../infrastructure/security/secret-envelope.service.js';
 import { auditLogService } from '../audit-logs/audit-log.service.js';
 import { AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '../audit-logs/audit-log.types.js';
+import { emailService } from '../../infrastructure/email/email.service.js';
+import { userRepository } from '../users/user.repository.js';
 import { portalRepository } from './portal.repository.js';
 import {
   PORTAL_SESSION_REVOKE_REASONS,
@@ -62,10 +66,9 @@ export class PortalAuthService {
     guardianId: string,
     actorUserId: string,
   ): Promise<{ status: string; delivery: 'QUEUED'; expiresAt: string }> {
-    const [guardian, clinic, existing, relationship] = await Promise.all([
+    const [guardian, clinic, relationship] = await Promise.all([
       guardianRepository.findByIdInClinic(guardianId, clinicId),
       clinicRepository.findById(clinicId),
-      portalRepository.findUserByGuardian(clinicId, guardianId),
       PatientGuardianModel.findOne({
         clinicId: new Types.ObjectId(clinicId),
         guardianId: new Types.ObjectId(guardianId),
@@ -79,15 +82,14 @@ export class PortalAuthService {
       throw new ConflictError('Add a guardian email before enabling portal access', {
         code: ERROR_CODES.PORTAL_ACCESS_NOT_CONFIGURED,
       });
-    if (existing?.status === PORTAL_USER_STATUSES.ACTIVE)
-      throw new ConflictError('Portal access is already active');
     const rawToken = generateOpaqueSecret();
     const expiresAt = new Date(Date.now() + this.invitationTtlSeconds * 1000);
+    const normalizedEmail = guardian.email.trim().toLowerCase();
     await withTransaction(async (session) => {
       const invitation = await portalRepository.createInvitation({
         clinicId,
         guardianId,
-        email: guardian.email!,
+        email: normalizedEmail,
         tokenHash: sha256(rawToken),
         expiresAt,
         invitedByUserId: actorUserId,
@@ -179,8 +181,7 @@ export class PortalAuthService {
       !guardian ||
       !clinic ||
       !relationship ||
-      guardian.email?.toLowerCase() !== invitation.email ||
-      existing?.status === PORTAL_USER_STATUSES.ACTIVE
+      guardian.email?.trim().toLowerCase() !== invitation.email?.trim().toLowerCase()
     )
       throw new UnauthorizedError('Invitation is invalid or expired', {
         code: ERROR_CODES.PORTAL_INVITATION_INVALID_OR_EXPIRED,
@@ -196,7 +197,7 @@ export class PortalAuthService {
           {
             clinicId: invitation.clinicId.toString(),
             guardianId: invitation.guardianId.toString(),
-            email: invitation.email,
+            email: invitation.email.trim().toLowerCase(),
             passwordHash,
           },
           session,
@@ -211,7 +212,7 @@ export class PortalAuthService {
         {
           clinicId: invitation.clinicId.toString(),
           guardianId: invitation.guardianId.toString(),
-          email: invitation.email,
+          email: invitation.email.trim().toLowerCase(),
           passwordHash,
         },
         session,
@@ -232,19 +233,34 @@ export class PortalAuthService {
   }
 
   async login(email: string, password: string, context: PortalRequestContext) {
-    const user = await portalRepository.findUserByEmail(email);
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await portalRepository.findUserByEmail(normalizedEmail);
     if (!user) {
+      const staffUser = await userRepository.findByEmail(normalizedEmail);
+      if (staffUser) {
+        throw new UnauthorizedError(
+          'Cette adresse email correspond à un compte professionnel (Cabinet / Praticien). Veuillez vous connecter via l\'Espace Cabinet.',
+          { code: ERROR_CODES.STAFF_ACCOUNT_DETECTED },
+        );
+      }
+      const guardian = await GuardianModel.findOne({ email: normalizedEmail }).lean().exec();
+      if (guardian) {
+        throw new UnauthorizedError(
+          'Votre compte famille n\'a pas encore été activé. Veuillez utiliser le lien d\'activation reçu par e-mail ou cliquer sur "Activer mon compte".',
+          { code: ERROR_CODES.PORTAL_ACCESS_NOT_CONFIGURED },
+        );
+      }
       await passwordService.verify(await this.getDummyHash(), password);
-      throw new UnauthorizedError('Invalid email or password', {
+      throw new UnauthorizedError('Adresse email ou mot de passe incorrect.', {
         code: ERROR_CODES.INVALID_CREDENTIALS,
       });
     }
     if (!(await passwordService.verify(user.passwordHash, password)))
-      throw new UnauthorizedError('Invalid email or password', {
+      throw new UnauthorizedError('Adresse email ou mot de passe incorrect.', {
         code: ERROR_CODES.INVALID_CREDENTIALS,
       });
     if (user.status !== PORTAL_USER_STATUSES.ACTIVE)
-      throw new ForbiddenError('Portal access has been revoked', {
+      throw new ForbiddenError('L\'accès au portail famille pour ce compte a été suspendu par votre cabinet.', {
         code: ERROR_CODES.PORTAL_ACCESS_REVOKED,
       });
     const [guardian, clinic, tokens] = await Promise.all([
@@ -252,7 +268,7 @@ export class PortalAuthService {
       clinicRepository.findById(user.clinicId.toString()),
       this.issueSession(user._id.toString(), context),
     ]);
-    if (!guardian || !clinic) throw new UnauthorizedError('Portal access is no longer available');
+    if (!guardian || !clinic) throw new UnauthorizedError('L\'accès au portail famille n\'est plus disponible pour ce dossier.');
     await portalRepository.markLogin(user._id.toString());
     await auditLogService.recordSafe({
       clinicId: user.clinicId.toString(),
@@ -265,6 +281,155 @@ export class PortalAuthService {
       userAgent: context.userAgent,
     });
     return { user: portalProfile(user, guardian, clinic), tokens };
+  }
+
+  async requestPasswordReset(email: string): Promise<{ message: string }> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await portalRepository.findUserByEmail(normalizedEmail);
+
+    if (user) {
+      if (user.status !== PORTAL_USER_STATUSES.ACTIVE) {
+        throw new ForbiddenError(
+          'L\'accès au portail famille pour ce compte a été suspendu par votre cabinet. Veuillez contacter l\'accueil.',
+          { code: ERROR_CODES.PORTAL_ACCESS_REVOKED },
+        );
+      }
+      const [guardian, clinic] = await Promise.all([
+        guardianRepository.findByIdInClinic(user.guardianId.toString(), user.clinicId.toString()),
+        clinicRepository.findById(user.clinicId.toString()),
+      ]);
+      if (!guardian || !clinic) {
+        throw new ConflictError('Dossier clinique introuvable pour ce compte.', {
+          code: ERROR_CODES.PORTAL_ACCOUNT_NOT_FOUND,
+        });
+      }
+
+      const rawToken = generateOpaqueSecret();
+      const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+      await portalRepository.createInvitation({
+        clinicId: user.clinicId.toString(),
+        guardianId: user.guardianId.toString(),
+        email: normalizedEmail,
+        tokenHash: sha256(rawToken),
+        expiresAt,
+        invitedByUserId: user._id.toString(),
+      });
+
+      const resetUrl = `${env.FRONTEND_URL}/portal/reset-password?token=${encodeURIComponent(rawToken)}`;
+      logger.info({ email: normalizedEmail, resetUrl }, '🔑 [PORTAL_PASSWORD_RESET_LINK]');
+      if (emailService.sendPortalPasswordReset) {
+        await emailService.sendPortalPasswordReset({
+          recipient: normalizedEmail,
+          recipientName: `${guardian.firstName} ${guardian.lastName}`.trim(),
+          resetUrl,
+          expiresInHours: 2,
+          clinicName: clinic.name,
+        });
+      }
+      return { message: 'Un lien de réinitialisation sécurisé vient de vous être envoyé par e-mail.' };
+    }
+
+    // Check if it's a staff email
+    const staffUser = await userRepository.findByEmail(normalizedEmail);
+    if (staffUser) {
+      throw new UnauthorizedError(
+        'Cette adresse email correspond à un compte professionnel (Cabinet / Praticien). Veuillez réinitialiser votre mot de passe depuis l\'Espace Cabinet.',
+        { code: ERROR_CODES.STAFF_ACCOUNT_DETECTED },
+      );
+    }
+
+    // Check if it's a guardian whose portal account was not yet activated
+    const guardian = await GuardianModel.findOne({ email: normalizedEmail }).lean().exec();
+    if (guardian) {
+      const clinic = await clinicRepository.findById(guardian.clinicId.toString());
+      if (clinic) {
+        const rawToken = generateOpaqueSecret();
+        const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+        await portalRepository.createInvitation({
+          clinicId: guardian.clinicId.toString(),
+          guardianId: guardian._id.toString(),
+          email: normalizedEmail,
+          tokenHash: sha256(rawToken),
+          expiresAt,
+          invitedByUserId: guardian.createdBy?.toString() || guardian._id.toString(),
+        });
+        const activationUrl = `${env.FRONTEND_URL}/portal/activate?token=${encodeURIComponent(rawToken)}`;
+        logger.info({ email: normalizedEmail, activationUrl }, '✨ [PORTAL_ACTIVATION_LINK]');
+        if (emailService.sendPortalInvitation) {
+          await emailService.sendPortalInvitation({
+            recipient: normalizedEmail,
+            recipientName: `${guardian.firstName} ${guardian.lastName}`.trim(),
+            activationUrl,
+            expiresInHours: 2,
+            clinicName: clinic.name,
+          });
+        }
+        return {
+          message: 'Votre compte famille n\'était pas encore activé. Un nouveau lien d\'activation sécurisé vient d\'être envoyé à votre adresse.',
+        };
+      }
+    }
+
+    // Account does not exist anywhere
+    throw new ConflictError(
+      `Aucun dossier patient ou compte famille n'est associé à l'adresse "${normalizedEmail}". Veuillez vérifier votre saisie ou contacter votre cabinet.`,
+      { code: ERROR_CODES.PORTAL_ACCOUNT_NOT_FOUND },
+    );
+  }
+
+  async resetPassword(
+    token: string,
+    newPassword: string,
+    context: PortalRequestContext,
+  ): Promise<{ email: string }> {
+    const tokenHash = sha256(token);
+    const invitation = await portalRepository.findUsableInvitation(tokenHash);
+    if (!invitation) {
+      throw new UnauthorizedError('Le lien de réinitialisation est invalide ou a expiré.', {
+        code: ERROR_CODES.PORTAL_INVITATION_INVALID_OR_EXPIRED,
+      });
+    }
+    const user = await portalRepository.findUserByGuardian(
+      invitation.clinicId.toString(),
+      invitation.guardianId.toString(),
+    );
+    if (!user || user.status !== PORTAL_USER_STATUSES.ACTIVE) {
+      throw new UnauthorizedError('Compte introuvable ou inactif.', {
+        code: ERROR_CODES.PORTAL_ACCESS_REVOKED,
+      });
+    }
+
+    const passwordHash = await passwordService.hash(newPassword);
+    await withTransaction(async (session) => {
+      await portalRepository.consumeInvitation(invitation._id.toString(), session);
+      await portalRepository.reactivateUser(
+        {
+          clinicId: invitation.clinicId.toString(),
+          guardianId: invitation.guardianId.toString(),
+          email: user.email,
+          passwordHash,
+        },
+        session,
+      );
+    });
+
+    await portalRepository.revokeAll(
+      user._id.toString(),
+      PORTAL_SESSION_REVOKE_REASONS.PASSWORD_CHANGED,
+    );
+
+    await auditLogService.recordSafe({
+      clinicId: user.clinicId.toString(),
+      actorPortalUserId: user._id.toString(),
+      actorKind: 'PORTAL',
+      action: AUDIT_ACTIONS.PORTAL_PASSWORD_RESET,
+      resourceType: AUDIT_RESOURCE_TYPES.PORTAL_USER,
+      resourceId: user._id.toString(),
+      ip: context.ip,
+      userAgent: context.userAgent,
+    });
+
+    return { email: user.email };
   }
 
   async refresh(raw: string, context: PortalRequestContext): Promise<PortalTokensDto> {

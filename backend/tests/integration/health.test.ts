@@ -49,13 +49,13 @@ describe('GET /health', () => {
     });
   });
 
-  it('does not expose a permanent patient-media deletion route', async () => {
+  it('requires authentication for patient-media deletion route', async () => {
     const result = await app.inject({
       method: 'DELETE',
       url: '/api/v1/patient-media/652f1c9b8a1e4f0012ab0001',
     });
 
-    expect(result.statusCode).toBe(404);
+    expect(result.statusCode).toBe(401);
   });
 });
 

@@ -66,11 +66,10 @@ export class PortalRepository {
       {
         clinicId: toObjectId(input.clinicId, 'clinicId'),
         guardianId: toObjectId(input.guardianId, 'guardianId'),
-        status: 'REVOKED',
       },
       {
         $set: {
-          email: input.email.toLowerCase(),
+          email: input.email.trim().toLowerCase(),
           passwordHash: input.passwordHash,
           status: 'ACTIVE',
           emailVerifiedAt: new Date(),

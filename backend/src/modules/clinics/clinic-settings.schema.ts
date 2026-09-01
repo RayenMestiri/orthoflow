@@ -120,6 +120,7 @@ export const careContinuitySettingsSchema = z.object({
   treatmentInactivityDays: z.number().int().min(14).max(365),
   retentionInactivityDays: z.number().int().min(30).max(730),
   missedAppointmentRebookGraceDays: z.number().int().min(1).max(90),
+  documentRetentionDays: z.number().int().min(1).max(365).default(30),
 });
 export const updateCareContinuitySettingsBodySchema = careContinuitySettingsSchema;
 export const communicationSettingsSchema = z

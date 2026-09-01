@@ -30,8 +30,11 @@ export class ScheduleApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
 
-  listAppointments(start: string, end: string): Observable<Appointment[]> {
-    const params = new HttpParams().set('start', start).set('end', end);
+  listAppointments(start: string, end: string, patientId?: string): Observable<Appointment[]> {
+    let params = new HttpParams().set('start', start).set('end', end);
+    if (patientId) {
+      params = params.set('patientId', patientId);
+    }
     return this.http
       .get<ApiEnvelope<Appointment[]>>(`${this.baseUrl}/appointments`, { params })
       .pipe(map((response) => response.data));

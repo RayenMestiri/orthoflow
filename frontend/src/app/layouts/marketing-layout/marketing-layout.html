@@ -13,13 +13,50 @@
     </a>
 
     <nav class="desktop-nav" aria-label="Primary navigation">
-      <a href="#product">Product</a>
+      <a href="#product">Produit</a>
+      <a href="#portal">Portail Famille</a>
       <a href="#solutions">Solutions</a>
-      <a href="#why-orthoflow">Why OrthoFlow</a>
-      <a href="#security">Security</a>
+      <a href="#why-orthoflow">Approche</a>
+      <a href="#security">Sécurité</a>
     </nav>
 
-    <a class="button button--primary nav-cta" href="#waitlist">Join waitlist</a>
+    <div class="nav-actions">
+      @if (staffAuth.isAuthenticated() && staffAuth.user(); as staff) {
+        <div class="nav-user-chip nav-user-chip--staff" title="Connecté en tant que praticien / personnel">
+          <span class="nav-user-avatar">{{ staff.firstName.charAt(0) }}{{ staff.lastName.charAt(0) }}</span>
+          <div class="nav-user-info">
+            <span class="nav-user-name">{{ staff.firstName }} {{ staff.lastName }}</span>
+            <span class="nav-user-role">Espace Cabinet</span>
+          </div>
+        </div>
+        <a class="button button--primary nav-cta" routerLink="/app/dashboard">
+          <span class="material-icons" aria-hidden="true">dashboard</span>
+          <span>Dashboard</span>
+        </a>
+      } @else if (portalAuth.authenticated() && portalAuth.profile(); as guardian) {
+        <div class="nav-user-chip nav-user-chip--portal" title="Connecté en tant que patient / famille">
+          <span class="nav-user-avatar nav-user-avatar--portal">{{ guardian.fullName.charAt(0) }}</span>
+          <div class="nav-user-info">
+            <span class="nav-user-name">{{ guardian.fullName }}</span>
+            <span class="nav-user-role">Portail Famille</span>
+          </div>
+        </div>
+        <a class="button button--portal-nav nav-cta" routerLink="/portal/home">
+          <span class="material-icons" aria-hidden="true">family_restroom</span>
+          <span>Aperçu</span>
+        </a>
+      } @else {
+        <a class="nav-portal-btn" routerLink="/portal/login" title="Accéder au portail patient et famille">
+          <span class="material-icons" aria-hidden="true">family_restroom</span>
+          <span>Portail Famille</span>
+        </a>
+        <a class="nav-cabinet-btn" routerLink="/login" title="Connexion praticiens et équipe">
+          <span class="material-icons" aria-hidden="true">lock</span>
+          <span>Cabinet</span>
+        </a>
+        <a class="button button--primary nav-cta" href="#waitlist">Rejoindre</a>
+      }
+    </div>
 
     <button
       class="menu-toggle"
@@ -52,18 +89,53 @@
         [cdkTrapFocusAutoCapture]="true"
       >
         <div class="mobile-nav__head">
-          <span class="mobile-nav__label">Explore OrthoFlow</span>
+          <span class="mobile-nav__label">OrthoFlow Navigation</span>
           <button class="mobile-nav__close" type="button" (click)="closeMenu()">
-            Close <span aria-hidden="true">×</span>
+            Fermer <span aria-hidden="true">×</span>
           </button>
         </div>
-        <a href="#product" (click)="closeMenu()">Product <span>01</span></a>
-        <a href="#solutions" (click)="closeMenu()">Solutions <span>02</span></a>
-        <a href="#why-orthoflow" (click)="closeMenu()">Why OrthoFlow <span>03</span></a>
-        <a href="#security" (click)="closeMenu()">Security <span>04</span></a>
-        <a class="button button--primary" href="#waitlist" (click)="closeMenu()"
-          >Join the waitlist</a
-        >
+        <a href="#product" (click)="closeMenu()">Produit <span>01</span></a>
+        <a href="#portal" (click)="closeMenu()">Portail Famille <span>02</span></a>
+        <a href="#solutions" (click)="closeMenu()">Solutions <span>03</span></a>
+        <a href="#why-orthoflow" (click)="closeMenu()">Approche <span>04</span></a>
+        <a href="#security" (click)="closeMenu()">Sécurité <span>05</span></a>
+        <div class="mobile-nav__actions">
+          @if (staffAuth.isAuthenticated() && staffAuth.user(); as staff) {
+            <div class="mobile-user-card">
+              <span class="nav-user-avatar">{{ staff.firstName.charAt(0) }}{{ staff.lastName.charAt(0) }}</span>
+              <div>
+                <strong>{{ staff.firstName }} {{ staff.lastName }}</strong>
+                <small>Cabinet connecté</small>
+              </div>
+            </div>
+            <a class="button button--primary" routerLink="/app/dashboard" (click)="closeMenu()">
+              <span class="material-icons" aria-hidden="true">dashboard</span>
+              Accéder au Dashboard
+            </a>
+          } @else if (portalAuth.authenticated() && portalAuth.profile(); as guardian) {
+            <div class="mobile-user-card mobile-user-card--portal">
+              <span class="nav-user-avatar nav-user-avatar--portal">{{ guardian.fullName.charAt(0) }}</span>
+              <div>
+                <strong>{{ guardian.fullName }}</strong>
+                <small>Portail Famille connecté</small>
+              </div>
+            </div>
+            <a class="button button--primary" routerLink="/portal/home" (click)="closeMenu()">
+              <span class="material-icons" aria-hidden="true">family_restroom</span>
+              Mon Espace Famille (Aperçu)
+            </a>
+          } @else {
+            <a class="button button--secondary" routerLink="/portal/login" (click)="closeMenu()">
+              <span class="material-icons" aria-hidden="true">family_restroom</span>
+              Portail Famille
+            </a>
+            <a class="button button--secondary" routerLink="/login" (click)="closeMenu()">
+              <span class="material-icons" aria-hidden="true">lock</span>
+              Connexion Cabinet
+            </a>
+            <a class="button button--primary" href="#waitlist" (click)="closeMenu()">Rejoindre la liste</a>
+          }
+        </div>
       </nav>
     </div>
   }

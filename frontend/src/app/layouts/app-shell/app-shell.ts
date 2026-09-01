@@ -15,6 +15,7 @@ import { AuthStore } from '../../core/auth/auth.store';
 import { CLINIC_ROLES, PLATFORM_ROLES } from '../../core/auth/auth.models';
 import { PermissionService, PERMISSIONS } from '../../core/auth/permissions';
 import { ClinicSettingsStore } from '../../features/settings/data-access/clinic-settings.store';
+import { ActivePatientService } from '../../features/patients/data-access/active-patient.service';
 import { GlobalSearchComponent } from '../../shared/components/global-search/global-search.component';
 import { NotificationCenter } from '../../features/notifications/components/notification-center/notification-center';
 import { NotificationsStore } from '../../features/notifications/data-access/notifications.store';
@@ -49,6 +50,9 @@ export class AppShell {
   readonly commandCenterOpen = signal(false);
   readonly logoFailed = signal(false);
 
+  readonly activePatientService = inject(ActivePatientService);
+  readonly currentUrl = signal(this.router.url);
+
   readonly canManageSettings = computed(() =>
     this.permissions.can(PERMISSIONS.CLINIC_SETTINGS_MANAGE),
   );
@@ -80,6 +84,11 @@ export class AppShell {
     return role ? labels[role] : 'OrthoFlow team';
   });
 
+  /** True when the active clinic membership is the SECRETARY role. */
+  readonly isSecretary = computed(() =>
+    this.auth.activeMembership()?.role === CLINIC_ROLES.SECRETARY,
+  );
+
   readonly navigation = computed<AppNavigationItem[]>(() => [
     { label: 'Dashboard', icon: 'space_dashboard', route: '/app/dashboard', visible: true },
     {
@@ -89,8 +98,6 @@ export class AppShell {
       visible: this.permissions.can(PERMISSIONS.PATIENTS_VIEW),
     },
     {
-      // The daily operations board. Sits above Schedule because it is what the
-      // front desk opens in the morning and keeps open all day.
       label: 'Today',
       icon: 'pending_actions',
       route: '/app/today',
@@ -115,17 +122,8 @@ export class AppShell {
       visible: this.permissions.can(PERMISSIONS.TASKS_VIEW),
     },
     {
-      label: 'Treatments',
-      icon: 'dentistry',
-      route: '/app/patients',
-      location: 'Patient profiles',
-      visible: this.permissions.can(PERMISSIONS.TREATMENTS_VIEW),
-    },
-    {
       label: 'Cash records',
       icon: 'receipt_long',
-      // Clinic-wide financial operations. Recording money stays on the
-      // patient's Payments tab; this is the review surface.
       route: '/app/cash-records',
       visible: this.permissions.can(PERMISSIONS.CASH_RECORDS_VIEW),
     },
@@ -142,6 +140,84 @@ export class AppShell {
       visible: this.permissions.can(PERMISSIONS.CLINIC_SETTINGS_MANAGE),
     },
   ]);
+
+  readonly currentTab = computed(() => {
+    try {
+      const url = this.currentUrl();
+      const queryIdx = url.indexOf('?');
+      if (queryIdx === -1) return 'overview';
+      const params = new URLSearchParams(url.substring(queryIdx));
+      return params.get('tab') || 'overview';
+    } catch {
+      return 'overview';
+    }
+  });
+
+  readonly activePatientNav = computed(() => {
+    const url = this.currentUrl();
+    const match = url.match(/\/app\/patients\/([a-f0-9]{24}|[a-zA-Z0-9_-]+)/);
+    const patientIdFromUrl = match && match[1] !== 'new' ? match[1] : null;
+    if (!patientIdFromUrl) return null;
+
+    const active = this.activePatientService.activePatient();
+    const patientId = active?.id ?? patientIdFromUrl;
+    const patientName = active?.fullName ?? 'Dossier patient';
+
+    return {
+      patientId,
+      patientName,
+      tabs: [
+        {
+          id: 'overview',
+          label: 'Overview',
+          icon: 'info',
+          visible: true,
+        },
+        {
+          id: 'activity',
+          label: 'Historique',
+          icon: 'history',
+          visible: true,
+        },
+        {
+          id: 'communications',
+          label: 'Communications',
+          icon: 'forum',
+          visible: this.permissions.can(PERMISSIONS.COMMUNICATIONS_VIEW),
+        },
+        {
+          id: 'treatments',
+          label: 'Treatment',
+          icon: 'medical_services',
+          visible: this.permissions.can(PERMISSIONS.TREATMENTS_VIEW),
+        },
+        {
+          id: 'payments',
+          label: 'Payments',
+          icon: 'receipt_long',
+          visible: this.permissions.can(PERMISSIONS.CASH_RECORDS_VIEW),
+        },
+        {
+          id: 'visits',
+          label: 'Visits',
+          icon: 'edit_note',
+          visible: this.permissions.can(PERMISSIONS.CLINICAL_VISITS_VIEW),
+        },
+        {
+          id: 'media',
+          label: 'Documents',
+          icon: 'folder_open',
+          visible: this.permissions.can(PERMISSIONS.PATIENT_MEDIA_VIEW),
+        },
+        {
+          id: 'consents',
+          label: 'Consents',
+          icon: 'verified_user',
+          visible: this.permissions.can(PERMISSIONS.CONSENTS_VIEW),
+        },
+      ],
+    };
+  });
 
   constructor() {
     // Load clinic settings to retrieve saved logo URL
@@ -162,7 +238,10 @@ export class AppShell {
         filter((event): event is NavigationEnd => event instanceof NavigationEnd),
         takeUntilDestroyed(),
       )
-      .subscribe(() => this.closeTransientMenus());
+      .subscribe((event) => {
+        this.currentUrl.set(event.urlAfterRedirects || event.url);
+        this.closeTransientMenus();
+      });
   }
 
   @HostListener('document:keydown.escape')

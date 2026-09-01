@@ -27,7 +27,11 @@ export const DOCUMENT_TEMPLATE_STATUS_VALUES = Object.values(DOCUMENT_TEMPLATE_S
   ...DocumentTemplateStatus[],
 ];
 
-export const GENERATED_DOCUMENT_STATUSES = { FINALIZED: 'FINALIZED', VOIDED: 'VOIDED' } as const;
+export const GENERATED_DOCUMENT_STATUSES = {
+  FINALIZED: 'FINALIZED',
+  VOIDED: 'VOIDED',
+  EXPIRED: 'EXPIRED',
+} as const;
 export type GeneratedDocumentStatus =
   (typeof GENERATED_DOCUMENT_STATUSES)[keyof typeof GENERATED_DOCUMENT_STATUSES];
 export const GENERATED_DOCUMENT_STATUS_VALUES = Object.values(GENERATED_DOCUMENT_STATUSES) as [
@@ -111,13 +115,16 @@ export interface GeneratedDocumentAttributes {
   generatedByUserId: Types.ObjectId;
   generatedByNameSnapshot: string;
   generatedAt: Date;
-  finalizedPdf: SecurePdfArtifact;
+  retentionExpiresAt: Date;
+  finalizedPdf: SecurePdfArtifact | null;
   idempotencyKey: string;
   payloadDigest: string;
   status: GeneratedDocumentStatus;
   voidedAt: Date | null;
   voidedByUserId: Types.ObjectId | null;
   voidReason: string | null;
+  deletedAt: Date | null;
+  deletionReason: string | null;
   createdAt: Date;
 }
 export type GeneratedDocumentRecord = GeneratedDocumentAttributes & { _id: Types.ObjectId };
@@ -158,7 +165,13 @@ export interface GeneratedDocumentDto {
   id: string; patientId: string; documentRef: string; templateId: string; templateCode: string;
   templateVersion: number; versionLabel: string; category: DocumentCategory; title: string;
   contentSnapshot: ResolvedDocumentBlock[]; contextSnapshot: GeneratedDocumentContextSnapshot;
-  generatedByName: string; generatedAt: string; pdfSha256: string; pdfByteSize: number;
+  generatedByName: string; generatedAt: string;
+  retentionExpiresAt: string;
+  isExpired: boolean;
+  expiresInDays: number | null;
+  deletedAt: string | null;
+  pdfSha256: string | null;
+  pdfByteSize: number | null;
   status: GeneratedDocumentStatus; voidedAt: string | null; voidReason: string | null;
   pdfDownloadPath: string;
 }

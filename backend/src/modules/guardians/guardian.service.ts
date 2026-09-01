@@ -5,6 +5,7 @@ import { withTransaction } from '../../infrastructure/database/transaction.js';
 import { auditLogService, type AuditLogService } from '../audit-logs/audit-log.service.js';
 import { AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '../audit-logs/audit-log.types.js';
 import { patientRepository, type PatientRepository } from '../patients/patient.repository.js';
+import { userRepository, type UserRepository } from '../users/user.repository.js';
 import { toGuardianDto } from './guardian.mapper.js';
 import { guardianRepository, type GuardianRepository } from './guardian.repository.js';
 import {
@@ -27,6 +28,7 @@ export class GuardianService {
     private readonly guardians: GuardianRepository = guardianRepository,
     private readonly relationships: PatientGuardianRepository = patientGuardianRepository,
     private readonly audit: AuditLogService = auditLogService,
+    private readonly users: UserRepository = userRepository,
   ) {}
 
   async listForPatient(clinicId: string, patientId: string): Promise<GuardianDto[]> {
@@ -50,6 +52,23 @@ export class GuardianService {
     context: MutationContext,
   ): Promise<GuardianDto> {
     await this.assertPatient(clinicId, patientId);
+    if (input.email) {
+      const normalizedEmail = input.email.trim().toLowerCase();
+      const staffUser = await this.users.findByEmail(normalizedEmail);
+      if (staffUser) {
+        throw new ConflictError(
+          'Cet email est déjà utilisé par un compte professionnel du cabinet. Veuillez renseigner une adresse email distincte pour le tuteur / parent.',
+          { code: ERROR_CODES.EMAIL_ALREADY_REGISTERED },
+        );
+      }
+      const existingInClinic = await this.guardians.findByEmailInClinic(normalizedEmail, clinicId);
+      if (existingInClinic) {
+        throw new ConflictError(
+          'Un tuteur avec cette adresse email existe déjà dans la clinique. Veuillez lier le tuteur existant.',
+          { code: ERROR_CODES.EMAIL_ALREADY_REGISTERED },
+        );
+      }
+    }
     return withTransaction(async (session) => {
       if (input.isPrimary) {
         await this.relationships.clearPrimary(patientId, clinicId, session);
@@ -175,6 +194,24 @@ export class GuardianService {
       throw new NotFoundError('Guardian not found for this patient', {
         code: ERROR_CODES.GUARDIAN_NOT_FOUND,
       });
+    }
+
+    if (changes.email) {
+      const normalizedEmail = changes.email.trim().toLowerCase();
+      const staffUser = await this.users.findByEmail(normalizedEmail);
+      if (staffUser) {
+        throw new ConflictError(
+          'Cet email est déjà utilisé par un compte professionnel du cabinet. Veuillez renseigner une adresse email distincte pour le tuteur / parent.',
+          { code: ERROR_CODES.EMAIL_ALREADY_REGISTERED },
+        );
+      }
+      const existingInClinic = await this.guardians.findByEmailInClinic(normalizedEmail, clinicId);
+      if (existingInClinic && existingInClinic._id.toString() !== guardianId) {
+        throw new ConflictError(
+          'Un tuteur avec cette adresse email existe déjà dans la clinique. Veuillez lier le tuteur existant.',
+          { code: ERROR_CODES.EMAIL_ALREADY_REGISTERED },
+        );
+      }
     }
 
     return withTransaction(async (session) => {

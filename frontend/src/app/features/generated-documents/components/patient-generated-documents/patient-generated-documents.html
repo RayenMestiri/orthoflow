@@ -1,16 +1,60 @@
 <section class="documents" aria-labelledby="generated-documents-title">
   <header class="documents__header">
     <div>
-      <span class="eyebrow">Finalized records</span>
-      <h3 id="generated-documents-title">Generated documents</h3>
-      <p>Clinic-approved PDFs created from authoritative patient, appointment and finance data.</p>
+      <span class="eyebrow">Dossier médical & Documents</span>
+      <h3 id="generated-documents-title">Documents générés</h3>
+      <p>Certificats, courriers et bilans officiels générés à partir des données cliniques du patient.</p>
     </div>
-    @if (canGenerate() && templates().length) {
+    @if (canGenerate()) {
       <button type="button" class="button button--primary" (click)="openCreate()">
-        <span class="material-icons" aria-hidden="true">note_add</span>Generate document
+        <span class="material-icons" aria-hidden="true">note_add</span>Générer un document
       </button>
     }
   </header>
+
+  @if (documents().length > 0) {
+    <div class="documents__filter-bar">
+      <div class="filter-tabs" role="tablist" aria-label="Filtrer les documents">
+        <button
+          type="button"
+          role="tab"
+          class="filter-tab"
+          [class.filter-tab--active]="activeFilter() === 'ALL'"
+          [attr.aria-selected]="activeFilter() === 'ALL'"
+          (click)="setFilter('ALL')"
+        >
+          <span class="material-icons" aria-hidden="true">folder</span>
+          <span>Tous les documents</span>
+          <span class="count-pill">{{ totalCount() }}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="filter-tab"
+          [class.filter-tab--active]="activeFilter() === 'ACTIVE'"
+          [attr.aria-selected]="activeFilter() === 'ACTIVE'"
+          (click)="setFilter('ACTIVE')"
+        >
+          <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
+          <span>Actifs (PDF dispo)</span>
+          <span class="count-pill count-pill--active">{{ activeCount() }}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="filter-tab"
+          [class.filter-tab--active]="activeFilter() === 'EXPIRED'"
+          [attr.aria-selected]="activeFilter() === 'EXPIRED'"
+          (click)="setFilter('EXPIRED')"
+        >
+          <span class="material-icons" aria-hidden="true">history_toggle_off</span>
+          <span>Archives expirées (30j)</span>
+          <span class="count-pill count-pill--expired">{{ expiredCount() }}</span>
+        </button>
+      </div>
+    </div>
+  }
+
   @if (notice(); as message) {
     <div class="notice" role="status">{{ message }}</div>
   }
@@ -21,37 +65,99 @@
     </div>
   }
   @if (loading()) {
-    <div class="state" role="status">Loading generated documents…</div>
+    <div class="state" role="status">Chargement des documents générés…</div>
   } @else if (!documents().length) {
     <div class="empty">
       <span class="material-icons" aria-hidden="true">description</span>
       <div>
-        <strong>No generated documents yet</strong>
-        <p>Finalized certificates, summaries and statements will remain available here.</p>
+        <strong>Aucun document généré</strong>
+        <p>Les certificats, courriers et synthèses générés pour ce patient apparaîtront ici.</p>
+        @if (canGenerate()) {
+          <button type="button" class="button button--primary" style="margin-top: 0.85rem;" (click)="openCreate()">
+            <span class="material-icons" aria-hidden="true">note_add</span>Générer le premier document
+          </button>
+        }
+      </div>
+    </div>
+  } @else if (!filteredDocuments().length) {
+    <div class="empty empty--filtered">
+      <span class="material-icons" aria-hidden="true">filter_alt_off</span>
+      <div>
+        <strong>Aucun document dans cette catégorie</strong>
+        <p>Aucun document ne correspond au filtre sélectionné.</p>
       </div>
     </div>
   } @else {
     <div class="document-list">
-      @for (item of documents(); track item.id) {
-        <article class="document-row" [attr.data-status]="item.status">
-          <span class="document-row__icon material-icons" aria-hidden="true">picture_as_pdf</span>
+      @for (item of filteredDocuments(); track item.id) {
+        <article class="document-row" [attr.data-status]="item.status" [class.document-row--expired]="item.isExpired">
+          <span class="document-row__icon material-icons" aria-hidden="true">
+            {{ item.isExpired || item.status === 'EXPIRED' ? 'history_toggle_off' : 'picture_as_pdf' }}
+          </span>
           <div class="document-row__main">
-            <strong>{{ item.title }}</strong
-            ><span>{{ item.documentRef }} · {{ categoryLabels[item.category] }}</span
-            ><small
-              >Generated {{ item.generatedAt | date: 'medium' }} by {{ item.generatedByName }} ·
+            <div class="document-row__headline">
+              <strong>{{ item.title }}</strong>
+              @if (item.status === 'EXPIRED' || item.isExpired) {
+                <span class="retention-badge retention-badge--expired">
+                  <span class="material-icons" aria-hidden="true">auto_delete</span>
+                  Supprimé après 30 jours
+                </span>
+              } @else if (item.expiresInDays !== null && item.expiresInDays <= 3) {
+                <span class="retention-badge retention-badge--expiring">
+                  <span class="material-icons" aria-hidden="true">hourglass_bottom</span>
+                  Expire dans {{ item.expiresInDays === 0 ? "quelques heures" : item.expiresInDays + (item.expiresInDays === 1 ? ' jour' : ' jours') }}
+                </span>
+              } @else if (item.retentionExpiresAt) {
+                <span class="retention-badge retention-badge--active">
+                  <span class="material-icons" aria-hidden="true">event_available</span>
+                  Disponible jusqu'au {{ item.retentionExpiresAt | date: 'dd MMM yyyy' }}
+                </span>
+              }
+            </div>
+            <span>{{ item.documentRef }} · {{ categoryLabels[item.category] }}</span>
+            <small
+              >Généré le {{ item.generatedAt | date: 'medium' }} par {{ item.generatedByName }} ·
               {{ item.versionLabel }}</small
             >
             @if (item.status === 'VOIDED') {
-              <em>Void{{ item.voidReason ? ': ' + item.voidReason : '' }}</em>
+              <em class="document-row__void-note">Invalidé{{ item.voidReason ? ' : ' + item.voidReason : '' }}</em>
+            }
+            @if (item.isExpired || item.status === 'EXPIRED') {
+              <p class="document-row__retention-note">
+                <span class="material-icons" aria-hidden="true">info</span>
+                Le fichier PDF a été purgé automatiquement après 30 jours. L'archive des métadonnées et son contenu sont conservés.
+              </p>
             }
           </div>
-          <span class="badge">{{ item.status }}</span>
+          <span class="badge" [attr.data-status]="item.status">
+            {{ item.status === 'EXPIRED' || item.isExpired ? 'EXPIRÉ' : item.status }}
+          </span>
           <div class="document-row__actions">
-            <button type="button" (click)="openPdf(item)">
-              <span class="material-icons" aria-hidden="true">open_in_new</span>Open PDF
-            </button>
-            @if (canShare() && item.status === 'FINALIZED' && guardians().length) {
+            @if (!item.isExpired && item.status !== 'EXPIRED') {
+              <button type="button" class="btn-action" (click)="openPdf(item)">
+                <span class="material-icons" aria-hidden="true">open_in_new</span>Ouvrir PDF
+              </button>
+            } @else {
+              <button
+                type="button"
+                class="btn-action btn-action--archive"
+                (click)="viewArchive(item)"
+                title="Voir l'archive certifiée et le contenu"
+              >
+                <span class="material-icons" aria-hidden="true">visibility</span>Voir l'archive
+              </button>
+              @if (canGenerate()) {
+                <button
+                  type="button"
+                  class="btn-action btn-action--regenerate"
+                  (click)="regenerateDocument(item)"
+                  title="Générer un nouveau PDF officiel à partir de ce modèle"
+                >
+                  <span class="material-icons" aria-hidden="true">restart_alt</span>Régénérer PDF
+                </button>
+              }
+            }
+            @if (canShare() && item.status === 'FINALIZED' && !item.isExpired && guardians().length) {
               <select
                 aria-label="Guardian to share with"
                 [value]="shareGuardianId() || guardians()[0]?.id"
@@ -61,12 +167,11 @@
                   <option [value]="guardian.id">{{ guardian.fullName }}</option>
                 }</select
               ><button type="button" [disabled]="saving()" (click)="shareDocument(item)">
-                <span class="material-icons" aria-hidden="true">family_restroom</span>Share to
-                portal
+                <span class="material-icons" aria-hidden="true">family_restroom</span>Partager au portail
               </button>
             }
-            @if (canVoid() && item.status === 'FINALIZED') {
-              <button type="button" class="danger" (click)="requestVoid(item)">Void</button>
+            @if (canVoid() && item.status === 'FINALIZED' && !item.isExpired) {
+              <button type="button" class="danger" (click)="requestVoid(item)">Invalider</button>
             }
           </div>
         </article>
@@ -312,3 +417,121 @@
     </section>
   </div>
 }
+
+@if (archiveTarget(); as archive) {
+  <div
+    class="overlay overlay--archive"
+    role="presentation"
+    (click)="closeArchive()"
+    (keydown.escape)="closeArchive()"
+  >
+    <section
+      class="archive-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="archive-dialog-title"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+      (click)="$event.stopPropagation()"
+      (keydown)="$event.stopPropagation()"
+    >
+      <header class="archive-dialog__header">
+        <div class="archive-dialog__header-text">
+          <span class="eyebrow">Archive certifiée · Rétention 30 jours</span>
+          <h2 id="archive-dialog-title">{{ archive.title }}</h2>
+          <p>{{ archive.documentRef }} · {{ categoryLabels[archive.category] }}</p>
+        </div>
+        <button type="button" class="icon-button" aria-label="Fermer" (click)="closeArchive()">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </header>
+
+      <div class="archive-dialog__body">
+        <div class="archive-notice">
+          <span class="material-icons" aria-hidden="true">auto_delete</span>
+          <div>
+            <strong>Fichier PDF purgé après le délai de 30 jours</strong>
+            <p>
+              Conformément à la politique de rétention temporaire, le fichier binaire a été supprimé.
+              L'intégralité du contenu, des valeurs cliniques et des métadonnées ci-dessous restent certifiés et conservés dans l'historique du patient.
+            </p>
+          </div>
+        </div>
+
+        <div class="archive-meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Référence légale</span>
+            <span class="meta-value">{{ archive.documentRef }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Date de création</span>
+            <span class="meta-value">{{ archive.generatedAt | date: 'medium' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Émis par</span>
+            <span class="meta-value">{{ archive.generatedByName }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Version modèle</span>
+            <span class="meta-value">{{ archive.versionLabel }}</span>
+          </div>
+        </div>
+
+        <section class="archive-preview">
+          <h3>Contenu structuré archivé</h3>
+          @for (block of archive.contentSnapshot; track $index) {
+            @if (block.kind === 'HEADING') {
+              <h4 [class.level-1]="block.level === 1">{{ block.text }}</h4>
+            } @else if (block.kind === 'PARAGRAPH') {
+              <p>{{ block.text }}</p>
+            } @else if (block.kind === 'KEY_VALUE') {
+              <dl><dt>{{ block.label }}</dt><dd>{{ block.value }}</dd></dl>
+            } @else if (block.kind === 'DIVIDER') {
+              <hr />
+            } @else if (block.kind === 'SIGNATURE_LINE') {
+              <div class="signature-line">{{ block.label || 'Signature' }}</div>
+            } @else if (block.kind === 'DATA_TABLE' && block.columns && block.rows) {
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      @for (col of block.columns; track col.key) {
+                        <th>{{ col.label }}</th>
+                      }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of block.rows; track $index) {
+                      <tr>
+                        @for (col of block.columns; track col.key) {
+                          <td>{{ cell(block, row, col.key) }}</td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
+        </section>
+      </div>
+
+      <footer class="archive-dialog__footer">
+        <button type="button" class="button button--secondary" (click)="closeArchive()">
+          Fermer
+        </button>
+        @if (canGenerate()) {
+          <button
+            type="button"
+            class="button button--primary"
+            (click)="regenerateDocument(archive)"
+          >
+            <span class="material-icons" aria-hidden="true">restart_alt</span>
+            Régénérer ce document (Nouveau PDF)
+          </button>
+        }
+      </footer>
+    </section>
+  </div>
+}
+

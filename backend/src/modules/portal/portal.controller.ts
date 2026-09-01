@@ -24,8 +24,14 @@ function portal(request: FastifyRequest) {
   if (!request.portalUser) throw new UnauthorizedError('Portal authentication required');
   return request.portalUser;
 }
+export async function getPortalDashboardHandler(request: FastifyRequest, reply: FastifyReply) {
+  return reply.send(ok(await portalReadService.dashboard(portal(request))));
+}
 export async function listPortalChildrenHandler(request: FastifyRequest, reply: FastifyReply) {
   return reply.send(ok(await portalReadService.children(portal(request))));
+}
+export async function listAllPortalConsentsHandler(request: FastifyRequest, reply: FastifyReply) {
+  return reply.send(ok(await portalReadService.allConsents(portal(request))));
 }
 export async function getPortalChildOverviewHandler(request: FastifyRequest, reply: FastifyReply) {
   return reply.send(

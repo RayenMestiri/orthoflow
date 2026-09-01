@@ -21,8 +21,8 @@ export const patientMediaDtoSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
   storageProvider: z.string(),
-  /** Short-lived URL; durable Cloudinary asset URLs are never serialized. */
-  contentUrl: z.url(),
+  /** Short-lived or direct media URL; accepts any valid string or empty fallback. */
+  contentUrl: z.string(),
   originalFileName: z.string(),
   mimeType: z.string(),
   fileSizeBytes: z.number().int().positive(),
@@ -38,6 +38,11 @@ export const patientMediaDtoSchema = z.object({
   archiveReason: z.string().nullable(),
   createdAt: isoDateTimeSchema,
   updatedAt: isoDateTimeSchema,
+});
+
+export const patientMediaDeleteResponseSchema = z.object({
+  deleted: z.boolean(),
+  id: objectIdSchema.optional(),
 });
 
 export const patientMediaIdParamSchema = z.object({ mediaId: objectIdSchema });

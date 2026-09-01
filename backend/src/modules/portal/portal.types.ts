@@ -169,3 +169,49 @@ export interface PortalReceiptDto {
   payerName: string | null;
   cancellationReason: string | null;
 }
+
+export interface PortalActionItemDto {
+  id: string;
+  type: 'APPOINTMENT' | 'CONSENT' | 'FOLLOW_UP' | 'DOCUMENT' | 'PAYMENT';
+  priority: 'HIGH' | 'NORMAL';
+  title: string;
+  subtitle: string;
+  date: string | null;
+  patientId: string;
+  patientName: string;
+  actionLabel: string;
+  actionUrl: string;
+}
+
+export interface PortalDashboardDto {
+  guardian: {
+    id: string;
+    fullName: string;
+    email: string;
+    guardianId: string;
+  };
+  clinic: {
+    id: string;
+    name: string;
+    phone: string | null;
+    email: string | null;
+    timezone: string;
+    currency: string;
+  };
+  children: PortalChildSummaryDto[];
+  nextAppointment: PortalAppointmentDto | null;
+  actionItems: PortalActionItemDto[];
+  recentDocumentsCount: number;
+}
+
+export interface PortalConsentItemDto {
+  id: string;
+  patientId: string;
+  patientName: string;
+  title: string;
+  category: string;
+  status: string;
+  signedAt: string;
+  signerName: string;
+  downloadPath: string;
+}

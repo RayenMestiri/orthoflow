@@ -158,7 +158,7 @@ describe('PatientMediaService', () => {
     );
 
     expect(result.patientId).toBe(PATIENT_ID);
-    expect(result.contentUrl).toContain('/private/');
+    expect(result.contentUrl).toBe('https://res.cloudinary.com/demo/image/upload/opaque-media-id.jpg');
     expect(result).not.toHaveProperty('secureUrl');
     expect(storage.upload).toHaveBeenCalledWith(
       expect.objectContaining({ clinicId: CLINIC_ID, subfolders: [PATIENT_ID] }),

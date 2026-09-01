@@ -78,6 +78,9 @@ export function toClinicSettingsDto(record: ClinicRecord): ClinicSettingsDto {
       missedAppointmentRebookGraceDays:
         stored?.careContinuity?.missedAppointmentRebookGraceDays ??
         DEFAULT_CLINIC_SETTINGS.careContinuity.missedAppointmentRebookGraceDays,
+      documentRetentionDays:
+        stored?.careContinuity?.documentRetentionDays ??
+        DEFAULT_CLINIC_SETTINGS.careContinuity.documentRetentionDays,
     },
     communications: {
       appointmentRemindersEnabled:

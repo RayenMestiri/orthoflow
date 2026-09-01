@@ -5,5 +5,35 @@ export function toDocumentTemplateDto(record: DocumentTemplateRecord): DocumentT
 }
 
 export function toGeneratedDocumentDto(record: GeneratedDocumentRecord): GeneratedDocumentDto {
-  return { id: record._id.toString(), patientId: record.patientId.toString(), documentRef: record.documentRef, templateId: record.templateId.toString(), templateCode: record.templateCode, templateVersion: record.templateVersion, versionLabel: `v${record.templateVersion}`, category: record.category, title: record.titleSnapshot, contentSnapshot: record.contentSnapshot, contextSnapshot: record.contextSnapshot, generatedByName: record.generatedByNameSnapshot, generatedAt: record.generatedAt.toISOString(), pdfSha256: record.finalizedPdf.sha256, pdfByteSize: record.finalizedPdf.byteSize, status: record.status, voidedAt: record.voidedAt?.toISOString() ?? null, voidReason: record.voidReason, pdfDownloadPath: `/api/v1/generated-documents/${record._id.toString()}/pdf` };
+  const now = new Date();
+  const expiresAt = record.retentionExpiresAt ?? new Date(record.generatedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const isExpired = record.status === 'EXPIRED' || record.deletedAt !== null || now >= expiresAt;
+  const diffMs = expiresAt.getTime() - now.getTime();
+  const expiresInDays = isExpired ? null : Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
+
+  return {
+    id: record._id.toString(),
+    patientId: record.patientId.toString(),
+    documentRef: record.documentRef,
+    templateId: record.templateId.toString(),
+    templateCode: record.templateCode,
+    templateVersion: record.templateVersion,
+    versionLabel: `v${record.templateVersion}`,
+    category: record.category,
+    title: record.titleSnapshot,
+    contentSnapshot: record.contentSnapshot,
+    contextSnapshot: record.contextSnapshot,
+    generatedByName: record.generatedByNameSnapshot,
+    generatedAt: record.generatedAt.toISOString(),
+    retentionExpiresAt: expiresAt.toISOString(),
+    isExpired,
+    expiresInDays,
+    deletedAt: record.deletedAt?.toISOString() ?? null,
+    pdfSha256: record.finalizedPdf?.sha256 ?? null,
+    pdfByteSize: record.finalizedPdf?.byteSize ?? null,
+    status: record.status,
+    voidedAt: record.voidedAt?.toISOString() ?? null,
+    voidReason: record.voidReason,
+    pdfDownloadPath: `/api/v1/generated-documents/${record._id.toString()}/pdf`,
+  };
 }

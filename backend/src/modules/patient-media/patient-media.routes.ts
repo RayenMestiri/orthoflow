@@ -8,6 +8,7 @@ import {
 } from '../../common/validation/api-schemas.js';
 import {
   archivePatientMediaHandler,
+  deletePatientMediaHandler,
   getPatientMediaHandler,
   listPatientMediaHandler,
   replacePatientMediaHandler,
@@ -17,6 +18,7 @@ import {
 } from './patient-media.controller.js';
 import {
   archivePatientMediaBodySchema,
+  patientMediaDeleteResponseSchema,
   patientMediaDtoSchema,
   patientMediaIdParamSchema,
   patientMediaListQuerySchema,
@@ -184,5 +186,25 @@ export const patientMediaRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     replacePatientMediaHandler,
+  );
+
+  // DELETE /:mediaId — permanently delete file from database and Cloudinary storage
+  app.delete(
+    '/:mediaId',
+    {
+      preHandler: [app.requirePermission(PERMISSIONS.PATIENT_MEDIA_MANAGE)],
+      schema: {
+        tags: ['patient-media'],
+        summary: 'Permanently delete patient media',
+        description: 'Permanently removes the document/photo and deletes its asset from cloud storage.',
+        security: [{ bearerAuth: [] }],
+        params: patientMediaIdParamSchema,
+        response: {
+          200: successSchema(patientMediaDeleteResponseSchema),
+          ...errorResponses(400, 401, 403, 404),
+        },
+      },
+    },
+    deletePatientMediaHandler,
   );
 };

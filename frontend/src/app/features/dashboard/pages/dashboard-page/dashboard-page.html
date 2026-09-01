@@ -234,7 +234,7 @@
       <!-- ========================================== -->
       <!-- 2. FINANCIAL PULSE (4 COLS)               -->
       <!-- ========================================== -->
-      @if (canViewFinance() && data.finance; as fin) {
+      @if (canViewFinancialOverview() && data.finance; as fin) {
         <section
           class="dash-card dash-col-4 dash-finance-pulse"
           aria-labelledby="finance-pulse-heading"
@@ -497,14 +497,14 @@
                 traiter
               </span>
               <span class="fu-stat scheduled">
-                <strong>{{ taskSection.summary.completedToday }}</strong> terminées auj.
+                <strong>{{ taskSection.summary.completedToday ?? 0 }}</strong> terminées auj.
               </span>
             </div>
 
             <!-- Top Tasks List -->
-            @if (taskSection.topTasks.length > 0) {
+            @if (((taskSection.topTasks ?? taskSection.myTasks)?.length ?? 0) > 0) {
               <ul class="dash-followups-list">
-                @for (task of taskSection.topTasks; track task.id) {
+                @for (task of (taskSection.topTasks ?? taskSection.myTasks ?? []); track task.id) {
                   <li class="dash-fu-item" [class.is-overdue]="task.isOverdue">
                     <div class="dash-fu-item__meta">
                       <div class="dash-fu-item__name-row">

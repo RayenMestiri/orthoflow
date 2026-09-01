@@ -17,6 +17,7 @@ import type { SignedConsentRecord } from '../consents/consent.types.js';
 import { GeneratedDocumentModel } from '../generated-documents/generated-document.model.js';
 import type { GeneratedDocumentRecord } from '../generated-documents/generated-document.types.js';
 import { generatedDocumentService } from '../generated-documents/generated-document.service.js';
+import { guardianRepository } from '../guardians/guardian.repository.js';
 import { PatientGuardianModel } from '../guardians/patient-guardian.model.js';
 import type { PatientGuardianRecord } from '../guardians/guardian.types.js';
 import { PatientModel } from '../patients/patient.model.js';
@@ -31,10 +32,13 @@ import { auditLogService } from '../audit-logs/audit-log.service.js';
 import { AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '../audit-logs/audit-log.types.js';
 import type {
   AuthenticatedPortalUser,
+  PortalActionItemDto,
   PortalAppointmentDto,
   PortalAppointmentStatus,
   PortalChildOverviewDto,
   PortalChildSummaryDto,
+  PortalConsentItemDto,
+  PortalDashboardDto,
   PortalReceiptDto,
   PortalVisitSummaryDto,
 } from './portal.types.js';
@@ -456,6 +460,186 @@ export class PortalReadService {
       metadata: { patientId },
     });
     return file;
+  }
+
+  async allConsents(user: AuthenticatedPortalUser): Promise<PortalConsentItemDto[]> {
+    const relations = await this.relationships(user);
+    const childIds = relations.map((item) => item.patientId.toString());
+    if (!childIds.length) return [];
+
+    const [patients, records] = await Promise.all([
+      PatientModel.find({ clinicId: oid(user.clinicId), _id: { $in: childIds.map(oid) } })
+        .lean<PatientRecord[]>()
+        .exec(),
+      SignedConsentModel.find({
+        clinicId: oid(user.clinicId),
+        patientId: { $in: childIds.map(oid) },
+        guardianId: oid(user.guardianId),
+      })
+        .sort({ signedAt: -1 })
+        .lean<SignedConsentRecord[]>()
+        .exec(),
+    ]);
+
+    const patientMap = new Map(
+      patients.map((item) => [item._id.toString(), `${item.firstName} ${item.lastName}`.trim()]),
+    );
+
+    return records.map((item) => {
+      const patientId = item.patientId.toString();
+      return {
+        id: item._id.toString(),
+        patientId,
+        patientName: patientMap.get(patientId) ?? 'Patient',
+        title: item.titleSnapshot,
+        category: item.category,
+        status: item.status,
+        signedAt: item.signedAt.toISOString(),
+        signerName: item.signerNameSnapshot,
+        downloadPath: `/portal/children/${patientId}/consents/${item._id.toString()}/pdf`,
+      };
+    });
+  }
+
+  async dashboard(user: AuthenticatedPortalUser): Promise<PortalDashboardDto> {
+    const relations = await this.relationships(user);
+    const childIds = relations.map((item) => item.patientId.toString());
+
+    const [childrenList, appointmentsList, guardian, clinic, shares, recentVisits, signedConsents] =
+      await Promise.all([
+        this.children(user),
+        this.appointments(user),
+        guardianRepository.findByIdInClinic(user.guardianId, user.clinicId),
+        ClinicModel.findById(oid(user.clinicId)).lean<ClinicRecord | null>().exec(),
+        childIds.length
+          ? portalRepository.listSharedDocuments(user.clinicId, user.guardianId, childIds)
+          : Promise.resolve([]),
+        childIds.length
+          ? ClinicalVisitModel.find({
+              clinicId: oid(user.clinicId),
+              patientId: { $in: childIds.map(oid) },
+              status: 'COMPLETED',
+            })
+              .sort({ completedAt: -1 })
+              .limit(10)
+              .lean<ClinicalVisitRecord[]>()
+              .exec()
+          : Promise.resolve([]),
+        childIds.length
+          ? SignedConsentModel.find({
+              clinicId: oid(user.clinicId),
+              patientId: { $in: childIds.map(oid) },
+              guardianId: oid(user.guardianId),
+            })
+              .sort({ signedAt: -1 })
+              .limit(10)
+              .lean<SignedConsentRecord[]>()
+              .exec()
+          : Promise.resolve([]),
+      ]);
+
+    if (!clinic || !guardian) {
+      throw new NotFoundError('Portal data not found', { code: ERROR_CODES.PATIENT_NOT_FOUND });
+    }
+
+    const now = new Date();
+    const upcomingAppointments = appointmentsList
+      .filter((item) => new Date(item.startAt) >= now && item.status !== 'CANCELLED')
+      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+    const nextAppointment = upcomingAppointments[0] ?? null;
+
+    const actionItems: PortalActionItemDto[] = [];
+
+    if (nextAppointment) {
+      const isSoon =
+        new Date(nextAppointment.startAt).getTime() - now.getTime() < 7 * 86400000;
+      actionItems.push({
+        id: `apt-${nextAppointment.id}`,
+        type: 'APPOINTMENT',
+        priority: isSoon ? 'HIGH' : 'NORMAL',
+        title: 'Prochain rendez-vous',
+        subtitle: `${nextAppointment.typeLabel} · ${nextAppointment.childName}`,
+        date: nextAppointment.startAt,
+        patientId: nextAppointment.patientId,
+        patientName: nextAppointment.childName,
+        actionLabel: 'Voir le rendez-vous',
+        actionUrl: '/portal/appointments',
+      });
+    }
+
+    for (const child of childrenList) {
+      if (child.retention?.nextRecommendedControlAt) {
+        actionItems.push({
+          id: `ret-${child.id}`,
+          type: 'FOLLOW_UP',
+          priority: 'NORMAL',
+          title: 'Contrôle de contention',
+          subtitle: `Contrôle de suivi recommandé pour ${child.fullName}`,
+          date: child.retention.nextRecommendedControlAt,
+          patientId: child.id,
+          patientName: child.fullName,
+          actionLabel: 'Consulter le suivi',
+          actionUrl: `/portal/children/${child.id}`,
+        });
+      }
+    }
+
+    for (const visit of recentVisits) {
+      if (visit.nextVisitRecommendedAt && visit.nextVisitRecommendedAt >= now) {
+        const child = childrenList.find((c) => c.id === visit.patientId.toString());
+        if (child) {
+          actionItems.push({
+            id: `vis-${visit._id.toString()}`,
+            type: 'FOLLOW_UP',
+            priority: 'NORMAL',
+            title: 'Prochaine visite recommandée',
+            subtitle: `Recommandé suite à la séance de ${child.fullName}`,
+            date: visit.nextVisitRecommendedAt.toISOString(),
+            patientId: child.id,
+            patientName: child.fullName,
+            actionLabel: 'Détails des soins',
+            actionUrl: `/portal/children/${child.id}`,
+          });
+        }
+      }
+    }
+
+    for (const consent of signedConsents.slice(0, 2)) {
+      const child = childrenList.find((c) => c.id === consent.patientId.toString());
+      actionItems.push({
+        id: `cst-${consent._id.toString()}`,
+        type: 'CONSENT',
+        priority: 'NORMAL',
+        title: 'Consentement signé',
+        subtitle: `« ${consent.titleSnapshot} » pour ${child?.fullName ?? 'votre enfant'}`,
+        date: consent.signedAt.toISOString(),
+        patientId: consent.patientId.toString(),
+        patientName: child?.fullName ?? 'Patient',
+        actionLabel: 'Consulter le PDF',
+        actionUrl: `/portal/children/${consent.patientId.toString()}/consents/${consent._id.toString()}/pdf`,
+      });
+    }
+
+    return {
+      guardian: {
+        id: user.id,
+        fullName: `${guardian.firstName} ${guardian.lastName}`.trim(),
+        email: user.email,
+        guardianId: user.guardianId,
+      },
+      clinic: {
+        id: user.clinicId,
+        name: clinic.name,
+        phone: clinic.phone,
+        email: clinic.email,
+        timezone: clinic.timezone,
+        currency: clinic.currency,
+      },
+      children: childrenList,
+      nextAppointment,
+      actionItems,
+      recentDocumentsCount: shares.length,
+    };
   }
 
   private appointmentDto(

@@ -69,6 +69,65 @@ function assertCategoryPermission(tenant: TenantContext, category: DocumentCateg
       code: ERROR_CODES.INSUFFICIENT_PERMISSIONS,
     });
 }
+const DEFAULT_CLINIC_TEMPLATES: CreateDocumentTemplateInput[] = [
+  {
+    code: 'CERT_PRESENCE',
+    title: 'Certificat de présence aux soins',
+    category: DOCUMENT_CATEGORIES.ATTENDANCE_CERTIFICATE,
+    definition: [
+      { kind: 'HEADING', level: 1, text: 'Certificat de présence aux soins' },
+      {
+        kind: 'PARAGRAPH',
+        text: "Je soussigné(e), {{doctor.fullName}}, certifie que le/la patient(e) {{patient.fullName}} s'est présenté(e) au cabinet {{clinic.name}} pour une séance de soins orthodontiques le {{appointment.date}} à {{appointment.time}}.",
+      },
+      { kind: 'DIVIDER' },
+      { kind: 'KEY_VALUE', label: 'Patient', value: '{{patient.fullName}}' },
+      { kind: 'KEY_VALUE', label: 'Date du rendez-vous', value: '{{appointment.date}} à {{appointment.time}}' },
+      { kind: 'KEY_VALUE', label: 'Type de consultation', value: '{{appointment.type}}' },
+      { kind: 'SIGNATURE_LINE', label: 'Cachet et signature du praticien' },
+    ],
+  },
+  {
+    code: 'SYNTHESE_PATIENT',
+    title: 'Synthèse de suivi orthodontique',
+    category: DOCUMENT_CATEGORIES.PATIENT_SUMMARY,
+    definition: [
+      { kind: 'HEADING', level: 1, text: 'Synthèse de suivi patient' },
+      {
+        kind: 'PARAGRAPH',
+        text: 'Document récapitulatif du dossier clinique et du suivi orthodontique.',
+      },
+      { kind: 'DIVIDER' },
+      { kind: 'KEY_VALUE', label: 'Patient', value: '{{patient.fullName}}' },
+      { kind: 'KEY_VALUE', label: 'N° de dossier', value: '{{patient.referenceNumber}}' },
+      { kind: 'KEY_VALUE', label: 'Traitement en cours', value: '{{treatment.type}} ({{treatment.status}})' },
+      { kind: 'KEY_VALUE', label: 'Date de début', value: '{{treatment.startDate}}' },
+      { kind: 'SIGNATURE_LINE', label: 'Validation du praticien' },
+    ],
+  },
+  {
+    code: 'LETTRE_CONFRERE',
+    title: 'Lettre de correspondance confrère',
+    category: DOCUMENT_CATEGORIES.REFERRAL_LETTER,
+    definition: [
+      { kind: 'HEADING', level: 1, text: 'Correspondance médicale' },
+      {
+        kind: 'PARAGRAPH',
+        text: 'À l’attention de : {{referral.recipient}}',
+      },
+      {
+        kind: 'PARAGRAPH',
+        text: 'Cher/Chère Confrère, je vous adresse {{patient.fullName}} pour avis et prise en charge concernant {{referral.reason}}.',
+      },
+      {
+        kind: 'PARAGRAPH',
+        text: '{{referral.message}}',
+      },
+      { kind: 'SIGNATURE_LINE', label: 'Confraternellement, {{doctor.fullName}}' },
+    ],
+  },
+];
+
 export class DocumentTemplateService {
   constructor(
     private readonly templates: DocumentTemplateRepository = documentTemplateRepository,
@@ -79,7 +138,19 @@ export class DocumentTemplateService {
     filters: DocumentTemplateListFilters,
     pagination: PaginationParams,
   ): Promise<PaginatedResult<DocumentTemplateDto>> {
-    const result = await this.templates.list(clinicId, filters, pagination);
+    let result = await this.templates.list(clinicId, filters, pagination);
+    if (result.total === 0 && !filters.code && !filters.category) {
+      try {
+        const templatesWithVars = DEFAULT_CLINIC_TEMPLATES.map((tpl) => ({
+          ...tpl,
+          variablesUsed: validateDocumentDefinition(tpl.category, tpl.definition),
+        }));
+        await this.templates.seedDefaults(clinicId, templatesWithVars);
+        result = await this.templates.list(clinicId, filters, pagination);
+      } catch {
+        // Ignore duplicate key if seeded concurrently
+      }
+    }
     return { items: result.items.map(toDocumentTemplateDto), total: result.total };
   }
   async create(
@@ -379,6 +450,9 @@ export class GeneratedDocumentService {
       content: pdf,
     });
     try {
+      const retentionDays = 30;
+      const retentionExpiresAt = new Date(resolved.generatedAt.getTime() + retentionDays * 24 * 60 * 60 * 1000);
+
       const record = await withTransaction(async (session) => {
         const created = await this.documents.create(
           {
@@ -395,12 +469,15 @@ export class GeneratedDocumentService {
             generatedByUserId: context.actorUserId,
             generatedByNameSnapshot: resolved.generatedByName,
             generatedAt: resolved.generatedAt,
+            retentionExpiresAt,
             finalizedPdf: artifact,
             idempotencyKey: input.idempotencyKey,
             payloadDigest,
             status: GENERATED_DOCUMENT_STATUSES.FINALIZED,
             voidedAt: null,
             voidReason: null,
+            deletedAt: null,
+            deletionReason: null,
           },
           session,
         );
@@ -417,6 +494,7 @@ export class GeneratedDocumentService {
               category: template.category,
               templateCode: template.code,
               templateVersion: template.version,
+              retentionExpiresAt: retentionExpiresAt.toISOString(),
             },
             ip: context.ip,
             userAgent: context.userAgent,
@@ -451,6 +529,19 @@ export class GeneratedDocumentService {
   }
   async downloadPdf(clinicId: string, id: string): Promise<{ content: Buffer; fileName: string }> {
     const document = await this.requireDocument(clinicId, id);
+    const now = new Date();
+    const isExpired =
+      document.status === GENERATED_DOCUMENT_STATUSES.EXPIRED ||
+      document.deletedAt !== null ||
+      !document.finalizedPdf ||
+      (document.retentionExpiresAt && now >= document.retentionExpiresAt);
+
+    if (isExpired || !document.finalizedPdf) {
+      throw new BusinessRuleError('This document has expired and its PDF file is no longer available.', {
+        code: ERROR_CODES.DOCUMENT_EXPIRED,
+      });
+    }
+
     return {
       content: await this.artifacts.downloadVerified(document.finalizedPdf),
       fileName: `${document.documentRef}.pdf`,

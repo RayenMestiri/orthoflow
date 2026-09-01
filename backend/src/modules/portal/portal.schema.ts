@@ -9,6 +9,13 @@ export const portalActivateBodySchema = z.object({
   token: z.string().min(32).max(256),
   password: passwordSchema,
 });
+export const portalForgotPasswordBodySchema = z.object({
+  email: emailSchema,
+});
+export const portalResetPasswordBodySchema = z.object({
+  token: z.string().min(32).max(256),
+  password: passwordSchema,
+});
 export const portalLoginBodySchema = z.object({
   email: emailSchema,
   password: z.string().min(1).max(128),
@@ -33,6 +40,8 @@ export const portalConsentParamSchema = portalChildParamSchema.extend({
 export const portalRevokeBodySchema = z.object({ reason: z.string().trim().min(3).max(500) });
 export const portalShareBodySchema = z.object({ guardianId: objectIdSchema });
 export type PortalActivateBody = z.infer<typeof portalActivateBodySchema>;
+export type PortalForgotPasswordBody = z.infer<typeof portalForgotPasswordBodySchema>;
+export type PortalResetPasswordBody = z.infer<typeof portalResetPasswordBodySchema>;
 export type PortalLoginBody = z.infer<typeof portalLoginBodySchema>;
 export type PortalRefreshBody = z.infer<typeof portalRefreshBodySchema>;
 export type PortalLogoutBody = z.infer<typeof portalLogoutBodySchema>;

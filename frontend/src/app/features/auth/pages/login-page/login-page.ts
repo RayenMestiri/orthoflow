@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthStore } from '../../../../core/auth/auth.store';
@@ -12,7 +12,7 @@ import { AuthFrame } from '../../components/auth-frame/auth-frame';
   styleUrl: './login-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginPage {
+export class LoginPage implements OnInit {
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly auth = inject(AuthStore);
   private readonly router = inject(Router);
@@ -21,11 +21,27 @@ export class LoginPage {
   readonly passwordVisible = signal(false);
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly isPortalAccount = signal(false);
+  readonly copiedNotice = signal<string | null>(null);
 
   readonly form = this.formBuilder.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.maxLength(128)]],
   });
+
+  ngOnInit(): void {
+    const emailParam = this.route.snapshot.queryParamMap.get('email');
+    const copiedParam = this.route.snapshot.queryParamMap.get('copied');
+
+    if (emailParam) {
+      this.form.controls.email.setValue(emailParam);
+    }
+    if (copiedParam === 'true') {
+      this.copiedNotice.set(
+        "✨ Coordonnées transmises : Bienvenue sur l'Espace Cabinet OrthoFlow. Vos identifiants ont été pré-remplis.",
+      );
+    }
+  }
 
   togglePassword(): void {
     this.passwordVisible.update((visible) => !visible);
@@ -33,6 +49,8 @@ export class LoginPage {
 
   async submit(): Promise<void> {
     this.errorMessage.set(null);
+    this.isPortalAccount.set(false);
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -51,6 +69,9 @@ export class LoginPage {
           queryParams: { email: this.form.controls.email.value },
         });
         return;
+      }
+      if (problem.code === 'PORTAL_ACCOUNT_DETECTED') {
+        this.isPortalAccount.set(true);
       }
       this.errorMessage.set(problem.message);
     } finally {

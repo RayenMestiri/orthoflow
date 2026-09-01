@@ -116,6 +116,52 @@ export interface PortalReceipt {
   payerName: string | null;
   cancellationReason: string | null;
 }
+export interface PortalConsentItem {
+  id: string;
+  patientId: string;
+  patientName: string;
+  title: string;
+  category: string;
+  status: string;
+  signedAt: string;
+  signerName: string;
+  downloadPath: string;
+}
+
+export interface PortalActionItem {
+  id: string;
+  type: 'APPOINTMENT' | 'CONSENT' | 'FOLLOW_UP' | 'DOCUMENT' | 'PAYMENT';
+  priority: 'HIGH' | 'NORMAL';
+  title: string;
+  subtitle: string;
+  date: string | null;
+  patientId: string;
+  patientName: string;
+  actionLabel: string;
+  actionUrl: string;
+}
+
+export interface PortalDashboard {
+  guardian: {
+    id: string;
+    fullName: string;
+    email: string;
+    guardianId: string;
+  };
+  clinic: {
+    id: string;
+    name: string;
+    phone: string | null;
+    email: string | null;
+    timezone: string;
+    currency: string;
+  };
+  children: PortalChildSummary[];
+  nextAppointment: PortalAppointment | null;
+  actionItems: PortalActionItem[];
+  recentDocumentsCount: number;
+}
+
 export interface ApiEnvelope<T> {
   success: true;
   data: T;

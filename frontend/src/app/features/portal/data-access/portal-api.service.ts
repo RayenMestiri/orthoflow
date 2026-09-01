@@ -24,6 +24,12 @@ export class PortalApiService {
   activate(token: string, password: string): Observable<PortalSession> {
     return this.post<PortalSession>('auth/activate', { token, password });
   }
+  forgotPassword(email: string): Observable<{ message: string }> {
+    return this.post<{ message: string }>('auth/forgot-password', { email });
+  }
+  resetPassword(token: string, password: string): Observable<{ email: string; message: string }> {
+    return this.post<{ email: string; message: string }>('auth/reset-password', { token, password });
+  }
   login(email: string, password: string): Observable<PortalSession> {
     return this.post<PortalSession>('auth/login', { email, password });
   }
@@ -35,6 +41,12 @@ export class PortalApiService {
   }
   me(): Observable<PortalProfile> {
     return this.get<PortalProfile>('auth/me');
+  }
+  dashboard(): Observable<import('../models/portal.models').PortalDashboard> {
+    return this.get<import('../models/portal.models').PortalDashboard>('dashboard');
+  }
+  allConsents(): Observable<import('../models/portal.models').PortalConsentItem[]> {
+    return this.get<import('../models/portal.models').PortalConsentItem[]>('consents');
   }
   children(): Observable<PortalChildSummary[]> {
     return this.get<PortalChildSummary[]>('children');

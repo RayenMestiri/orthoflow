@@ -17,6 +17,7 @@ export const AUDIT_ACTIONS = {
   PORTAL_ACTIVATED: 'portal.activated',
   PORTAL_LOGIN: 'portal.login',
   PORTAL_LOGOUT: 'portal.logout',
+  PORTAL_PASSWORD_RESET: 'portal.password_reset',
   PORTAL_REFRESH_REUSE_DETECTED: 'portal.refresh_reuse_detected',
   PORTAL_ACCESS_REVOKED: 'portal.access_revoked',
   PORTAL_DOCUMENT_SHARED: 'portal.document_shared',
@@ -100,6 +101,9 @@ export const AUDIT_ACTIONS = {
   DOCUMENT_TEMPLATE_ARCHIVED: 'document_template.archived',
   GENERATED_DOCUMENT_FINALIZED: 'generated_document.finalized',
   GENERATED_DOCUMENT_VOIDED: 'generated_document.voided',
+  GENERATED_DOCUMENT_EXPIRED: 'generated_document.expired',
+  GENERATED_DOCUMENT_STORAGE_DELETED: 'generated_document.storage_deleted',
+  GENERATED_DOCUMENT_CLEANUP_FAILED: 'generated_document.cleanup_failed',
 
   CLINICAL_VISIT_CREATED: 'clinical_visit.created',
   CLINICAL_VISIT_UPDATED: 'clinical_visit.updated',

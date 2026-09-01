@@ -15,6 +15,9 @@ vi.mock('../../src/modules/memberships/membership.repository.js', async () => ({
 vi.mock('../../src/modules/clinics/clinic.repository.js', async () => ({
   clinicRepository: (await import('../helpers/repository-mocks.js')).clinicRepositoryMock,
 }));
+vi.mock('../../src/modules/portal/portal.repository.js', async () => ({
+  portalRepository: (await import('../helpers/repository-mocks.js')).portalRepositoryMock,
+}));
 
 /**
  * Login is the endpoint worth brute-forcing, so it has a much smaller budget

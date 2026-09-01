@@ -1,35 +1,125 @@
 <div class="portal-shell">
+  <!-- Top Navigation Header -->
   <header class="portal-header">
-    <a class="portal-brand" routerLink="/portal/home" aria-label="OrthoFlow parent portal"
-      ><span class="portal-brand__mark">O</span
-      ><span>OrthoFlow<small>Family portal</small></span></a
-    >
-    <div class="portal-header__clinic">
-      <span>{{ auth.profile()?.clinic?.name }}</span
-      ><button type="button" (click)="logout()">Sign out</button>
+    <div class="portal-header__left">
+      <a class="portal-brand" routerLink="/portal/home" aria-label="OrthoFlow Espace Patient & Famille">
+        <div class="portal-brand__mark">
+          <svg class="brand-svg" viewBox="0 0 36 36" aria-hidden="true">
+            <path
+              class="brand-svg__shape"
+              d="M8.8 8.7c3.4-3.5 15-3.5 18.4 0 3 3.1 1.4 8.1-.8 11.7-1.8 3-2 8.8-5 8.8-2.1 0-1.4-5.8-3.4-5.8s-1.3 5.8-3.4 5.8c-3 0-3.2-5.8-5-8.8-2.2-3.6-3.8-8.6-.8-11.7Z"
+            />
+            <path class="brand-svg__line" d="M11.5 15.5h13" />
+          </svg>
+        </div>
+        <div class="portal-brand__text">
+          <div class="brand-title-wrap">
+            <span class="brand-name">Ortho<span class="brand-name--highlight">Flow</span></span>
+            <span class="brand-badge">PATIENT</span>
+          </div>
+          <span class="brand-tag">Espace Patient &amp; Famille</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="portal-header__right">
+      @if (auth.profile()?.clinic; as clinic) {
+        <div class="clinic-badge" [title]="clinic.name">
+          <span class="material-icons clinic-badge__icon" aria-hidden="true">verified</span>
+          <span class="clinic-badge__name">{{ clinic.name }}</span>
+        </div>
+      }
+
+      <div class="guardian-chip">
+        <div class="guardian-avatar">
+          {{ auth.profile()?.fullName?.charAt(0) || 'P' }}
+        </div>
+        <span class="guardian-name">{{ auth.profile()?.fullName }}</span>
+        <button class="logout-btn" type="button" aria-label="Se déconnecter" (click)="logout()" title="Se déconnecter">
+          <span class="material-icons" aria-hidden="true">logout</span>
+          <span class="logout-text">Déconnexion</span>
+        </button>
+      </div>
     </div>
   </header>
+
+  <!-- Main Content Layout -->
   <div class="portal-layout">
-    <nav class="portal-nav" aria-label="Family portal">
-      <a routerLink="/portal/home" routerLinkActive="active"
-        ><span class="material-icons" aria-hidden="true">home</span>Home</a
-      >
-      <a routerLink="/portal/children" routerLinkActive="active"
-        ><span class="material-icons" aria-hidden="true">family_restroom</span>My children</a
-      >
-      <a routerLink="/portal/appointments" routerLinkActive="active"
-        ><span class="material-icons" aria-hidden="true">calendar_month</span>Appointments</a
-      >
-      <a routerLink="/portal/payments" routerLinkActive="active"
-        ><span class="material-icons" aria-hidden="true">receipt_long</span>Payments</a
-      >
-      <a routerLink="/portal/documents" routerLinkActive="active"
-        ><span class="material-icons" aria-hidden="true">folder_open</span>Documents</a
-      >
-      <a routerLink="/portal/profile" routerLinkActive="active"
-        ><span class="material-icons" aria-hidden="true">person</span>Profile</a
-      >
-    </nav>
-    <main class="portal-main"><router-outlet /></main>
+    <!-- Desktop Sidebar -->
+    <aside class="portal-sidebar" aria-label="Navigation principale">
+      <div class="sidebar-section">
+        <span class="sidebar-label">Navigation</span>
+        <nav class="portal-nav">
+          <a routerLink="/portal/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+            <span class="material-icons" aria-hidden="true">dashboard</span>
+            <span>Aperçu</span>
+          </a>
+          <a routerLink="/portal/appointments" routerLinkActive="active">
+            <span class="material-icons" aria-hidden="true">calendar_month</span>
+            <span>Rendez-vous</span>
+          </a>
+          <a routerLink="/portal/children" routerLinkActive="active">
+            <span class="material-icons" aria-hidden="true">family_restroom</span>
+            <span>Traitements</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="sidebar-label">Dossier médical</span>
+        <nav class="portal-nav">
+          <a routerLink="/portal/documents" routerLinkActive="active">
+            <span class="material-icons" aria-hidden="true">folder_shared</span>
+            <span>Documents</span>
+          </a>
+          <a routerLink="/portal/consents" routerLinkActive="active">
+            <span class="material-icons" aria-hidden="true">draw</span>
+            <span>Consentements</span>
+          </a>
+          <a routerLink="/portal/payments" routerLinkActive="active">
+            <span class="material-icons" aria-hidden="true">receipt_long</span>
+            <span>Paiements</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="sidebar-section sidebar-section--bottom">
+        <nav class="portal-nav">
+          <a routerLink="/portal/profile" routerLinkActive="active">
+            <span class="material-icons" aria-hidden="true">account_circle</span>
+            <span>Mon Profil</span>
+          </a>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Page Content Router Outlet -->
+    <main class="portal-main">
+      <router-outlet />
+    </main>
   </div>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="portal-mobile-bar" aria-label="Navigation mobile">
+    <a routerLink="/portal/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="mobile-bar-item">
+      <span class="material-icons" aria-hidden="true">dashboard</span>
+      <span>Accueil</span>
+    </a>
+    <a routerLink="/portal/appointments" routerLinkActive="active" class="mobile-bar-item">
+      <span class="material-icons" aria-hidden="true">calendar_month</span>
+      <span>RDV</span>
+    </a>
+    <a routerLink="/portal/children" routerLinkActive="active" class="mobile-bar-item">
+      <span class="material-icons" aria-hidden="true">family_restroom</span>
+      <span>Soins</span>
+    </a>
+    <a routerLink="/portal/documents" routerLinkActive="active" class="mobile-bar-item">
+      <span class="material-icons" aria-hidden="true">folder_shared</span>
+      <span>Docs</span>
+    </a>
+    <a routerLink="/portal/profile" routerLinkActive="active" class="mobile-bar-item">
+      <span class="material-icons" aria-hidden="true">person</span>
+      <span>Profil</span>
+    </a>
+  </nav>
 </div>

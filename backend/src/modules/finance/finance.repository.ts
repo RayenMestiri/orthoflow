@@ -43,12 +43,18 @@ export interface BalanceTotals {
   activeTreatmentPatientIds: string[];
 }
 
-/** One recent movement, with the patient joined in and ids still as ObjectIds. */
+/** One recent movement, with the patient and treatment joined in and ids still as ObjectIds. */
 export interface FinanceActivityAggregate {
   _id: Types.ObjectId;
   patientId: Types.ObjectId;
   patientFirstName: string;
   patientLastName: string;
+  treatmentType?: string | null;
+  customTypeLabel?: string | null;
+  payerType?: string;
+  payerLabel?: string | null;
+  note?: string | null;
+  purpose?: string | null;
   amountMinor: number;
   currency: string;
   paymentMethod: string;
@@ -412,7 +418,7 @@ export class FinanceRepository {
     }).exec();
   }
 
-  /** Newest financial movements clinic-wide, with the patient name joined in. */
+  /** Newest financial movements clinic-wide, with the patient and treatment joined in. */
   async listRecentActivity(
     clinicId: string,
     limit: number,
@@ -431,12 +437,23 @@ export class FinanceRepository {
       },
       { $unwind: { path: '$patient', preserveNullAndEmptyArrays: true } },
       {
+        $lookup: {
+          from: 'treatments',
+          localField: 'treatmentId',
+          foreignField: '_id',
+          as: 'treatment',
+        },
+      },
+      { $unwind: { path: '$treatment', preserveNullAndEmptyArrays: true } },
+      {
         $addFields: {
           patientFirstName: { $ifNull: ['$patient.firstName', ''] },
           patientLastName: { $ifNull: ['$patient.lastName', ''] },
+          treatmentType: { $ifNull: ['$treatment.type', null] },
+          customTypeLabel: { $ifNull: ['$treatment.customTypeLabel', null] },
         },
       },
-      { $project: { patient: 0 } },
+      { $project: { patient: 0, treatment: 0 } },
     ]).exec();
   }
 

@@ -52,3 +52,86 @@ describe('role permissions', () => {
     expect(ROLE_PERMISSIONS.ASSISTANT).not.toContain(PERMISSIONS.REPORTS_VIEW);
   });
 });
+
+describe('SECRETARY permission matrix — least-privilege enforcement', () => {
+  const sec = ROLE_PERMISSIONS.SECRETARY;
+
+  describe('allowed operations', () => {
+    it('can read and create patients', () => {
+      expect(sec).toContain(PERMISSIONS.PATIENTS_VIEW);
+      expect(sec).toContain(PERMISSIONS.PATIENTS_CREATE);
+      expect(sec).toContain(PERMISSIONS.PATIENTS_UPDATE);
+    });
+
+    it('can fully manage the appointment diary', () => {
+      expect(sec).toContain(PERMISSIONS.APPOINTMENTS_VIEW);
+      expect(sec).toContain(PERMISSIONS.APPOINTMENTS_UPDATE);
+      expect(sec).toContain(PERMISSIONS.APPOINTMENTS_CANCEL);
+    });
+
+    it('can record cash payments and read receipts', () => {
+      expect(sec).toContain(PERMISSIONS.CASH_RECORDS_VIEW);
+      expect(sec).toContain(PERMISSIONS.CASH_RECORDS_RECORD);
+    });
+
+    it('can read and create tasks', () => {
+      expect(sec).toContain(PERMISSIONS.TASKS_VIEW);
+      expect(sec).toContain(PERMISSIONS.TASKS_CREATE);
+    });
+
+    it('can read and create guardians', () => {
+      expect(sec).toContain(PERMISSIONS.PATIENT_MEDIA_VIEW);
+    });
+
+    it('can read notifications and communications', () => {
+      expect(sec).toContain(PERMISSIONS.NOTIFICATIONS_VIEW);
+      expect(sec).toContain(PERMISSIONS.COMMUNICATIONS_VIEW);
+    });
+
+    it('can generate administrative and financial documents', () => {
+      expect(sec).toContain(PERMISSIONS.GENERATED_DOCUMENTS_VIEW);
+      expect(sec).toContain(PERMISSIONS.GENERATED_DOCUMENTS_GENERATE_ADMIN);
+      expect(sec).toContain(PERMISSIONS.GENERATED_DOCUMENTS_GENERATE_FINANCIAL);
+    });
+  });
+
+  describe('forbidden operations', () => {
+    it('CANNOT cancel or void cash records', () => {
+      expect(sec).not.toContain(PERMISSIONS.CASH_RECORDS_CANCEL);
+    });
+
+    it('CANNOT archive patients', () => {
+      expect(sec).not.toContain(PERMISSIONS.PATIENTS_ARCHIVE);
+    });
+
+    it('CANNOT start or complete a clinical visit (chair work)', () => {
+      expect(sec).not.toContain(PERMISSIONS.APPOINTMENTS_START_VISIT);
+      expect(sec).not.toContain(PERMISSIONS.APPOINTMENTS_COMPLETE_VISIT);
+    });
+
+    it('CANNOT manage treatment lifecycle or create clinical records', () => {
+      expect(sec).not.toContain(PERMISSIONS.TREATMENTS_MANAGE);
+      expect(sec).not.toContain(PERMISSIONS.CLINICAL_VISITS_MANAGE);
+      expect(sec).not.toContain(PERMISSIONS.CLINICAL_VISITS_VIEW);
+    });
+
+    it('CANNOT manage clinic settings or staff', () => {
+      expect(sec).not.toContain(PERMISSIONS.CLINIC_SETTINGS_MANAGE);
+      expect(sec).not.toContain(PERMISSIONS.STAFF_MANAGE);
+    });
+
+    it('CANNOT manage the guardian portal', () => {
+      expect(sec).not.toContain(PERMISSIONS.PORTAL_ACCESS_MANAGE);
+    });
+
+    it('CANNOT generate clinical documents', () => {
+      expect(sec).not.toContain(PERMISSIONS.GENERATED_DOCUMENTS_GENERATE_CLINICAL);
+      expect(sec).not.toContain(PERMISSIONS.GENERATED_DOCUMENTS_VOID);
+    });
+
+    it('CANNOT revoke consents', () => {
+      expect(sec).not.toContain(PERMISSIONS.CONSENTS_REVOKE);
+      expect(sec).not.toContain(PERMISSIONS.CONSENTS_VOID);
+    });
+  });
+});

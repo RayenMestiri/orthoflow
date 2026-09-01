@@ -9,19 +9,25 @@ import {
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { animate, inView, stagger } from 'motion';
+import { RouterLink } from '@angular/router';
 import { DentalAmbient } from '../../components/dental-ambient/dental-ambient';
 import { ProductPreview } from '../../components/product-preview/product-preview';
 import { WaitlistForm } from '../../components/waitlist-form/waitlist-form';
 import { CAPABILITIES, PROBLEMS, WORKFLOW_PHASES } from '../../data/landing-content';
 
+import { AuthStore } from '../../../../core/auth/auth.store';
+import { PortalAuthStore } from '../../../portal/data-access/portal-auth.store';
+
 @Component({
   selector: 'app-landing-page',
-  imports: [DentalAmbient, ProductPreview, WaitlistForm],
+  imports: [DentalAmbient, ProductPreview, WaitlistForm, RouterLink],
   templateUrl: './landing-page.html',
   styleUrl: './landing-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LandingPage {
+  protected readonly staffAuth = inject(AuthStore);
+  protected readonly portalAuth = inject(PortalAuthStore);
   protected readonly problems = PROBLEMS;
   protected readonly featuredCapability = CAPABILITIES[0];
   protected readonly supportingCapabilities = CAPABILITIES.slice(1);

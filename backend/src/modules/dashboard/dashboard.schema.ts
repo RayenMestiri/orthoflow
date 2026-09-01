@@ -101,6 +101,7 @@ export const dashboardResponseSchema = z.object({
         inProgress: z.number(),
         overdue: z.number(),
         urgent: z.number(),
+        completedToday: z.number().default(0),
       }),
       myTasks: z.array(
         z.object({
@@ -112,6 +113,18 @@ export const dashboardResponseSchema = z.object({
           patientName: z.string().nullable(),
         }),
       ),
+      topTasks: z
+        .array(
+          z.object({
+            id: z.string(),
+            title: z.string(),
+            priority: z.enum(['NORMAL', 'HIGH', 'URGENT']),
+            isOverdue: z.boolean(),
+            dueAt: z.string().nullable(),
+            patientName: z.string().nullable(),
+          }),
+        )
+        .optional(),
     })
     .nullable(),
   attention: z.array(

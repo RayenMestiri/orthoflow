@@ -1,21 +1,68 @@
 <app-auth-frame>
   <div class="auth-form-page auth-form-page--compact login">
+    <!-- Quick Switcher Tabs -->
+    <div class="login-switcher" role="tablist" aria-label="Espaces de connexion">
+      <button
+        type="button"
+        class="login-switcher__tab login-switcher__tab--active"
+        role="tab"
+        aria-selected="true"
+      >
+        <span class="material-icons">local_hospital</span>
+        <span>Espace Cabinet</span>
+      </button>
+      <a
+        routerLink="/portal/login"
+        [queryParams]="form.controls.email.value ? { email: form.controls.email.value, copied: 'true' } : null"
+        class="login-switcher__tab"
+        role="tab"
+        aria-selected="false"
+        title="Basculer vers le portail pour les parents et tuteurs"
+      >
+        <span class="material-icons">family_restroom</span>
+        <span>Portail Famille</span>
+      </a>
+    </div>
+
+    <!-- Transferred Coordinates Notice -->
+    @if (copiedNotice()) {
+      <div class="auth-alert auth-alert--success" role="status">
+        <span class="material-icons" aria-hidden="true">auto_awesome</span>
+        <div class="auth-alert__content">
+          <strong>Coordonnées transmises</strong>
+          <p>{{ copiedNotice() }}</p>
+        </div>
+      </div>
+    }
+
     <header class="auth-form-header">
-      <p class="auth-form-eyebrow">Welcome back</p>
-      <h2>Sign in to your clinic</h2>
-      <p>Use your work email to continue to OrthoFlow.</p>
+      <p class="auth-form-eyebrow">Espace Praticien & Équipe</p>
+      <h2>Connexion à votre cabinet</h2>
+      <p>Utilisez votre adresse email professionnelle OrthoFlow.</p>
     </header>
 
     <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
       @if (errorMessage()) {
         <div class="auth-alert" role="alert">
           <span class="material-icons" aria-hidden="true">error_outline</span>
-          <span>{{ errorMessage() }}</span>
+          <div class="auth-alert__content">
+            <span>{{ errorMessage() }}</span>
+            @if (isPortalAccount()) {
+              <a
+                routerLink="/portal/login"
+                [queryParams]="{ email: form.controls.email.value, copied: 'true' }"
+                class="smart-bridge-btn"
+              >
+                <span class="material-icons">arrow_forward</span>
+                Basculer sur le Portail Famille
+              </a>
+            }
+          </div>
         </div>
       }
 
       <div class="auth-field">
-        <label for="email">Work email</label>
+        <label for="email">Email professionnel</label>
         <div
           class="auth-control"
           [class.auth-control--invalid]="form.controls.email.touched && form.controls.email.invalid"
@@ -27,24 +74,24 @@
             formControlName="email"
             autocomplete="email"
             inputmode="email"
-            placeholder="you@clinic.com"
+            placeholder="praticien@cabinet.com"
             [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
             aria-describedby="email-error"
           />
         </div>
         <p id="email-error" class="auth-field__error" aria-live="polite">
           @if (form.controls.email.touched && form.controls.email.hasError('required')) {
-            Enter your work email.
+            Veuillez renseigner votre email professionnel.
           } @else if (form.controls.email.touched && form.controls.email.hasError('email')) {
-            Enter a valid email address.
+            Veuillez saisir une adresse email valide.
           }
         </p>
       </div>
 
       <div class="auth-field">
         <div class="auth-field__label-row">
-          <label for="password">Password</label>
-          <a class="login__forgot" routerLink="/forgot-password">Forgot password?</a>
+          <label for="password">Mot de passe</label>
+          <a class="login__forgot" routerLink="/forgot-password">Mot de passe oublié ?</a>
         </div>
         <div
           class="auth-control"
@@ -58,7 +105,7 @@
             [type]="passwordVisible() ? 'text' : 'password'"
             formControlName="password"
             autocomplete="current-password"
-            placeholder="Enter your password"
+            placeholder="Saisissez votre mot de passe"
             [attr.aria-invalid]="form.controls.password.touched && form.controls.password.invalid"
             aria-describedby="password-error"
           />
@@ -66,7 +113,7 @@
             class="auth-control__action"
             type="button"
             (click)="togglePassword()"
-            [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
+            [attr.aria-label]="passwordVisible() ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
             [attr.aria-pressed]="passwordVisible()"
           >
             <span class="material-icons" aria-hidden="true">{{
@@ -76,7 +123,7 @@
         </div>
         <p id="password-error" class="auth-field__error" aria-live="polite">
           @if (form.controls.password.touched && form.controls.password.hasError('required')) {
-            Enter your password.
+            Veuillez renseigner votre mot de passe.
           }
         </p>
       </div>
@@ -84,24 +131,23 @@
       <button class="auth-submit" type="submit" [disabled]="submitting()">
         @if (submitting()) {
           <span class="auth-spinner" aria-hidden="true"></span>
-          Signing in…
+          Connexion en cours…
         } @else {
-          Sign in securely
+          Se connecter
           <span class="material-icons" aria-hidden="true">arrow_forward</span>
         }
       </button>
     </form>
 
     <p class="auth-switch">
-      New to OrthoFlow? <a routerLink="/register">Create your clinic workspace</a>
+      Nouveau cabinet sur OrthoFlow ? <a routerLink="/register">Créer votre clinique</a>
     </p>
 
     <div class="auth-assurance">
       <span class="material-icons" aria-hidden="true">verified_user</span>
-      <span
-        ><strong>Your session is protected.</strong> Access follows your clinic role and can be
-        revoked immediately.</span
-      >
+      <span>
+        <strong>Session sécurisée & traçabilité complète.</strong> Accès strictement cloisonné selon les habilitations de votre clinique.
+      </span>
     </div>
   </div>
 </app-auth-frame>

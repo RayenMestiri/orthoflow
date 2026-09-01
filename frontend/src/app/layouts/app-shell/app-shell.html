@@ -39,38 +39,51 @@
       @for (item of navigation(); track item.label) {
         @if (item.visible) {
           @if (item.route) {
-            <a [routerLink]="item.route" routerLinkActive="app-shell__nav-link--active">
-              <span class="material-icons" aria-hidden="true">{{ item.icon }}</span>
-              <span>{{ item.label }}</span>
-              @if (item.location) {
-                <small>{{ item.location }}</small>
-              }
-            </a>
-          } @else {
-            <span
-              class="app-shell__nav-link"
-              [class.app-shell__nav-link--future]="!item.location"
-              [class.app-shell__nav-link--location]="item.location"
-              [attr.aria-disabled]="item.location ? null : true"
-              [attr.title]="
-                item.location ? 'Open a patient profile to manage treatment' : 'Coming soon'
-              "
+            <a
+              [routerLink]="item.route"
+              routerLinkActive="app-shell__nav-link--active"
+              [routerLinkActiveOptions]="{ exact: item.route === '/app/dashboard' || item.route === '/app/patients' }"
             >
               <span class="material-icons" aria-hidden="true">{{ item.icon }}</span>
               <span>{{ item.label }}</span>
-              <small>{{ item.location ?? 'Soon' }}</small>
-            </span>
+            </a>
+
+            @if (item.label === 'Patients' && activePatientNav(); as pNav) {
+              <div class="app-shell__patient-subnav">
+                @for (tab of pNav.tabs; track tab.id) {
+                  @if (tab.visible) {
+                    <a
+                      [routerLink]="['/app/patients', pNav.patientId]"
+                      [queryParams]="{ tab: tab.id }"
+                      class="app-shell__patient-sublink"
+                      [class.app-shell__patient-sublink--active]="currentTab() === tab.id"
+                    >
+                      <span class="material-icons" aria-hidden="true">{{ tab.icon }}</span>
+                      <span>{{ tab.label }}</span>
+                    </a>
+                  }
+                }
+              </div>
+            }
           }
         }
       }
     </nav>
 
-    <div class="app-shell__sidebar-note">
-      <span class="material-icons" aria-hidden="true">verified_user</span>
-      <span>
-        <strong>Role-aware access</strong>
-        <small>{{ roleLabel() }} permissions are active.</small>
-      </span>
+    <div class="app-shell__sidebar-note" [class.app-shell__sidebar-note--restricted]="isSecretary()">
+      @if (isSecretary()) {
+        <span class="material-icons" aria-hidden="true">lock</span>
+        <span>
+          <strong>Accès limité</strong>
+          <small>Vue secrétariat — certaines sections sont réservées au médecin.</small>
+        </span>
+      } @else {
+        <span class="material-icons" aria-hidden="true">verified_user</span>
+        <span>
+          <strong>Role-aware access</strong>
+          <small>{{ roleLabel() }} permissions are active.</small>
+        </span>
+      }
     </div>
   </aside>
 

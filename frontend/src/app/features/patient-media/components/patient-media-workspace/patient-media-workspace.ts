@@ -38,6 +38,24 @@ export type WorkspaceFilter = 'ALL' | 'PHOTOS' | 'XRAYS' | 'DOCUMENTS' | 'ARCHIV
 export type DrawerMode = 'upload' | 'preview' | 'edit';
 export type SortOrder = 'newest' | 'oldest';
 
+const DOCUMENT_CATEGORIES: ReadonlySet<PatientMediaCategory> = new Set([
+  'PRESCRIPTION',
+  'CONSENT',
+  'REFERRAL',
+  'REPORT',
+  'ADMINISTRATIVE',
+  'OTHER',
+]);
+
+const PHOTO_CATEGORIES: ReadonlySet<PatientMediaCategory> = new Set([
+  'PROFILE_PHOTO',
+  'EXTRAORAL_PHOTO',
+  'INTRAORAL_PHOTO',
+  'PROGRESS_PHOTO',
+]);
+
+const XRAY_CATEGORIES: ReadonlySet<PatientMediaCategory> = new Set(['XRAY', 'SCAN']);
+
 @Component({
   selector: 'app-patient-media-workspace',
   imports: [A11yModule, DatePipe, ReactiveFormsModule],
@@ -53,7 +71,7 @@ export class PatientMediaWorkspace implements OnDestroy {
   protected readonly workspaceFilters: readonly { value: WorkspaceFilter; label: string }[] = [
     { value: 'ALL', label: 'All' },
     { value: 'PHOTOS', label: 'Photos' },
-    { value: 'XRAYS', label: 'X-rays' },
+    { value: 'XRAYS', label: 'X-rays & Scans' },
     { value: 'DOCUMENTS', label: 'Documents' },
     { value: 'ARCHIVED', label: 'Archived' },
   ];
@@ -71,12 +89,16 @@ export class PatientMediaWorkspace implements OnDestroy {
   protected readonly drawerMode = signal<DrawerMode | null>(null);
   protected readonly selected = signal<PatientMedia | null>(null);
   protected readonly archiveTarget = signal<PatientMedia | null>(null);
+  protected readonly deleteTarget = signal<PatientMedia | null>(null);
   protected readonly replaceTarget = signal<PatientMedia | null>(null);
   protected readonly replaceSelectedFile = signal<File | null>(null);
   protected readonly replaceFileError = signal<string | null>(null);
   protected readonly replaceLocalPreview = signal<string | null>(null);
   protected readonly selectedFile = signal<File | null>(null);
   protected readonly fileError = signal<string | null>(null);
+  protected readonly isDragging = signal(false);
+  /** Tracks IDs of images that failed to load in the browser to display an elegant fallback */
+  protected readonly failedImages = signal<ReadonlySet<string>>(new Set());
   /** Local ObjectURL for image preview before upload. Always string | null. */
   protected readonly localPreviewUrl = signal<string | null>(null);
 
@@ -103,19 +125,31 @@ export class PatientMediaWorkspace implements OnDestroy {
     }),
   });
 
+  protected isDocumentMedia(item: PatientMedia): boolean {
+    return item.mediaType !== 'IMAGE' || DOCUMENT_CATEGORIES.has(item.category);
+  }
+
   protected readonly visibleItems = computed(() => {
     const items = this.store.items();
     const filter = this.activeFilter();
     let filtered: PatientMedia[];
     switch (filter) {
       case 'PHOTOS':
-        filtered = items.filter((item) => item.mediaType === 'IMAGE' && item.category !== 'XRAY');
+        filtered = items.filter(
+          (item) =>
+            PHOTO_CATEGORIES.has(item.category) ||
+            (item.mediaType === 'IMAGE' &&
+              !XRAY_CATEGORIES.has(item.category) &&
+              !DOCUMENT_CATEGORIES.has(item.category)),
+        );
         break;
       case 'XRAYS':
-        filtered = items.filter((item) => item.category === 'XRAY');
+        filtered = items.filter((item) => XRAY_CATEGORIES.has(item.category));
         break;
       case 'DOCUMENTS':
-        filtered = items.filter((item) => item.mediaType !== 'IMAGE');
+        filtered = items.filter(
+          (item) => item.mediaType !== 'IMAGE' || DOCUMENT_CATEGORIES.has(item.category),
+        );
         break;
       default:
         filtered = items;
@@ -127,12 +161,21 @@ export class PatientMediaWorkspace implements OnDestroy {
     return filtered;
   });
 
-  protected readonly imageItems = computed(() =>
-    this.visibleItems().filter((item) => item.mediaType === 'IMAGE'),
-  );
-  protected readonly documentItems = computed(() =>
-    this.visibleItems().filter((item) => item.mediaType !== 'IMAGE'),
-  );
+  protected readonly imageItems = computed(() => {
+    const filter = this.activeFilter();
+    if (filter === 'DOCUMENTS') {
+      return [];
+    }
+    return this.visibleItems().filter((item) => !this.isDocumentMedia(item));
+  });
+
+  protected readonly documentItems = computed(() => {
+    const filter = this.activeFilter();
+    if (filter === 'PHOTOS' || filter === 'XRAYS') {
+      return [];
+    }
+    return this.visibleItems().filter((item) => this.isDocumentMedia(item));
+  });
 
   constructor() {
     effect(() => {
@@ -175,11 +218,36 @@ export class PatientMediaWorkspace implements OnDestroy {
   }
 
   protected thumbnail(media: PatientMedia): string {
-    return patientMediaThumbnailUrl(media);
+    const url = patientMediaThumbnailUrl(media);
+    console.log('🖼️ [Patient Media Thumbnail]', {
+      id: media.id,
+      title: media.title,
+      type: media.mediaType,
+      contentUrl: media.contentUrl,
+      thumbnailUrl: url,
+    });
+    return url;
   }
 
   protected previewUrl(media: PatientMedia): string {
-    return patientMediaPreviewUrl(media);
+    const url = patientMediaPreviewUrl(media);
+    console.log('🔍 [Patient Media Full Preview]', {
+      id: media.id,
+      title: media.title,
+      type: media.mediaType,
+      contentUrl: media.contentUrl,
+      fullPreviewUrl: url,
+    });
+    return url;
+  }
+
+  protected onImageError(mediaId: string): void {
+    console.error('❌ [Patient Media Image Load ERROR] Failed to load image thumbnail for media ID:', mediaId);
+    this.failedImages.update((set) => new Set([...set, mediaId]));
+  }
+
+  protected hasImageError(mediaId: string): boolean {
+    return this.failedImages().has(mediaId);
   }
 
   protected treatmentLabel(treatmentId: string | null): string | null {
@@ -274,14 +342,38 @@ export class PatientMediaWorkspace implements OnDestroy {
     }
   }
 
+  protected onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging.set(true);
+  }
+
+  protected onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging.set(false);
+  }
+
+  protected onFileDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging.set(false);
+    const file = event.dataTransfer?.files?.[0] ?? null;
+    if (file) this.processSelectedFile(file);
+  }
+
   protected fileChanged(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    if (file) this.processSelectedFile(file);
+  }
+
+  protected processSelectedFile(file: File): void {
     this.selectedFile.set(file);
-    const error = file ? validatePatientMediaFile(file) : 'Choose a file to upload.';
+    const error = validatePatientMediaFile(file);
     this.fileError.set(error);
 
     // Auto-switch category from photo to document when a PDF is selected
-    if (file && file.type === 'application/pdf') {
+    if (file.type === 'application/pdf') {
       const photoCategories: PatientMediaCategory[] = [
         'PROFILE_PHOTO',
         'EXTRAORAL_PHOTO',
@@ -297,9 +389,9 @@ export class PatientMediaWorkspace implements OnDestroy {
 
     // Revoke old preview and create new one for images
     revokeLocalPreview(this.localPreviewUrl());
-    this.localPreviewUrl.set(file && !error ? createLocalPreview(file) : null);
+    this.localPreviewUrl.set(!error ? createLocalPreview(file) : null);
 
-    if (file && !error && !this.mediaForm.controls.title.value.trim()) {
+    if (!error && !this.mediaForm.controls.title.value.trim()) {
       this.mediaForm.controls.title.setValue(
         file.name
           .replace(/\.[^.]+$/, '')
@@ -310,10 +402,6 @@ export class PatientMediaWorkspace implements OnDestroy {
   }
 
   protected replaceFile(): void {
-    // Reset the file input to let the user pick again.
-    // The native value must also be cleared: Angular signals control the
-    // component state, but the browser still shows the old filename unless we
-    // reset the <input> element itself.
     revokeLocalPreview(this.localPreviewUrl());
     this.localPreviewUrl.set(null);
     this.selectedFile.set(null);
@@ -393,6 +481,28 @@ export class PatientMediaWorkspace implements OnDestroy {
       this.archiveTarget.set(null);
       this.drawerMode.set(null);
       this.selected.set(null);
+    }
+  }
+
+  protected confirmDelete(media: PatientMedia): void {
+    if (!this.canManageItem(media)) return;
+    this.deleteTarget.set(media);
+  }
+
+  protected closeDelete(): void {
+    if (!this.store.isSaving()) this.deleteTarget.set(null);
+  }
+
+  protected async executeDelete(): Promise<void> {
+    const media = this.deleteTarget();
+    if (!media) return;
+    const success = await this.store.delete(media.id);
+    if (success) {
+      this.deleteTarget.set(null);
+      if (this.selected()?.id === media.id) {
+        this.drawerMode.set(null);
+        this.selected.set(null);
+      }
     }
   }
 

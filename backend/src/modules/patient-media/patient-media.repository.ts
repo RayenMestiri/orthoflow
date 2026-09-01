@@ -201,6 +201,15 @@ export class PatientMediaRepository {
       .lean<PatientMediaRecord | null>()
       .exec();
   }
+
+  async deleteById(mediaId: string, clinicId: string): Promise<PatientMediaRecord | null> {
+    return PatientMediaModel.findOneAndDelete({
+      ...this.baseFilter(clinicId),
+      _id: toObjectId(mediaId, 'mediaId'),
+    })
+      .lean<PatientMediaRecord | null>()
+      .exec();
+  }
 }
 
 export const patientMediaRepository = new PatientMediaRepository();

@@ -137,6 +137,7 @@ export interface DashboardTasksSection {
     completedToday: number;
   };
   topTasks: DashboardTaskItem[];
+  myTasks?: DashboardTaskItem[];
 }
 
 export interface DashboardSetupStatus {

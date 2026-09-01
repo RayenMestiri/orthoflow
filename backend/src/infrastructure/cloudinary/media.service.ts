@@ -152,17 +152,21 @@ export class MediaService {
     }
     const cloudinary = getCloudinary();
 
-    let downloadUrl = '';
-    if (deliveryType === 'authenticated') {
-      let resolvedFormat = format;
-      if (!resolvedFormat) {
-        if (resourceType === 'raw' || publicId.endsWith('.pdf')) {
-          resolvedFormat = 'pdf';
-        } else {
-          const extMatch = publicId.match(/\.([a-zA-Z0-9]+)$/);
-          resolvedFormat = extMatch?.[1] ?? '';
-        }
+    const hasExt = /\.[a-zA-Z0-9]+$/.test(publicId);
+    let resolvedFormat = format;
+    if (!resolvedFormat) {
+      if (resourceType === 'raw' || publicId.endsWith('.pdf')) {
+        resolvedFormat = hasExt ? '' : 'pdf';
+      } else {
+        const extMatch = publicId.match(/\.([a-zA-Z0-9]+)$/);
+        resolvedFormat = extMatch?.[1] ?? '';
       }
+    } else if (hasExt && publicId.endsWith(`.${resolvedFormat}`)) {
+      resolvedFormat = '';
+    }
+
+    let downloadUrl = '';
+    if (resourceType === 'raw' || deliveryType === 'authenticated') {
       downloadUrl =
         cloudinary.utils.private_download_url(publicId, resolvedFormat, {
           resource_type: resourceType,
@@ -174,6 +178,7 @@ export class MediaService {
           resource_type: resourceType,
           type: deliveryType,
           secure: true,
+          format: resolvedFormat || undefined,
         }) ?? '';
     }
 
@@ -202,15 +207,47 @@ export class MediaService {
         code: ERROR_CODES.MEDIA_STORAGE_UNAVAILABLE,
       });
     }
-    const resolvedFormat =
-      format || (resourceType === 'raw' || publicId.endsWith('.pdf') ? 'pdf' : '');
-    return (
-      getCloudinary().utils.private_download_url(publicId, resolvedFormat, {
+    const hasExt = /\.[a-zA-Z0-9]+$/.test(publicId);
+    let resolvedFormat = format;
+    if (!resolvedFormat) {
+      if (resourceType === 'raw' || publicId.endsWith('.pdf')) {
+        resolvedFormat = hasExt ? '' : 'pdf';
+      } else {
+        const extMatch = publicId.match(/\.([a-zA-Z0-9]+)$/);
+        resolvedFormat = extMatch?.[1] ?? '';
+      }
+    } else if (hasExt && publicId.endsWith(`.${resolvedFormat}`)) {
+      resolvedFormat = '';
+    }
+
+    const cloudinary = getCloudinary();
+
+    if (resourceType === 'raw') {
+      return (
+        cloudinary.utils.private_download_url(publicId, resolvedFormat, {
+          resource_type: 'raw',
+          type: deliveryType,
+          expires_at: Math.floor(Date.now() / 1000) + lifetimeSeconds,
+        }) ?? ''
+      );
+    }
+
+    if (deliveryType === 'upload') {
+      return cloudinary.url(publicId, {
         resource_type: resourceType,
-        type: deliveryType,
-        expires_at: Math.floor(Date.now() / 1000) + lifetimeSeconds,
-      }) ?? ''
-    );
+        secure: true,
+        format: resolvedFormat || undefined,
+      });
+    }
+
+    return cloudinary.url(publicId, {
+      resource_type: 'image',
+      type: 'authenticated',
+      sign_url: true,
+      secure: true,
+      format: resolvedFormat || undefined,
+      expires_at: Math.floor(Date.now() / 1000) + lifetimeSeconds,
+    });
   }
 
   /**

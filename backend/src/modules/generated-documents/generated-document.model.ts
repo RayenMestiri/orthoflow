@@ -53,16 +53,29 @@ const contextSchema = new Schema({ patient: { type: patientSnapshotSchema, requi
 
 const documentSchema = new Schema<GeneratedDocumentAttributes>(
   {
-    clinicId: { type: Schema.Types.ObjectId, required: true, immutable: true }, patientId: { type: Schema.Types.ObjectId, required: true, immutable: true },
-    documentRef: { type: String, required: true, immutable: true, maxlength: 32 }, templateId: { type: Schema.Types.ObjectId, required: true, immutable: true },
-    templateCode: { type: String, required: true, immutable: true }, templateVersion: { type: Number, required: true, immutable: true },
-    category: { type: String, enum: DOCUMENT_CATEGORY_VALUES, required: true, immutable: true }, titleSnapshot: { type: String, required: true, immutable: true },
-    contentSnapshot: { type: [blockSchema], required: true, immutable: true }, contextSnapshot: { type: contextSchema, required: true, immutable: true },
-    generatedByUserId: { type: Schema.Types.ObjectId, required: true, immutable: true }, generatedByNameSnapshot: { type: String, required: true, immutable: true },
-    generatedAt: { type: Date, required: true, immutable: true }, finalizedPdf: { type: artifactSchema, required: true, immutable: true },
-    idempotencyKey: { type: String, required: true, immutable: true, maxlength: 64 }, payloadDigest: { type: String, required: true, immutable: true, minlength: 64, maxlength: 64 },
+    clinicId: { type: Schema.Types.ObjectId, required: true, immutable: true },
+    patientId: { type: Schema.Types.ObjectId, required: true, immutable: true },
+    documentRef: { type: String, required: true, immutable: true, maxlength: 32 },
+    templateId: { type: Schema.Types.ObjectId, required: true, immutable: true },
+    templateCode: { type: String, required: true, immutable: true },
+    templateVersion: { type: Number, required: true, immutable: true },
+    category: { type: String, enum: DOCUMENT_CATEGORY_VALUES, required: true, immutable: true },
+    titleSnapshot: { type: String, required: true, immutable: true },
+    contentSnapshot: { type: [blockSchema], required: true, immutable: true },
+    contextSnapshot: { type: contextSchema, required: true, immutable: true },
+    generatedByUserId: { type: Schema.Types.ObjectId, required: true, immutable: true },
+    generatedByNameSnapshot: { type: String, required: true, immutable: true },
+    generatedAt: { type: Date, required: true, immutable: true },
+    retentionExpiresAt: { type: Date, required: true, index: true },
+    finalizedPdf: { type: artifactSchema, default: null },
+    idempotencyKey: { type: String, required: true, immutable: true, maxlength: 64 },
+    payloadDigest: { type: String, required: true, immutable: true, minlength: 64, maxlength: 64 },
     status: { type: String, enum: GENERATED_DOCUMENT_STATUS_VALUES, default: GENERATED_DOCUMENT_STATUSES.FINALIZED, required: true },
-    voidedAt: { type: Date, default: null }, voidedByUserId: { type: Schema.Types.ObjectId, default: null }, voidReason: { type: String, default: null, maxlength: 500 },
+    voidedAt: { type: Date, default: null },
+    voidedByUserId: { type: Schema.Types.ObjectId, default: null },
+    voidReason: { type: String, default: null, maxlength: 500 },
+    deletedAt: { type: Date, default: null },
+    deletionReason: { type: String, default: null, maxlength: 500 },
   },
   { collection: 'generatedDocuments', timestamps: { createdAt: true, updatedAt: false }, strict: 'throw', versionKey: false },
 );
@@ -70,6 +83,7 @@ documentSchema.index({ clinicId: 1, patientId: 1, generatedAt: -1 });
 documentSchema.index({ clinicId: 1, documentRef: 1 }, { unique: true });
 documentSchema.index({ clinicId: 1, idempotencyKey: 1 }, { unique: true });
 documentSchema.index({ clinicId: 1, templateId: 1, templateVersion: 1 });
+documentSchema.index({ clinicId: 1, status: 1, retentionExpiresAt: 1 });
 
 export const DocumentTemplateModel = model<DocumentTemplateAttributes>('DocumentTemplate', templateSchema);
 export const GeneratedDocumentModel = model<GeneratedDocumentAttributes>('GeneratedDocument', documentSchema);

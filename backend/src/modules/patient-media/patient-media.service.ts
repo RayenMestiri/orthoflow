@@ -218,6 +218,35 @@ export class PatientMediaService {
     return this.toDto(restored);
   }
 
+  async deletePermanently(
+    clinicId: string,
+    mediaId: string,
+    context: PatientMediaMutationContext,
+  ): Promise<void> {
+    const existing = await this.requireMedia(clinicId, mediaId);
+    this.assertManageableCategory(existing.category, context);
+
+    if (this.storage.isEnabled() && existing.publicId) {
+      try {
+        await this.storage.remove(existing.publicId, existing.resourceType);
+      } catch {
+        // Continue DB deletion even if remote binary was already cleaned
+      }
+    }
+
+    const deleted = await this.media.deleteById(mediaId, clinicId);
+    if (!deleted) throw this.notFound();
+
+    await this.audit.record({
+      ...context,
+      clinicId,
+      patientId: existing.patientId.toString(),
+      mediaId,
+      treatmentId: existing.treatmentId?.toString() ?? null,
+      event: 'deleted',
+    });
+  }
+
   /**
    * Replaces the binary of an existing media record with a new upload.
    * Metadata (title, category, capturedAt, etc.) is kept as-is.
@@ -321,12 +350,19 @@ export class PatientMediaService {
   }
 
   private toDto(record: PatientMediaRecord): PatientMediaDto {
-    const contentUrl = this.storage.createPrivateDownloadUrl(
-      record.publicId,
-      record.resourceType,
-      record.deliveryType ?? 'upload',
-      record.format ?? '',
-    );
+    let contentUrl = record.secureUrl ?? '';
+    if (!contentUrl && record.publicId) {
+      try {
+        contentUrl = this.storage.createPrivateDownloadUrl(
+          record.publicId,
+          record.resourceType,
+          record.deliveryType ?? 'upload',
+          record.format ?? '',
+        );
+      } catch {
+        contentUrl = '';
+      }
+    }
     return toPatientMediaDto(record, contentUrl);
   }
 

@@ -42,5 +42,29 @@ const resolvedRowSchema = z.object({ cells: z.array(resolvedCellSchema) });
 const resolvedBlockSchema = documentBlockSchema.extend({ rows: z.array(resolvedRowSchema).optional() });
 const contextSnapshotSchema = z.object({ patient: z.object({ id: objectIdSchema, fullName: z.string(), birthDate: z.string().nullable(), referenceNumber: z.string().nullable() }), guardian: z.object({ id: objectIdSchema, fullName: z.string(), relationship: z.string() }).nullable(), treatment: z.object({ id: objectIdSchema, label: z.string(), status: z.string(), startDate: z.string().nullable(), completedAt: z.string().nullable() }).nullable(), retention: z.object({ id: objectIdSchema, status: z.string(), startedAt: z.string().nullable(), nextControlAt: z.string().nullable() }).nullable(), appointment: z.object({ id: objectIdSchema, scheduledAt: z.iso.datetime(), status: z.string(), typeLabel: z.string() }).nullable(), finance: z.object({ from: dateSchema, to: dateSchema, totalRecordedMinor: z.number().int(), currency: z.string(), recordCount: z.number().int() }).nullable() });
 export const documentTemplateDtoSchema = z.object({ id: objectIdSchema, code: z.string(), version: z.number().int().positive(), versionLabel: z.string(), title: z.string(), category: z.enum(DOCUMENT_CATEGORY_VALUES), definition: z.array(documentBlockSchema), variablesUsed: z.array(z.string()), status: z.enum(DOCUMENT_TEMPLATE_STATUS_VALUES), activatedAt: z.iso.datetime().nullable(), archivedAt: z.iso.datetime().nullable(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime() });
-export const generatedDocumentDtoSchema = z.object({ id: objectIdSchema, patientId: objectIdSchema, documentRef: z.string(), templateId: objectIdSchema, templateCode: z.string(), templateVersion: z.number().int(), versionLabel: z.string(), category: z.enum(DOCUMENT_CATEGORY_VALUES), title: z.string(), contentSnapshot: z.array(resolvedBlockSchema), contextSnapshot: contextSnapshotSchema, generatedByName: z.string(), generatedAt: z.iso.datetime(), pdfSha256: z.string(), pdfByteSize: z.number().int(), status: z.enum(GENERATED_DOCUMENT_STATUS_VALUES), voidedAt: z.iso.datetime().nullable(), voidReason: z.string().nullable(), pdfDownloadPath: z.string() });
+export const generatedDocumentDtoSchema = z.object({
+  id: objectIdSchema,
+  patientId: objectIdSchema,
+  documentRef: z.string(),
+  templateId: objectIdSchema,
+  templateCode: z.string(),
+  templateVersion: z.number().int(),
+  versionLabel: z.string(),
+  category: z.enum(DOCUMENT_CATEGORY_VALUES),
+  title: z.string(),
+  contentSnapshot: z.array(resolvedBlockSchema),
+  contextSnapshot: contextSnapshotSchema,
+  generatedByName: z.string(),
+  generatedAt: z.iso.datetime(),
+  retentionExpiresAt: z.iso.datetime(),
+  isExpired: z.boolean(),
+  expiresInDays: z.number().int().nullable(),
+  deletedAt: z.iso.datetime().nullable(),
+  pdfSha256: z.string().nullable(),
+  pdfByteSize: z.number().int().nullable(),
+  status: z.enum(GENERATED_DOCUMENT_STATUS_VALUES),
+  voidedAt: z.iso.datetime().nullable(),
+  voidReason: z.string().nullable(),
+  pdfDownloadPath: z.string(),
+});
 export const generatedDocumentPreviewDtoSchema = z.object({ templateId: objectIdSchema, templateVersion: z.number().int(), versionLabel: z.string(), category: z.enum(DOCUMENT_CATEGORY_VALUES), title: z.string(), blocks: z.array(resolvedBlockSchema), context: contextSnapshotSchema, previewDigest: z.string(), generatedAtLabel: z.string() });

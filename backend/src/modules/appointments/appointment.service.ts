@@ -155,8 +155,9 @@ export class AppointmentService {
         code: ERROR_CODES.APPOINTMENT_INVALID_TIME_RANGE,
       });
     }
-    if (query.end.getTime() - query.start.getTime() > MAX_RANGE_DAYS * 24 * 60 * MINUTE_MS) {
-      throw new ValidationError(`Range must not exceed ${MAX_RANGE_DAYS} days`, {
+    const maxDays = query.patientId ? 730 : MAX_RANGE_DAYS;
+    if (query.end.getTime() - query.start.getTime() > maxDays * 24 * 60 * MINUTE_MS) {
+      throw new ValidationError(`Range must not exceed ${maxDays} days`, {
         code: ERROR_CODES.APPOINTMENT_INVALID_TIME_RANGE,
       });
     }

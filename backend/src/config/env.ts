@@ -77,7 +77,7 @@ export const envSchema = z
     AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
     AUTH_RATE_LIMIT_WINDOW: z.string().min(1).default('1 minute'),
     SLOW_REQUEST_THRESHOLD_MS: z.coerce.number().int().min(100).default(500),
-    MEDIA_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
+    MEDIA_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().min(60).max(86400).default(3600),
 
     // --- API docs --------------------------------------------------------
     SWAGGER_ENABLED: z.stringbool().default(true),

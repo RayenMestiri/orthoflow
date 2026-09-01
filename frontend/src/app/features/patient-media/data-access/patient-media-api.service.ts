@@ -84,6 +84,12 @@ export class PatientMediaApiService {
       .pipe(map((response) => response.data));
   }
 
+  delete(mediaId: string): Observable<{ deleted: boolean }> {
+    return this.http
+      .delete<ApiEnvelope<{ deleted: boolean }>>(`${this.baseUrl}/patient-media/${mediaId}`)
+      .pipe(map((response) => response.data));
+  }
+
   replaceFile(mediaId: string, file: File): Observable<PatientMediaUploadEvent> {
     const form = new FormData();
     // The replace endpoint reuses the upload validation — we only need the file.

@@ -1256,3 +1256,196 @@
     grid-template-columns: 2rem 1fr;
   }
 }
+
+/* ==========================================================================
+   Portal Spotlight Section
+   ========================================================================== */
+.portal-spotlight {
+  padding: var(--space-20) 0;
+  position: relative;
+  background: linear-gradient(180deg, transparent 0%, rgba(240, 248, 245, 0.65) 50%, transparent 100%);
+}
+
+.portal-spotlight__shell {
+  background: #ffffff;
+  border: 1px solid #dbe6e1;
+  border-radius: 28px;
+  padding: clamp(2.5rem, 5vw, 4.5rem);
+  box-shadow: 0 24px 60px rgba(10, 42, 36, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.portal-spotlight__shell::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 50%;
+  background: radial-gradient(ellipse, rgba(16, 185, 129, 0.12), transparent 70%);
+  pointer-events: none;
+}
+
+.portal-spotlight__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #e6f4f0;
+  color: #0d5f50;
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  border: 1px solid #bce6dc;
+  margin-bottom: 1.5rem;
+}
+
+.portal-spotlight__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.portal-spotlight__header h2 {
+  font-size: clamp(2rem, 3.6vw, 2.9rem);
+  line-height: 1.15;
+  color: #082620;
+  margin: 0.5rem 0 1rem;
+  letter-spacing: -0.03em;
+}
+
+.portal-spotlight__header p {
+  max-width: 44rem;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: #556761;
+  margin: 0 auto;
+}
+
+.portal-spotlight__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+  margin: 3rem 0 2.5rem;
+  text-align: left;
+}
+
+.spotlight-card {
+  background: #fbfbf9;
+  border: 1px solid #e5ece8;
+  border-radius: 20px;
+  padding: 1.75rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: all 0.25s ease;
+}
+
+.spotlight-card:hover {
+  background: #ffffff;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(12, 51, 43, 0.08);
+  border-color: #bce6dc;
+}
+
+.spotlight-card__icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.spotlight-card__icon--cal { background: #e0f2fe; color: #0284c7; }
+.spotlight-card__icon--treatment { background: #dcfce7; color: #16a34a; }
+.spotlight-card__icon--finance { background: #fef3c7; color: #d97706; }
+.spotlight-card__icon--doc { background: #f3e8ff; color: #9333ea; }
+
+.spotlight-card h3 {
+  font-size: 1.08rem;
+  font-weight: 750;
+  color: #0c332b;
+  margin: 0;
+}
+
+.spotlight-card p {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: #5d6f69;
+  margin: 0;
+}
+
+.portal-spotlight__actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.button--portal-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: linear-gradient(135deg, #0c332b 0%, #175447 100%);
+  color: #ffffff;
+  padding: 0.85rem 1.75rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(12, 51, 43, 0.2);
+  transition: all 0.2s ease;
+}
+
+.button--portal-primary:hover {
+  background: linear-gradient(135deg, #11443a 0%, #1e6c5c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(12, 51, 43, 0.28);
+}
+
+.button--portal-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f1ede5;
+  color: #173d34;
+  padding: 0.85rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+  border: 1px solid #dcd5c9;
+  transition: all 0.2s ease;
+}
+
+.button--portal-secondary:hover {
+  background: #e7e1d5;
+  color: #0c2b24;
+}
+
+@media (max-width: 600px) {
+  .portal-spotlight__shell {
+    padding: 2rem 1.25rem;
+  }
+  .portal-spotlight__actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .button--portal-primary,
+  .button--portal-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}

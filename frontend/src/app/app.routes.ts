@@ -14,6 +14,24 @@ export const routes: Routes = [
       import('./features/portal/pages/portal-login-page').then((c) => c.PortalLoginPage),
   },
   {
+    path: 'portal/forgot-password',
+    title: 'Forgot family portal password — OrthoFlow',
+    canActivate: [portalGuestGuard],
+    loadComponent: () =>
+      import('./features/portal/pages/portal-forgot-password-page').then(
+        (c) => c.PortalForgotPasswordPage,
+      ),
+  },
+  {
+    path: 'portal/reset-password',
+    title: 'Reset family portal password — OrthoFlow',
+    canActivate: [portalGuestGuard],
+    loadComponent: () =>
+      import('./features/portal/pages/portal-reset-password-page').then(
+        (c) => c.PortalResetPasswordPage,
+      ),
+  },
+  {
     path: 'portal/activate',
     title: 'Activate family portal — OrthoFlow',
     canActivate: [portalGuestGuard],
@@ -60,15 +78,21 @@ export const routes: Routes = [
       },
       {
         path: 'documents',
-        title: 'Shared documents — OrthoFlow',
+        title: 'Documents partagés — OrthoFlow',
         loadComponent: () =>
           import('./features/portal/pages/portal-documents-page').then(
             (c) => c.PortalDocumentsPage,
           ),
       },
       {
+        path: 'consents',
+        title: 'Consentements signés — OrthoFlow',
+        loadComponent: () =>
+          import('./features/portal/pages/portal-consents-page').then((c) => c.PortalConsentsPage),
+      },
+      {
         path: 'profile',
-        title: 'Portal profile — OrthoFlow',
+        title: 'Mon profil patient — OrthoFlow',
         loadComponent: () =>
           import('./features/portal/pages/portal-profile-page').then((c) => c.PortalProfilePage),
       },

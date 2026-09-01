@@ -142,8 +142,10 @@ export interface DashboardTasksSection {
     inProgress: number;
     overdue: number;
     urgent: number;
+    completedToday: number;
   };
   myTasks: DashboardTaskItem[];
+  topTasks?: DashboardTaskItem[];
 }
 
 export interface DashboardResponse {

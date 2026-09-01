@@ -76,6 +76,8 @@ export interface ClinicCareContinuitySettings {
   treatmentInactivityDays: number;
   retentionInactivityDays: number;
   missedAppointmentRebookGraceDays: number;
+  /** Duration in days before temporary generated documents are automatically purged from storage. Default: 30. */
+  documentRetentionDays: number;
 }
 
 export const CLINIC_COMMUNICATION_CHANNELS = ['EMAIL', 'SMS', 'WHATSAPP'] as const;
@@ -145,6 +147,7 @@ export const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
     treatmentInactivityDays: 60,
     retentionInactivityDays: 120,
     missedAppointmentRebookGraceDays: 14,
+    documentRetentionDays: 30,
   },
   communications: {
     appointmentRemindersEnabled: true,

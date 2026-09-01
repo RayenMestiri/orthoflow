@@ -25,9 +25,14 @@ export function formatPatientMediaSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function cloudinaryTransform(url: string, transformation: string): string {
-  const marker = '/upload/';
-  return url.includes(marker) ? url.replace(marker, `${marker}${transformation}/`) : url;
+function cloudinaryTransform(url: string | null | undefined, transformation: string): string {
+  if (!url || typeof url !== 'string') return '';
+  // Only inject transformations into unsigned public /upload/ URLs.
+  // Tampering with signed URLs (containing /s-- or signature=) invalidates Cloudinary's signature.
+  if (url.includes('/upload/') && !url.includes('/s--') && !url.includes('signature=')) {
+    return url.replace('/upload/', `/upload/${transformation}/`);
+  }
+  return url;
 }
 
 /**
@@ -35,14 +40,20 @@ function cloudinaryTransform(url: string, transformation: string): string {
  * given bounds without cropping or stretching. Clinical photos must never be
  * cut: the full composition is clinically meaningful.
  */
-export function patientMediaThumbnailUrl(media: PatientMedia): string {
-  if (media.mediaType !== 'IMAGE') return media.contentUrl;
-  return cloudinaryTransform(media.contentUrl, 'c_fit,w_600,h_450,q_auto,f_auto');
+export function patientMediaThumbnailUrl(media: PatientMedia | null | undefined): string {
+  if (!media) return '';
+  const url = media.contentUrl;
+  if (!url || typeof url !== 'string') return '';
+  if (media.mediaType !== 'IMAGE') return url;
+  return cloudinaryTransform(url, 'c_fit,w_600,h_450,q_auto,f_auto');
 }
 
-export function patientMediaPreviewUrl(media: PatientMedia): string {
-  if (media.mediaType !== 'IMAGE') return media.contentUrl;
-  return cloudinaryTransform(media.contentUrl, 'c_limit,w_1800,h_1800,q_auto,f_auto');
+export function patientMediaPreviewUrl(media: PatientMedia | null | undefined): string {
+  if (!media) return '';
+  const url = media.contentUrl;
+  if (!url || typeof url !== 'string') return '';
+  if (media.mediaType !== 'IMAGE') return url;
+  return cloudinaryTransform(url, 'c_limit,w_1800,h_1800,q_auto,f_auto');
 }
 
 /** Creates a temporary local preview URL from a File object. Call revokeLocalPreview() to clean up. */

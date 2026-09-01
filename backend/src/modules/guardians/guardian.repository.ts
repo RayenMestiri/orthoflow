@@ -57,6 +57,17 @@ export class GuardianRepository {
       .exec();
   }
 
+  async findByEmailInClinic(email: string, clinicId: string): Promise<GuardianRecord | null> {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) return null;
+    return GuardianModel.findOne({
+      ...this.baseFilter(clinicId),
+      email: trimmed,
+    })
+      .lean<GuardianRecord | null>()
+      .exec();
+  }
+
   async searchInClinic(clinicId: string, query: string, limit = 20): Promise<GuardianRecord[]> {
     const trimmed = query.trim();
     if (!trimmed) {

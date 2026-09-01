@@ -64,6 +64,27 @@ export class DocumentTemplateRepository {
   async archive(id: string, clinicId: string, actorUserId: string, at: Date): Promise<DocumentTemplateRecord | null> {
     return DocumentTemplateModel.findOneAndUpdate({ ...this.baseFilter(clinicId), _id: toObjectId(id, 'templateId'), status: { $ne: DOCUMENT_TEMPLATE_STATUSES.ARCHIVED } }, { $set: { status: DOCUMENT_TEMPLATE_STATUSES.ARCHIVED, archivedAt: at, updatedByUserId: toObjectId(actorUserId, 'actorUserId') } }, { new: true, runValidators: true }).lean<DocumentTemplateRecord | null>().exec();
   }
+
+  async seedDefaults(clinicId: string, templates: Array<CreateDocumentTemplateInput & { variablesUsed: string[] }>): Promise<DocumentTemplateRecord[]> {
+    const cId = toObjectId(clinicId, 'clinicId');
+    const now = new Date();
+    const records = templates.map((tpl) => ({
+      clinicId: cId,
+      code: tpl.code.toUpperCase(),
+      version: 1,
+      title: tpl.title,
+      category: tpl.category,
+      definition: tpl.definition,
+      variablesUsed: tpl.variablesUsed,
+      status: DOCUMENT_TEMPLATE_STATUSES.ACTIVE,
+      createdByUserId: cId,
+      updatedByUserId: cId,
+      activatedAt: now,
+      archivedAt: null,
+    }));
+    const created = await DocumentTemplateModel.insertMany(records, { ordered: false });
+    return created.map((doc) => doc.toObject<DocumentTemplateRecord>());
+  }
 }
 
 export type CreateGeneratedDocumentRecordInput = Omit<GeneratedDocumentRecord, '_id' | 'createdAt' | 'clinicId' | 'patientId' | 'templateId' | 'generatedByUserId' | 'voidedByUserId'> & { clinicId: string; patientId: string; templateId: string; generatedByUserId: string };
@@ -98,6 +119,43 @@ export class GeneratedDocumentRepository {
     const query = GeneratedDocumentModel.findOneAndUpdate({ ...this.baseFilter(clinicId), _id: toObjectId(id, 'documentId'), status: GENERATED_DOCUMENT_STATUSES.FINALIZED }, { $set: { status: GENERATED_DOCUMENT_STATUSES.VOIDED, voidedAt: at, voidedByUserId: toObjectId(actorUserId, 'actorUserId'), voidReason: reason } }, { new: true, runValidators: true });
     if (session) query.session(session);
     return query.lean<GeneratedDocumentRecord | null>().exec();
+  }
+
+  async findExpiredCandidates(limit: number, now: Date = new Date()): Promise<GeneratedDocumentRecord[]> {
+    return GeneratedDocumentModel.find({
+      status: GENERATED_DOCUMENT_STATUSES.FINALIZED,
+      retentionExpiresAt: { $lte: now },
+      finalizedPdf: { $ne: null },
+    })
+      .limit(limit)
+      .lean<GeneratedDocumentRecord[]>()
+      .exec();
+  }
+
+  async markExpiredAndRemoveBinary(
+    id: string,
+    clinicId: string,
+    deletedAt: Date = new Date(),
+    deletionReason = 'AUTOMATIC_30_DAY_EXPIRATION',
+  ): Promise<GeneratedDocumentRecord | null> {
+    return GeneratedDocumentModel.findOneAndUpdate(
+      {
+        ...this.baseFilter(clinicId),
+        _id: toObjectId(id, 'documentId'),
+        status: GENERATED_DOCUMENT_STATUSES.FINALIZED,
+      },
+      {
+        $set: {
+          status: GENERATED_DOCUMENT_STATUSES.EXPIRED,
+          deletedAt,
+          deletionReason,
+          finalizedPdf: null,
+        },
+      },
+      { new: true, runValidators: true },
+    )
+      .lean<GeneratedDocumentRecord | null>()
+      .exec();
   }
 }
 

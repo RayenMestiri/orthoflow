@@ -1,11 +1,19 @@
 import { A11yModule } from '@angular/cdk/a11y';
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  OnDestroy,
+  signal,
+} from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { getApiProblem } from '../../../../core/http/api-error';
+import { ActivePatientService } from '../../data-access/active-patient.service';
 import { PatientCashRecords } from '../../../cash-records/components/patient-cash-records/patient-cash-records';
 import { FollowUpsApiService } from '../../../follow-ups/data-access/follow-ups-api.service';
 import type { FollowUpRow } from '../../../follow-ups/models/follow-up.models';
@@ -59,12 +67,14 @@ import type {
   styleUrl: './patient-detail-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PatientDetailPage {
+export class PatientDetailPage implements OnDestroy {
   private readonly api = inject(PatientsApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly permissions = inject(PermissionService);
   private readonly treatmentsApi = inject(TreatmentsApiService);
   private readonly followUpsApi = inject(FollowUpsApiService);
+  private readonly activePatientService = inject(ActivePatientService);
   readonly tasksStore = inject(TasksStore);
   readonly patientId = this.route.snapshot.paramMap.get('patientId') ?? '';
   readonly patient = signal<Patient | null>(null);
@@ -229,8 +239,16 @@ export class PatientDetailPage {
       ) {
         this.activeView.set(
           tab as
-            'overview' | 'activity' | 'treatments' | 'visits' | 'payments' | 'media' | 'consents',
+            | 'overview'
+            | 'activity'
+            | 'communications'
+            | 'treatments'
+            | 'visits'
+            | 'payments'
+            | 'media'
+            | 'consents',
         );
+        this.activePatientService.setActiveTab(tab);
       }
       this.selectedTreatmentId.set(params.get('treatmentId'));
       this.selectedTreatmentLabel.set(params.get('treatmentLabel'));
@@ -238,6 +256,30 @@ export class PatientDetailPage {
       this.selectedReceiptNumber.set(params.get('receiptNumber'));
       this.selectedReceiptId.set(params.get('receiptId'));
     });
+  }
+
+  selectTab(
+    tab:
+      | 'overview'
+      | 'activity'
+      | 'communications'
+      | 'treatments'
+      | 'visits'
+      | 'payments'
+      | 'media'
+      | 'consents',
+  ): void {
+    this.activeView.set(tab);
+    this.activePatientService.setActiveTab(tab);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.activePatientService.clear();
   }
 
   formatBirthDate(value: string | null): string {
@@ -297,6 +339,11 @@ export class PatientDetailPage {
       ]);
       this.patient.set(patient);
       this.guardians.set(guardians);
+      this.activePatientService.setPatient({
+        id: this.patientId,
+        fullName: `${patient.firstName} ${patient.lastName}`,
+        activeTab: this.activeView(),
+      });
       if (this.canViewFollowUps) {
         try {
           const followUps = await firstValueFrom(

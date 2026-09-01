@@ -14,6 +14,7 @@ import { errorHandlerPlugin } from './plugins/error-handler.plugin.js';
 import { securityPlugin } from './plugins/security.plugin.js';
 import { swaggerPlugin } from './plugins/swagger.plugin.js';
 import { notificationWorkerPlugin } from './plugins/notification-worker.plugin.js';
+import { documentRetentionPlugin } from './plugins/document-retention.plugin.js';
 import { registerModules } from './modules/index.js';
 
 export interface BuildAppOptions {
@@ -103,6 +104,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   if (options.withDatabase ?? true) {
     await app.register(databasePlugin);
     await app.register(notificationWorkerPlugin);
+    await app.register(documentRetentionPlugin);
   }
 
   await app.register(authPlugin);

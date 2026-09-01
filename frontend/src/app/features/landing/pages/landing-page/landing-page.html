@@ -10,14 +10,28 @@
         connected workspace built for orthodontic teams.
       </p>
       <div class="hero__actions">
-        <a class="button button--primary" href="#waitlist">
-          Join the waitlist
-          <span class="material-icons" aria-hidden="true">arrow_outward</span>
-        </a>
-        <a class="text-link" href="#how-it-works">
-          <span class="play material-icons" aria-hidden="true">play_arrow</span>
-          See how it works
-        </a>
+        @if (staffAuth.isAuthenticated() && staffAuth.user(); as staff) {
+          <a class="button button--primary" routerLink="/app/dashboard">
+            <span class="material-icons" aria-hidden="true">dashboard</span>
+            Accéder à mon Dashboard ({{ staff.firstName }})
+            <span class="material-icons" aria-hidden="true">arrow_forward</span>
+          </a>
+        } @else if (portalAuth.authenticated() && portalAuth.profile(); as guardian) {
+          <a class="button button--portal-primary" routerLink="/portal/home">
+            <span class="material-icons" aria-hidden="true">family_restroom</span>
+            Mon Espace Famille (Aperçu)
+            <span class="material-icons" aria-hidden="true">arrow_forward</span>
+          </a>
+        } @else {
+          <a class="button button--primary" href="#waitlist">
+            Join the waitlist
+            <span class="material-icons" aria-hidden="true">arrow_outward</span>
+          </a>
+          <a class="text-link" href="#how-it-works">
+            <span class="play material-icons" aria-hidden="true">play_arrow</span>
+            See how it works
+          </a>
+        }
       </div>
       <div class="hero__signals" aria-label="Product positioning">
         <span>Built with real practice workflows</span>
@@ -294,6 +308,85 @@
           <span>Guardian <strong>Ready to notify</strong></span>
           <span>Next visit <strong>16 June · 09:30</strong></span>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="portal-spotlight" id="portal" aria-labelledby="portal-spotlight-title">
+  <div class="container">
+    <div class="portal-spotlight__shell">
+      <div class="portal-spotlight__badge">
+        <span class="portal-spotlight__dot"></span>
+        <span>Espace Patients & Familles</span>
+      </div>
+
+      <div class="portal-spotlight__header">
+        <span class="eyebrow">Portail Famille OrthoFlow</span>
+        <h2 id="portal-spotlight-title">Suivez les soins de vos proches,<br />avec sérénité et clarté.</h2>
+        <p>
+          Rendez-vous, consignes de traitement, relevés de règlements et documents partagés par votre clinique — réunis dans un espace privé et sécurisé.
+        </p>
+      </div>
+
+      <div class="portal-spotlight__grid">
+        <div class="spotlight-card">
+          <div class="spotlight-card__icon spotlight-card__icon--cal">
+            <span class="material-icons">event_available</span>
+          </div>
+          <h3>Agenda & Rappels en direct</h3>
+          <p>Consultez les dates des prochaines visites, les horaires et recevez des notifications pour chaque contrôle.</p>
+        </div>
+
+        <div class="spotlight-card">
+          <div class="spotlight-card__icon spotlight-card__icon--treatment">
+            <span class="material-icons">health_and_safety</span>
+          </div>
+          <h3>Suivi de Traitement & Rétention</h3>
+          <p>Accédez aux consignes cliniques du praticien, à l'état d'avancement et aux recommandations pour les appareils.</p>
+        </div>
+
+        <div class="spotlight-card">
+          <div class="spotlight-card__icon spotlight-card__icon--finance">
+            <span class="material-icons">receipt_long</span>
+          </div>
+          <h3>Reçus & Règlements Instantanés</h3>
+          <p>Visualisez l'historique complet des paiements et téléchargez vos reçus certifiés pour vos remboursements.</p>
+        </div>
+
+        <div class="spotlight-card">
+          <div class="spotlight-card__icon spotlight-card__icon--doc">
+            <span class="material-icons">verified_user</span>
+          </div>
+          <h3>Documents & Consentements</h3>
+          <p>Retrouvez vos fiches d'information, bilans de santé et consentements signés électroniquement en toute confidentialité.</p>
+        </div>
+      </div>
+
+      <div class="portal-spotlight__actions">
+        @if (portalAuth.authenticated()) {
+          <a class="button button--portal-primary" routerLink="/portal/home">
+            <span class="material-icons" aria-hidden="true">family_restroom</span>
+            Ouvrir mon Espace Famille (Aperçu)
+            <span class="material-icons arrow-icon" aria-hidden="true">arrow_forward</span>
+          </a>
+        } @else if (staffAuth.isAuthenticated()) {
+          <a class="button button--portal-primary" routerLink="/app/dashboard">
+            <span class="material-icons" aria-hidden="true">dashboard</span>
+            Accéder au Dashboard Cabinet
+            <span class="material-icons arrow-icon" aria-hidden="true">arrow_forward</span>
+          </a>
+        } @else {
+          <a class="button button--portal-primary" routerLink="/portal/login">
+            <span class="material-icons" aria-hidden="true">family_restroom</span>
+            Accéder au Portail Famille
+            <span class="material-icons arrow-icon" aria-hidden="true">arrow_forward</span>
+          </a>
+          <a class="button button--portal-secondary" routerLink="/login">
+            <span class="material-icons" aria-hidden="true">lock</span>
+            Espace Cabinet & Praticiens
+          </a>
+        }
       </div>
     </div>
   </div>

@@ -185,7 +185,7 @@ export class PatientActivityTimeline implements OnInit {
         return 'event';
       case 'CLINICAL':
         if (item.type === 'FOLLOW_UP_RECOMMENDED') return 'event_repeat';
-        return 'clinical_notes';
+        return 'edit_note';
       case 'TREATMENT':
         if (item.type === 'TREATMENT_CANCELLED') return 'cancel';
         if (item.type === 'TREATMENT_COMPLETED') return 'check_circle';

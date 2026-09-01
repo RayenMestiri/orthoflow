@@ -57,6 +57,7 @@ describe('PatientMediaWorkspace', () => {
       upload: vi.fn(() => of({ kind: 'complete', media: media() })),
       update: vi.fn(() => of(media())),
       archive: vi.fn(() => of(media({ status: 'ARCHIVED' }))),
+      delete: vi.fn(() => of({ deleted: true })),
     };
     TestBed.configureTestingModule({
       imports: [PatientMediaWorkspace],
@@ -109,7 +110,7 @@ describe('PatientMediaWorkspace', () => {
 
   it('opens a preview and archive confirmation for an active image', async () => {
     const element = await render([media()]);
-    (element.querySelector('.media-card__menu-btn--danger') as HTMLButtonElement).click();
+    (element.querySelector('.media-card__menu-btn--archive') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(element.textContent).toContain('Archive "Progress month 6"?');
     const submit = new Event('submit', { bubbles: true, cancelable: true });
@@ -125,7 +126,7 @@ describe('PatientMediaWorkspace', () => {
     // The full workflow the archive bug broke: confirm, wait for the request,
     // and land on a list that reflects the new state — all without a reload.
     const element = await render([media()]);
-    (element.querySelector('.media-card__menu-btn--danger') as HTMLButtonElement).click();
+    (element.querySelector('.media-card__menu-btn--archive') as HTMLButtonElement).click();
     fixture.detectChanges();
 
     (element.querySelector('.media-dialog') as HTMLFormElement).dispatchEvent(

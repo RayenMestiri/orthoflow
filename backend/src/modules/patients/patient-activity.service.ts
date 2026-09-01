@@ -857,6 +857,20 @@ export class PatientActivityService {
             cancellationReason: document.voidReason,
           });
         }
+        if (document.status === 'EXPIRED' || document.deletedAt) {
+          const expiredOccurredAt = (document.deletedAt ?? document.retentionExpiresAt ?? new Date()).toISOString();
+          allItems.push({
+            ...baseEvent,
+            id: `${documentId}_expired`,
+            type: PATIENT_ACTIVITY_TYPES.GENERATED_DOCUMENT_EXPIRED,
+            occurredAt: expiredOccurredAt,
+            title: 'Document supprimé après expiration',
+            subtitle: document.titleSnapshot,
+            detail: `${document.documentRef} · Fichier PDF supprimé automatiquement après 30 jours`,
+            actor: null,
+            cancellationReason: null,
+          });
+        }
       }
     }
 

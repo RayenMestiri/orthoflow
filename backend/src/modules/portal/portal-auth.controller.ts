@@ -62,6 +62,23 @@ export async function logoutPortalHandler(request: FastifyRequest, reply: Fastif
   clearPortalRefreshCookie(reply);
   return reply.send(ok({ loggedOut: true as const }));
 }
+export async function portalForgotPasswordHandler(request: FastifyRequest, reply: FastifyReply) {
+  const body = validatedBody<{ email: string }>(request);
+  const result = await portalAuthService.requestPasswordReset(body.email);
+  return reply.send(ok({ message: result.message }));
+}
+
+export async function portalResetPasswordHandler(request: FastifyRequest, reply: FastifyReply) {
+  const body = validatedBody<{ token: string; password: string }>(request);
+  const result = await portalAuthService.resetPassword(body.token, body.password, context(request));
+  return reply.send(
+    ok({
+      email: result.email,
+      message: 'Votre mot de passe a été réinitialisé avec succès.',
+    }),
+  );
+}
+
 export async function portalMeHandler(request: FastifyRequest, reply: FastifyReply) {
   return reply.send(ok(await portalAuthService.me(requirePortal(request))));
 }

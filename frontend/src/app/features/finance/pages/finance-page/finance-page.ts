@@ -12,6 +12,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { formatMoney } from '../../../cash-records/utils/money-format.util';
+import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { FinanceStore } from '../../data-access/finance.store';
 import {
   BALANCE_FILTERS,
@@ -46,6 +47,20 @@ import {
 export class FinancePage {
   protected readonly store = inject(FinanceStore);
   private readonly router = inject(Router);
+  private readonly permissions = inject(PermissionService);
+
+  /**
+   * Strategic financial overview (revenue pulse, collection rate, patient health
+   * distribution) is owner / practitioner intelligence.
+   *
+   * Secretaries access this page to read patient balances and navigate to
+   * per-patient payment history — they do not need the clinic-wide revenue picture.
+   * Hiding these sections reduces unnecessary exposure of business-sensitive data.
+   */
+  protected readonly canViewFinancialOverview = computed(() =>
+    this.permissions.can(PERMISSIONS.CLINIC_SETTINGS_MANAGE) ||
+    this.permissions.can(PERMISSIONS.CASH_RECORDS_CANCEL),
+  );
 
   protected readonly filters = BALANCE_FILTERS;
   protected readonly sorts = BALANCE_SORTS;
@@ -242,52 +257,154 @@ export class FinancePage {
     return Math.max(0, Math.min(100, Math.round((row.recordedMinor / row.agreedMinor) * 100)));
   }
 
-  // --- Recent Money Movement Multi-column Logic ---------------------------
+  // --- Recent Money Movement Journal Logic ---------------------------
+
+  protected readonly activityFilter = signal<'ALL' | 'CASH' | 'CARD' | 'TRANSFER' | 'CANCELLED'>(
+    'ALL',
+  );
+
+  protected readonly selectedActivityDetail = signal<FinanceActivityEntry | null>(null);
 
   protected readonly showAllActivity = signal(false);
 
-  protected readonly hasMoreActivity = computed(() => this.store.activity().length > 27);
+  protected readonly filteredActivity = computed<FinanceActivityEntry[]>(() => {
+    const filter = this.activityFilter();
+    const list = this.store.activity();
+    if (filter === 'ALL') return list;
+    if (filter === 'CANCELLED') {
+      return list.filter((item) => item.status === 'CANCELLED');
+    }
+    if (filter === 'CASH') {
+      return list.filter(
+        (item) => item.status !== 'CANCELLED' && item.paymentMethod.toUpperCase() === 'CASH',
+      );
+    }
+    if (filter === 'CARD') {
+      return list.filter(
+        (item) =>
+          item.status !== 'CANCELLED' &&
+          (item.paymentMethod.toUpperCase() === 'CARD' ||
+            item.paymentMethod.toUpperCase() === 'CARD_AT_CLINIC'),
+      );
+    }
+    if (filter === 'TRANSFER') {
+      return list.filter(
+        (item) =>
+          item.status !== 'CANCELLED' &&
+          (item.paymentMethod.toUpperCase() === 'TRANSFER' ||
+            item.paymentMethod.toUpperCase() === 'BANK_TRANSFER'),
+      );
+    }
+    return list;
+  });
+
+  protected readonly hasMoreActivity = computed(() => this.filteredActivity().length > 15);
 
   protected readonly displayedActivity = computed(() => {
-    const all = this.store.activity();
-    return this.showAllActivity() ? all : all.slice(0, 27);
+    const list = this.filteredActivity();
+    return this.showAllActivity() ? list : list.slice(0, 15);
   });
 
   /**
-   * Automatically organizes movements into 1, 2, or 3 columns:
-   * - <= 9 items: 1 column
-   * - 10..18 items: 2 columns (max 9 per column)
-   * - 19..27 items: 3 columns (max 9 per column)
-   * - > 27 items: 3 columns with "Voir plus" toggle
+   * Total recorded amount of the loaded activity movements.
    */
-  protected readonly activityColumns = computed<FinanceActivityEntry[][]>(() => {
-    const items = this.displayedActivity();
-    const count = items.length;
-    if (count === 0) return [];
-    if (count <= 9) return [items];
-    if (count <= 18) {
-      return [items.slice(0, 9), items.slice(9, 18)];
-    }
-    if (!this.showAllActivity() || count <= 27) {
-      return [
-        items.slice(0, 9),
-        items.slice(9, 18),
-        items.slice(18, 27),
-      ];
-    }
-    const colSize = Math.ceil(count / 3);
-    return [
-      items.slice(0, colSize),
-      items.slice(colSize, colSize * 2),
-      items.slice(colSize * 2),
-    ];
+  protected readonly activityRecordedTotalMinor = computed(() => {
+    return this.store
+      .activity()
+      .filter((item) => item.status !== 'CANCELLED')
+      .reduce((sum, item) => sum + item.amountMinor, 0);
   });
+
+  /**
+   * Groups transactions by day for rapid visual scanning.
+   */
+  protected readonly groupedActivity = computed<
+    Array<{
+      dateKey: string;
+      dateLabel: string;
+      isToday: boolean;
+      isYesterday: boolean;
+      entries: FinanceActivityEntry[];
+    }>
+  >(() => {
+    const items = this.displayedActivity();
+    if (!items.length) return [];
+
+    const now = new Date();
+    const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = new Date(
+      yesterday.getFullYear(),
+      yesterday.getMonth(),
+      yesterday.getDate(),
+    ).toISOString();
+
+    const groupsMap = new Map<
+      string,
+      {
+        dateKey: string;
+        dateLabel: string;
+        isToday: boolean;
+        isYesterday: boolean;
+        entries: FinanceActivityEntry[];
+      }
+    >();
+
+    for (const entry of items) {
+      const d = new Date(entry.receivedAt);
+      const dayKey = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
+      const isToday = dayKey === todayStr;
+      const isYesterday = dayKey === yesterdayStr;
+
+      let dateLabel = '';
+      if (isToday) {
+        dateLabel = "Aujourd'hui";
+      } else if (isYesterday) {
+        dateLabel = 'Hier';
+      } else {
+        dateLabel = new Intl.DateTimeFormat('fr-FR', {
+          day: 'numeric',
+          month: 'long',
+          year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+        }).format(d);
+      }
+
+      if (!groupsMap.has(dayKey)) {
+        groupsMap.set(dayKey, {
+          dateKey: dayKey,
+          dateLabel,
+          isToday,
+          isYesterday,
+          entries: [],
+        });
+      }
+      groupsMap.get(dayKey)!.entries.push(entry);
+    }
+
+    return Array.from(groupsMap.values());
+  });
+
+  protected setActivityFilter(filter: 'ALL' | 'CASH' | 'CARD' | 'TRANSFER' | 'CANCELLED'): void {
+    this.activityFilter.set(filter);
+  }
 
   protected toggleShowAllActivity(): void {
     this.showAllActivity.update((prev) => !prev);
   }
 
-  protected openPatientPayment(entry: FinanceActivityEntry): void {
+  protected openActivityDetail(entry: FinanceActivityEntry): void {
+    this.selectedActivityDetail.set(entry);
+  }
+
+  protected closeActivityDetail(): void {
+    this.selectedActivityDetail.set(null);
+  }
+
+  protected openPatientPayment(entry: FinanceActivityEntry, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
     void this.router.navigate(['/app/patients', entry.patientId], {
       queryParams: {
         tab: 'payments',
@@ -295,6 +412,57 @@ export class FinancePage {
         receiptNumber: entry.receiptNumber ?? undefined,
       },
     });
+  }
+
+  protected friendlyMethod(method: string): string {
+    switch (method.toUpperCase()) {
+      case 'CASH':
+        return 'Espèces';
+      case 'CARD':
+      case 'CARD_AT_CLINIC':
+        return 'Carte bancaire';
+      case 'TRANSFER':
+      case 'BANK_TRANSFER':
+        return 'Virement';
+      case 'CHECK':
+        return 'Chèque';
+      default:
+        return method;
+    }
+  }
+
+  protected methodIcon(method: string): string {
+    switch (method.toUpperCase()) {
+      case 'CASH':
+        return 'payments';
+      case 'CARD':
+      case 'CARD_AT_CLINIC':
+        return 'credit_card';
+      case 'TRANSFER':
+      case 'BANK_TRANSFER':
+        return 'account_balance';
+      case 'CHECK':
+        return 'edit_note';
+      default:
+        return 'receipt';
+    }
+  }
+
+  protected friendlyPayer(entry: FinanceActivityEntry): string {
+    if (entry.status === 'CANCELLED') {
+      return entry.cancelledByName ? `Annulé par ${entry.cancelledByName}` : 'Paiement annulé';
+    }
+    const type = entry.payerType ?? 'SELF';
+    switch (type) {
+      case 'SELF':
+        return 'Patient';
+      case 'GUARDIAN':
+        return 'Tuteur / Parent';
+      case 'OTHER':
+        return entry.payerLabel ? entry.payerLabel : 'Tiers payeur';
+      default:
+        return 'Patient';
+    }
   }
 
   protected trackActivity(_index: number, entry: FinanceActivityEntry): string {

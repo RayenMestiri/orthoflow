@@ -17,6 +17,7 @@
   display: flex;
   height: 100dvh;
   flex-direction: column;
+  overflow-y: auto;
   padding: 1.35rem 1.1rem;
   color: var(--color-white);
   background:
@@ -130,6 +131,53 @@
   font-size: 1.15rem;
 }
 
+.app-shell__patient-subnav {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0.2rem 0 0.45rem 1.15rem;
+  padding: 0.25rem 0 0.25rem 0.75rem;
+  border-left: 2px solid rgb(255 254 251 / 0.16);
+}
+
+.app-shell__patient-sublink {
+  display: grid;
+  min-height: 2.2rem;
+  grid-template-columns: 1.25rem 1fr;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.38rem 0.65rem;
+  border-radius: 0.5rem;
+  color: rgb(255 254 251 / 0.72);
+  font-size: 0.76rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 150ms ease;
+
+  .material-icons {
+    font-size: 1rem;
+    color: rgb(255 254 251 / 0.58);
+  }
+
+  &:hover {
+    color: var(--color-white) !important;
+    background: rgb(255 254 251 / 0.09);
+
+    .material-icons {
+      color: var(--color-white);
+    }
+  }
+
+  &--active {
+    color: var(--color-white) !important;
+    background: rgb(255 254 251 / 0.16) !important;
+    font-weight: 600;
+
+    .material-icons {
+      color: #92cbb5 !important;
+    }
+  }
+}
+
 .app-shell__nav-link--future {
   opacity: 0.62;
 }
@@ -177,6 +225,16 @@
   color: rgb(255 254 251 / 0.48);
   font-size: 0.6rem;
   line-height: 1.45;
+}
+
+/* Secretary role: restricted access note — amber lock icon */
+.app-shell__sidebar-note--restricted {
+  border-color: rgb(255 190 90 / 0.22);
+  background: rgb(255 190 90 / 0.07);
+
+  > .material-icons {
+    color: #e4a84a;
+  }
 }
 
 .app-shell__workspace {

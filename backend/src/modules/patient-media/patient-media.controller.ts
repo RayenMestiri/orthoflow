@@ -108,6 +108,16 @@ export async function replacePatientMediaHandler(request: FastifyRequest, reply:
   return reply.send(ok(media));
 }
 
+export async function deletePatientMediaHandler(request: FastifyRequest, reply: FastifyReply) {
+  const { mediaId } = validatedParams<PatientMediaIdParam>(request);
+  await patientMediaService.deletePermanently(
+    requireTenant(request).clinicId,
+    mediaId,
+    mediaMutationContext(request),
+  );
+  return reply.send(ok({ deleted: true, id: mediaId }));
+}
+
 function mediaMutationContext(request: FastifyRequest): PatientMediaMutationContext {
   return {
     ...mutationContext(request),

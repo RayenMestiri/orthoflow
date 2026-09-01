@@ -206,6 +206,13 @@ export class FinanceService {
       cashRecordId: String(row._id),
       patientId: String(row.patientId),
       patientName: `${row.patientFirstName} ${row.patientLastName}`.trim() || 'Patient',
+      treatmentLabel:
+        row.customTypeLabel ??
+        (row.treatmentType ? this.formatTreatmentType(row.treatmentType) : null),
+      payerType: row.payerType ?? 'SELF',
+      payerLabel: row.payerLabel ?? null,
+      note: row.note ?? null,
+      purpose: row.purpose ?? null,
       amountMinor: row.amountMinor,
       currency: row.currency || currency,
       paymentMethod: row.paymentMethod,

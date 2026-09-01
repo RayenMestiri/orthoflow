@@ -24,6 +24,7 @@ import {
 import { toUserDto } from '../users/user.mapper.js';
 import { userRepository, type UserRepository } from '../users/user.repository.js';
 import { USER_STATUSES } from '../users/user.types.js';
+import { portalRepository, type PortalRepository } from '../portal/portal.repository.js';
 import { authSessionRepository, type AuthSessionRepository } from './auth-session.repository.js';
 import { authChallengeService, type AuthChallengeService } from './auth-challenge.service.js';
 import {
@@ -63,6 +64,7 @@ export class AuthService {
     private readonly tokens: TokenService = tokenService,
     private readonly audit: AuditLogService = auditLogService,
     private readonly challenges: AuthChallengeService = authChallengeService,
+    private readonly portal: PortalRepository = portalRepository,
   ) {}
 
   /**
@@ -196,6 +198,13 @@ export class AuthService {
     const user = await this.users.findByEmailForAuthentication(email);
 
     if (!user) {
+      const portalUser = await this.portal.findUserByEmail(email);
+      if (portalUser) {
+        throw new UnauthorizedError(
+          'Cette adresse email correspond à un compte Portail Famille (Patient / Tuteur). Veuillez vous connecter via le Portail Famille.',
+          { code: ERROR_CODES.PORTAL_ACCOUNT_DETECTED },
+        );
+      }
       // Spend the same CPU as a real verification so response time does not
       // reveal whether the address is registered.
       await this.passwords.verify(await this.getDummyHash(), input.password);

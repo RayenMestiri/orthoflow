@@ -70,9 +70,25 @@ export class PatientGeneratedDocuments implements OnInit {
   protected readonly referralRecipient = signal('');
   protected readonly referralReason = signal('');
   protected readonly referralMessage = signal('');
+  protected readonly activeFilter = signal<'ALL' | 'ACTIVE' | 'EXPIRED'>('ALL');
+  protected readonly archiveTarget = signal<GeneratedDocument | null>(null);
   protected readonly preview = signal<GeneratedDocumentPreview | null>(null);
   protected readonly voidTarget = signal<GeneratedDocument | null>(null);
   protected readonly voidReason = signal('');
+  protected readonly totalCount = computed(() => this.documents().length);
+  protected readonly activeCount = computed(
+    () => this.documents().filter((d) => !d.isExpired && d.status !== 'EXPIRED').length,
+  );
+  protected readonly expiredCount = computed(
+    () => this.documents().filter((d) => d.isExpired || d.status === 'EXPIRED').length,
+  );
+  protected readonly filteredDocuments = computed(() => {
+    const filter = this.activeFilter();
+    const docs = this.documents();
+    if (filter === 'ACTIVE') return docs.filter((d) => !d.isExpired && d.status !== 'EXPIRED');
+    if (filter === 'EXPIRED') return docs.filter((d) => d.isExpired || d.status === 'EXPIRED');
+    return docs;
+  });
   protected readonly selectedTemplate = computed(
     () => this.templates().find((item) => item.id === this.templateId()) ?? null,
   );
@@ -92,15 +108,16 @@ export class PatientGeneratedDocuments implements OnInit {
     this.error.set(null);
     try {
       const now = new Date();
-      const start = new Date(now);
-      start.setFullYear(start.getFullYear() - 1);
-      const end = new Date(now);
-      end.setMonth(end.getMonth() + 2);
+      const start = new Date(now.getTime() - 30 * 86400000);
+      const end = new Date(now.getTime() + 30 * 86400000);
       const [documents, templates, appointments] = await Promise.all([
         firstValueFrom(this.api.listPatientDocuments(this.patientId())),
         firstValueFrom(this.api.listTemplates('ACTIVE')),
-        firstValueFrom(this.schedule.listAppointments(start.toISOString(), end.toISOString())),
+        firstValueFrom(
+          this.schedule.listAppointments(start.toISOString(), end.toISOString(), this.patientId()),
+        ).catch(() => []),
       ]);
+      console.log('📄 [Patient Generated Documents] Loaded documents count:', documents.length, documents);
       this.documents.set(documents);
       this.templates.set(templates);
       this.appointments.set(appointments);
@@ -112,8 +129,9 @@ export class PatientGeneratedDocuments implements OnInit {
   }
   protected openCreate(): void {
     const first = this.templates()[0];
-    if (!first) return;
-    this.templateId.set(first.id);
+    if (first) {
+      this.templateId.set(first.id);
+    }
     this.resetContext();
     this.drawerOpen.set(true);
   }
@@ -205,6 +223,26 @@ export class PatientGeneratedDocuments implements OnInit {
     } finally {
       this.saving.set(false);
     }
+  }
+  protected setFilter(filter: 'ALL' | 'ACTIVE' | 'EXPIRED'): void {
+    this.activeFilter.set(filter);
+  }
+  protected viewArchive(item: GeneratedDocument): void {
+    this.archiveTarget.set(item);
+  }
+  protected closeArchive(): void {
+    this.archiveTarget.set(null);
+  }
+  protected regenerateDocument(item: GeneratedDocument): void {
+    this.archiveTarget.set(null);
+    const template =
+      this.templates().find((t) => t.id === item.templateId || t.code === item.templateCode) ??
+      this.templates()[0];
+    if (!template) return;
+    this.templateId.set(template.id);
+    this.resetContext();
+    this.drawerOpen.set(true);
+    void this.previewDocument();
   }
   protected cell(
     block: DocumentBlock,

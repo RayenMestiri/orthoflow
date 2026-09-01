@@ -369,6 +369,7 @@ export const guardianRepositoryMock = {
   findByIdInClinic: vi.fn(async (guardianId: string, clinicId: string) =>
     guardianRecord(clinicId, guardianId),
   ),
+  findByEmailInClinic: vi.fn(async () => null),
   searchInClinic: vi.fn(async (clinicId: string) => [guardianRecord(clinicId)]),
   updateInClinic: vi.fn(async (_guardianId: string, clinicId: string) => guardianRecord(clinicId)),
 };
@@ -591,6 +592,20 @@ export const taskRepositoryMock = {
   update: vi.fn(async (): Promise<TaskRecord | null> => null),
 };
 
+export const portalRepositoryMock = {
+  findUserByEmail: vi.fn(async () => null),
+  findUserById: vi.fn(async () => null),
+  findUserByGuardian: vi.fn(async () => null),
+  createUser: vi.fn(),
+  reactivateUser: vi.fn(),
+  updateUserStatus: vi.fn(),
+  createInvitation: vi.fn(),
+  findInvitationByTokenHash: vi.fn(async () => null),
+  findLatestInvitation: vi.fn(async () => null),
+  consumeInvitation: vi.fn(),
+  markLogin: vi.fn(),
+};
+
 export function resetRepositoryMocks(): void {
   const repositories = [
     userRepositoryMock,
@@ -607,6 +622,7 @@ export function resetRepositoryMocks(): void {
     patientActivityRepositoryMock,
     taskRepositoryMock,
     auditLogRepositoryMock,
+    portalRepositoryMock,
   ];
 
   for (const repository of repositories) {

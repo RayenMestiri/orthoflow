@@ -177,17 +177,18 @@ export class ExternalCommunicationProjector {
   }
 
   private appointmentLabels(startAt: Date, timezone: string, locale: 'fr' | 'en' | 'ar') {
-    const language = locale === 'ar' ? 'ar-TN' : locale === 'fr' ? 'fr-TN' : 'en-GB';
-    return {
-      date: new Intl.DateTimeFormat(language, { timeZone: timezone, dateStyle: 'long' }).format(
-        startAt,
-      ),
-      time: new Intl.DateTimeFormat(language, {
-        timeZone: timezone,
-        hour: '2-digit',
-        minute: '2-digit',
-      }).format(startAt),
-    };
+    const language = locale === 'ar' ? 'ar-TN' : locale === 'fr' ? 'fr-FR' : 'en-GB';
+    const rawDate = new Intl.DateTimeFormat(language, {
+      timeZone: timezone,
+      dateStyle: 'full',
+    }).format(startAt);
+    const date = rawDate.charAt(0).toUpperCase() + rawDate.slice(1);
+    const time = new Intl.DateTimeFormat(language, {
+      timeZone: timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(startAt);
+    return { date, time };
   }
 
   private portalPath(template: CommunicationTemplateKey, patientId: string): string | null {

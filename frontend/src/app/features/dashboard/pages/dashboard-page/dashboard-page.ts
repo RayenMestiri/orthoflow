@@ -30,6 +30,16 @@ export class DashboardPage implements OnInit, OnDestroy {
   readonly canViewFinance = computed(() =>
     this.permissions.can(PERMISSIONS.CASH_RECORDS_VIEW),
   );
+  /**
+   * Strategic financial overview (revenues, collection rate, outstanding balances)
+   * is restricted to owners and practitioners. The secretary records payments but
+   * does not need the clinic-wide financial picture — it would expose sensitive
+   * business data (revenue trends, collection rates) that is owner-level intelligence.
+   */
+  readonly canViewFinancialOverview = computed(() =>
+    this.permissions.can(PERMISSIONS.CLINIC_SETTINGS_MANAGE) ||
+    this.permissions.can(PERMISSIONS.CASH_RECORDS_CANCEL),
+  );
   readonly canViewAppointments = computed(() =>
     this.permissions.can(PERMISSIONS.APPOINTMENTS_VIEW),
   );

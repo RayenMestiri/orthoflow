@@ -5,9 +5,11 @@ import {
   downloadPortalDocumentHandler,
   getPortalAccessStatusHandler,
   getPortalChildOverviewHandler,
+  getPortalDashboardHandler,
   getPortalFinanceHandler,
   getPortalReceiptHandler,
   invitePortalAccessHandler,
+  listAllPortalConsentsHandler,
   listPortalAppointmentsHandler,
   listPortalChildrenHandler,
   listPortalConsentsHandler,
@@ -30,7 +32,9 @@ import { objectIdSchema } from '../../common/validation/common.schemas.js';
 
 export const portalRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', app.authenticatePortal);
+  app.get('/dashboard', { schema: { tags: ['portal'] } }, getPortalDashboardHandler);
   app.get('/children', { schema: { tags: ['portal'] } }, listPortalChildrenHandler);
+  app.get('/consents', { schema: { tags: ['portal'] } }, listAllPortalConsentsHandler);
   app.get(
     '/children/:patientId/overview',
     { schema: { tags: ['portal'], params: portalChildParamSchema } },

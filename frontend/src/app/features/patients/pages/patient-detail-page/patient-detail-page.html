@@ -214,7 +214,7 @@
       <button
         type="button"
         [class.active]="activeView() === 'overview'"
-        (click)="activeView.set('overview')"
+        (click)="selectTab('overview')"
       >
         <span class="material-icons" aria-hidden="true">info</span>
         <span>Overview</span>
@@ -222,7 +222,7 @@
       <button
         type="button"
         [class.active]="activeView() === 'activity'"
-        (click)="activeView.set('activity')"
+        (click)="selectTab('activity')"
       >
         <span class="material-icons" aria-hidden="true">history</span>
         <span>Historique</span>
@@ -231,7 +231,7 @@
         <button
           type="button"
           [class.active]="activeView() === 'communications'"
-          (click)="activeView.set('communications')"
+          (click)="selectTab('communications')"
         >
           <span class="material-icons" aria-hidden="true">forum</span><span>Communications</span>
         </button>
@@ -240,7 +240,7 @@
         <button
           type="button"
           [class.active]="activeView() === 'treatments'"
-          (click)="activeView.set('treatments')"
+          (click)="selectTab('treatments')"
         >
           <span class="material-icons" aria-hidden="true">medical_services</span>
           <span>Treatment</span>
@@ -250,7 +250,7 @@
         <button
           type="button"
           [class.active]="activeView() === 'payments'"
-          (click)="activeView.set('payments')"
+          (click)="selectTab('payments')"
         >
           <span class="material-icons" aria-hidden="true">receipt_long</span>
           <span>Payments</span>
@@ -260,14 +260,18 @@
         <button
           type="button"
           [class.active]="activeView() === 'visits'"
-          (click)="activeView.set('visits')"
+          (click)="selectTab('visits')"
         >
-          <span class="material-icons" aria-hidden="true">clinical_notes</span>
+          <span class="material-icons" aria-hidden="true">edit_note</span>
           <span>Visits</span>
         </button>
       }
       @if (canViewMedia) {
-        <button type="button" [class.active]="activeView() === 'media'" (click)="openMedia()">
+        <button
+          type="button"
+          [class.active]="activeView() === 'media'"
+          (click)="selectTab('media'); openMedia()"
+        >
           <span class="material-icons" aria-hidden="true">folder_open</span>
           <span>Documents</span>
         </button>
@@ -276,7 +280,7 @@
         <button
           type="button"
           [class.active]="activeView() === 'consents'"
-          (click)="activeView.set('consents')"
+          (click)="selectTab('consents')"
         >
           <span class="material-icons" aria-hidden="true">verified_user</span>
           <span>Consents</span>

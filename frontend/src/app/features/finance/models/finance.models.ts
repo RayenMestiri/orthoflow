@@ -77,6 +77,11 @@ export interface FinanceActivityEntry {
   cashRecordId: string;
   patientId: string;
   patientName: string;
+  treatmentLabel?: string | null;
+  payerType?: string | null;
+  payerLabel?: string | null;
+  note?: string | null;
+  purpose?: string | null;
   amountMinor: number;
   currency: string;
   paymentMethod: string;

@@ -256,8 +256,10 @@ export class DashboardService {
           inProgress: summary.inProgress,
           overdue: summary.overdue,
           urgent: summary.urgent,
+          completedToday: summary.completedToday ?? 0,
         },
         myTasks,
+        topTasks: myTasks,
       };
     }
 
