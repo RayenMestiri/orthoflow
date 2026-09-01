@@ -46,15 +46,24 @@
           <span>Aperçu</span>
         </a>
       } @else {
-        <a class="nav-portal-btn" routerLink="/portal/login" title="Accéder au portail patient et famille">
-          <span class="material-icons" aria-hidden="true">family_restroom</span>
-          <span>Portail Famille</span>
+        <a class="nav-btn nav-btn--portal" routerLink="/portal/login" title="Accéder à l'Espace Patient & Famille">
+          <span class="nav-btn__icon">
+            <span class="material-icons" aria-hidden="true">family_restroom</span>
+          </span>
+          <span class="nav-btn__text">Portail Famille</span>
         </a>
-        <a class="nav-cabinet-btn" routerLink="/login" title="Connexion praticiens et équipe">
-          <span class="material-icons" aria-hidden="true">lock</span>
-          <span>Cabinet</span>
+
+        <a class="nav-btn nav-btn--cabinet" routerLink="/login" title="Accéder à l'Espace Clinique & Praticiens">
+          <span class="nav-btn__icon">
+            <span class="material-icons" aria-hidden="true">local_hospital</span>
+          </span>
+          <span class="nav-btn__text">Espace Cabinet</span>
         </a>
-        <a class="button button--primary nav-cta" href="#waitlist">Rejoindre</a>
+
+        <a class="button button--primary nav-cta" href="#waitlist">
+          <span>Rejoindre</span>
+          <span class="material-icons" aria-hidden="true">arrow_forward</span>
+        </a>
       }
     </div>
 
@@ -125,15 +134,32 @@
               Mon Espace Famille (Aperçu)
             </a>
           } @else {
-            <a class="button button--secondary" routerLink="/portal/login" (click)="closeMenu()">
-              <span class="material-icons" aria-hidden="true">family_restroom</span>
-              Portail Famille
+            <div class="mobile-auth-cards">
+              <a class="mobile-auth-card mobile-auth-card--portal" routerLink="/portal/login" (click)="closeMenu()">
+                <div class="mobile-auth-card__icon">
+                  <span class="material-icons" aria-hidden="true">family_restroom</span>
+                </div>
+                <div class="mobile-auth-card__content">
+                  <strong>Portail Famille</strong>
+                  <small>Espace patient sécurisé</small>
+                </div>
+                <span class="material-icons chevron" aria-hidden="true">chevron_right</span>
+              </a>
+              <a class="mobile-auth-card mobile-auth-card--cabinet" routerLink="/login" (click)="closeMenu()">
+                <div class="mobile-auth-card__icon">
+                  <span class="material-icons" aria-hidden="true">local_hospital</span>
+                </div>
+                <div class="mobile-auth-card__content">
+                  <strong>Espace Cabinet</strong>
+                  <small>Praticiens & équipe</small>
+                </div>
+                <span class="material-icons chevron" aria-hidden="true">chevron_right</span>
+              </a>
+            </div>
+            <a class="button button--primary" href="#waitlist" (click)="closeMenu()">
+              <span>Rejoindre la liste</span>
+              <span class="material-icons" aria-hidden="true">arrow_forward</span>
             </a>
-            <a class="button button--secondary" routerLink="/login" (click)="closeMenu()">
-              <span class="material-icons" aria-hidden="true">lock</span>
-              Connexion Cabinet
-            </a>
-            <a class="button button--primary" href="#waitlist" (click)="closeMenu()">Rejoindre la liste</a>
           }
         </div>
       </nav>
