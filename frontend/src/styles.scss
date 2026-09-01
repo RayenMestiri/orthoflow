@@ -5,6 +5,9 @@
 @use 'styles/utilities';
 @use 'styles/animations';
 @use 'styles/auth-forms';
+@import 'fullcalendar/skeleton.css';
+@import 'fullcalendar/themes/classic/theme.css';
+@import 'fullcalendar/themes/classic/palette.css';
 
 *,
 *::before,
