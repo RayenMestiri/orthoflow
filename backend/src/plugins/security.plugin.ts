@@ -23,7 +23,7 @@ export const securityPlugin = fp(
     });
 
     await app.register(cors, {
-      origin: corsOrigins,
+      origin: [...corsOrigins, /\.vercel\.app$/],
       credentials: true,
       methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'x-clinic-id'],
