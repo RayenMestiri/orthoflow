@@ -34,8 +34,8 @@
   ],
   "rewrites": [
     {
-      "source": "/api/:match*",
-      "destination": "https://orthoflow-gw9w.onrender.com/api/:match*"
+      "source": "/api/(.*)",
+      "destination": "https://orthoflow-gw9w.onrender.com/api/$1"
     },
     {
       "source": "/health",
