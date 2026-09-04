@@ -10,7 +10,7 @@ export function setPortalRefreshCookie(reply: FastifyReply, token: string): void
   reply.setCookie(PORTAL_REFRESH_COOKIE_NAME, token, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: 'lax',
+    sameSite: isProduction ? 'none' : 'lax',
     path: PORTAL_REFRESH_COOKIE_PATH,
     maxAge: portalTokenService.refreshTokenTtlSeconds,
   });

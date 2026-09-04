@@ -21,8 +21,8 @@ async function main() {
         try {
           await mediaService.remove(m.publicId, m.resourceType ?? 'image');
           console.log(`Removed Cloudinary asset: ${m.publicId}`);
-        } catch (err: any) {
-          console.warn(`Could not remove Cloudinary asset ${m.publicId}:`, err.message);
+        } catch (err: unknown) {
+          console.warn(`Could not remove Cloudinary asset ${m.publicId}:`, (err as Error).message);
         }
       }
     }
@@ -40,8 +40,8 @@ async function main() {
         try {
           await mediaService.remove(d.pdfPublicId, 'raw');
           console.log(`Removed Cloudinary PDF: ${d.pdfPublicId}`);
-        } catch (err: any) {
-          console.warn(`Could not remove Cloudinary PDF ${d.pdfPublicId}:`, err.message);
+        } catch (err: unknown) {
+          console.warn(`Could not remove Cloudinary PDF ${d.pdfPublicId}:`, (err as Error).message);
         }
       }
     }

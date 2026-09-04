@@ -46,7 +46,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
      * which would make both rate limiting and audit trails describe the wrong
      * client.
      */
-    trustProxy: isProduction && env.TRUST_PROXY_HOPS > 0 ? env.TRUST_PROXY_HOPS : false,
+    trustProxy:
+      isProduction && env.TRUST_PROXY_HOPS > 0
+        ? (_address: string, hop: number) => hop < env.TRUST_PROXY_HOPS
+        : false,
     bodyLimit: env.BODY_LIMIT_BYTES,
     genReqId: () => randomUUID(),
   });

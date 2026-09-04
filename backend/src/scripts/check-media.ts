@@ -38,8 +38,8 @@ async function main() {
         const text = await res.text();
         console.log('Error body:', text.slice(0, 300));
       }
-    } catch (err: any) {
-      console.log('Fetch error:', err.message);
+    } catch (err: unknown) {
+      console.log('Fetch error:', (err as Error).message);
     }
   }
 
@@ -61,8 +61,8 @@ async function main() {
       try {
         const res = await fetch(url);
         console.log('Fetch GenDoc HTTP status:', res.status, res.statusText);
-      } catch (err: any) {
-        console.log('Fetch error:', err.message);
+      } catch (err: unknown) {
+        console.log('Fetch error:', (err as Error).message);
       }
     }
   }

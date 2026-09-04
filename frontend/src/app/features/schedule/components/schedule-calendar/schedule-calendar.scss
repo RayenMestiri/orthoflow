@@ -130,7 +130,7 @@ full-calendar {
       min-width: calc(100% - 4px) !important;
       max-width: calc(100% - 4px) !important;
 
-      transform: translateY(calc(var(--staircase-index) * var(--step-y)));
+      transform: translateY(calc(var(--staircase-index, 0) * var(--step-y)));
       z-index: calc(10 + var(--group-index, var(--staircase-index, 0))) !important;
 
       /* Boosted height, presence and vertical spacing for all collision cases (3, 4, 5, 6, ...) */
@@ -199,7 +199,7 @@ full-calendar {
       &.is-card-hovered,
       &:hover {
         z-index: 120 !important;
-        transform: translateY(calc(var(--staircase-index) * var(--step-y) - 4px)) scale(1.015) !important;
+        transform: translateY(calc(var(--staircase-index, 0) * var(--step-y) - 4px)) scale(1.015) !important;
 
         .fc-timegrid-event {
           box-shadow: none !important;

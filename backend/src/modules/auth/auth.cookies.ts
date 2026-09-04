@@ -15,9 +15,9 @@ export function setRefreshCookie(reply: FastifyReply, refreshToken: string): voi
   reply.setCookie(REFRESH_COOKIE_NAME, refreshToken, {
     httpOnly: true,
     secure: isProduction,
-    // The production reverse proxy serves SPA and API from one site. Lax blocks
-    // third-party credential submission while preserving ordinary navigation.
-    sameSite: 'lax',
+    // In production, when frontend (e.g. Vercel) and API (e.g. Render) reside on
+    // distinct domains, 'none' is required for cross-origin credentials over HTTPS.
+    sameSite: isProduction ? 'none' : 'lax',
     path: REFRESH_COOKIE_PATH,
     maxAge: tokenService.refreshTokenTtlSeconds,
   });

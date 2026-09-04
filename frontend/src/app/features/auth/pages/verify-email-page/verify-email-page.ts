@@ -51,10 +51,7 @@ export class VerifyEmailPage {
     if (email && !this.deliveryUnavailable) {
       this.noticeMessage.set('Un code d\'activation sécurisé à 6 chiffres a été envoyé à votre adresse e-mail.');
       this.resendAvailableAt.set(Date.now() + 60_000);
-      this.api.resendVerification(email).subscribe({
-        next: () => {},
-        error: () => {},
-      });
+      this.api.resendVerification(email).subscribe();
     }
   }
 

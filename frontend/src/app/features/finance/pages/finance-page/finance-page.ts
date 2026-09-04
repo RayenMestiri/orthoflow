@@ -170,7 +170,7 @@ export class FinancePage {
     ].filter((item) => item.count > 0);
   });
 
-  protected readonly totalAttentionCount = computed(() =>
+  readonly totalAttentionCount = computed(() =>
     this.attentionItems().reduce((sum, item) => sum + item.count, 0),
   );
 
@@ -323,13 +323,13 @@ export class FinancePage {
    * Groups transactions by day for rapid visual scanning.
    */
   protected readonly groupedActivity = computed<
-    Array<{
+    {
       dateKey: string;
       dateLabel: string;
       isToday: boolean;
       isYesterday: boolean;
       entries: FinanceActivityEntry[];
-    }>
+    }[]
   >(() => {
     const items = this.displayedActivity();
     if (!items.length) return [];
@@ -361,7 +361,7 @@ export class FinancePage {
       const isToday = dayKey === todayStr;
       const isYesterday = dayKey === yesterdayStr;
 
-      let dateLabel = '';
+      let dateLabel: string;
       if (isToday) {
         dateLabel = "Aujourd'hui";
       } else if (isYesterday) {

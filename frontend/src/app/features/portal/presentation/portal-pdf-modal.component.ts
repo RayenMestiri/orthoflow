@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   EventEmitter,
   Input,
   OnDestroy,
@@ -18,8 +17,8 @@ import { firstValueFrom } from 'rxjs';
   selector: 'app-portal-pdf-modal',
   standalone: true,
   template: `
-    <div class="pdf-modal-backdrop" (click)="close()">
-      <div class="pdf-modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" [attr.aria-label]="title">
+    <div class="pdf-modal-backdrop" (click)="close()" (keydown.escape)="close()" role="button" tabindex="0" aria-label="Fermer la modal">
+      <div class="pdf-modal-card" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()" role="dialog" aria-modal="true" [attr.aria-label]="title">
         <header class="pdf-modal-header">
           <div class="pdf-modal-title-group">
             <span class="material-icons pdf-icon" aria-hidden="true">description</span>

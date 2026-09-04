@@ -101,16 +101,19 @@ export function buildScheduleGridOptions(schedule: ClinicScheduleConfiguration):
     dayMaxEventRows: false,
     views: {
       timeGridWeek: {
+        className: 'fc-timeGridWeek-view',
         dayMaxEvents: false,
         dayMaxEventRows: false,
-        slotEventOverlap: true,
+        slotEventOverlap: false,
       },
       timeGridDay: {
+        className: 'fc-timeGridDay-view',
         dayMaxEvents: false,
         dayMaxEventRows: false,
         slotEventOverlap: true,
       },
       dayGridMonth: {
+        className: 'fc-dayGridMonth-view',
         dayMaxEvents: 3,
         dayMaxEventRows: 3,
         moreLinkClick: 'popover',

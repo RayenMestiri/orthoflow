@@ -75,6 +75,7 @@ export interface SlotSelection {
     '[class.is-tue-closed]': 'closedWeekdays().includes("tue")',
     '[class.is-wed-closed]': 'closedWeekdays().includes("wed")',
     '[class.is-thu-closed]': 'closedWeekdays().includes("thu")',
+    '[class.is-timegrid-week]': 'isWeekView()',
   },
 })
 export class ScheduleCalendar implements OnDestroy {
@@ -91,6 +92,12 @@ export class ScheduleCalendar implements OnDestroy {
   private readonly calendarRef = viewChild.required(FullCalendarComponent);
 
   private hoverLeaveTimer: ReturnType<typeof setTimeout> | null = null;
+  private enforceLayoutTimer: ReturnType<typeof setTimeout> | null = null;
+
+  protected readonly currentView = signal<string>('');
+  protected readonly isWeekView = computed(
+    () => (this.currentView() || this.initialView()) === 'timeGridWeek',
+  );
 
   protected readonly hoveredGroupId = signal<string | null>(null);
   protected readonly hoveredAppointmentId = signal<string | null>(null);
@@ -109,7 +116,7 @@ export class ScheduleCalendar implements OnDestroy {
       sunday: 'sun',
     };
     return Object.entries(wh)
-      .filter(([_, periods]) => !periods || periods.length === 0)
+      .filter(([, periods]) => !periods || periods.length === 0)
       .map(([day]) => dayAbbrs[day] ?? day.slice(0, 3));
   });
 
@@ -133,6 +140,7 @@ export class ScheduleCalendar implements OnDestroy {
       } catch {
         // Safe before calendar view is fully initialized
       }
+      this.enforceWeekLayout();
     });
   }
 
@@ -153,11 +161,13 @@ export class ScheduleCalendar implements OnDestroy {
     editable: this.canEdit(),
     eventDurationEditable: this.canEdit(),
     datesSet: (arg) => {
+      this.currentView.set(arg.view.type);
       this.rangeChanged.emit({
         start: arg.start.toISOString(),
         end: arg.end.toISOString(),
         title: arg.view.title,
       });
+      this.enforceWeekLayout();
     },
     select: (arg: DateSelectInfo) => {
       this.getApi().unselect();
@@ -292,6 +302,10 @@ export class ScheduleCalendar implements OnDestroy {
       clearTimeout(this.hoverLeaveTimer);
       this.hoverLeaveTimer = null;
     }
+    if (this.enforceLayoutTimer) {
+      clearTimeout(this.enforceLayoutTimer);
+      this.enforceLayoutTimer = null;
+    }
   }
 
   protected onEventMouseEnter(collision?: CollisionMetadata, appointmentId?: string): void {
@@ -385,6 +399,59 @@ export class ScheduleCalendar implements OnDestroy {
 
   private getApi() {
     return this.calendarRef().getApi();
+  }
+
+  private enforceWeekLayout(): void {
+    if (this.enforceLayoutTimer) {
+      clearTimeout(this.enforceLayoutTimer);
+    }
+    this.enforceLayoutTimer = setTimeout(() => {
+      if (!this.isWeekView()) return;
+      const cards = document.querySelectorAll<HTMLElement>(
+        '.schedule-calendar full-calendar .schedule-event, full-calendar .schedule-event',
+      );
+      cards.forEach((cardEl) => {
+        const harness = (cardEl.closest('.fc-timegrid-event-harness') ??
+          cardEl.closest('.fc-timegrid-col-events > div') ??
+          cardEl.parentElement?.parentElement) as HTMLElement | null;
+        if (!harness) return;
+
+        harness.classList.add('fc-timegrid-event-harness');
+        harness.style.setProperty('left', '2px', 'important');
+        harness.style.setProperty('right', '2px', 'important');
+        harness.style.setProperty('inset-inline-start', '2px', 'important');
+        harness.style.setProperty('inset-inline-end', '2px', 'important');
+        harness.style.setProperty('width', 'calc(100% - 4px)', 'important');
+        harness.style.setProperty('min-width', 'calc(100% - 4px)', 'important');
+        harness.style.setProperty('max-width', 'calc(100% - 4px)', 'important');
+        harness.style.setProperty('box-sizing', 'border-box', 'important');
+
+        const collisionGroup = cardEl.getAttribute('data-collision-group');
+        const groupIndex = cardEl.getAttribute('data-group-index');
+        const groupTotal = cardEl.getAttribute('data-group-total');
+        const staircaseIndex = cardEl.style.getPropertyValue('--staircase-index') || groupIndex || '0';
+
+        if (collisionGroup) {
+          harness.setAttribute('data-collision-group', collisionGroup);
+        }
+        if (groupIndex !== null) {
+          harness.setAttribute('data-group-index', groupIndex);
+          harness.style.setProperty('--group-index', groupIndex);
+          harness.style.setProperty('z-index', String(10 + Number(groupIndex)), 'important');
+        }
+        if (groupTotal !== null) {
+          harness.setAttribute('data-group-total', groupTotal);
+          harness.style.setProperty('--staircase-total', groupTotal);
+          if (Number(groupTotal) > 1) {
+            harness.classList.add('fc-harness--overlapping');
+            harness.style.setProperty('--staircase-index', staircaseIndex);
+          } else {
+            harness.classList.remove('fc-harness--overlapping');
+          }
+        }
+      });
+      this.enforceLayoutTimer = null;
+    }, 16);
   }
 }
 

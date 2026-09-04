@@ -27,7 +27,7 @@ async function main() {
       html: '<p>This is a test email verifying SMTP configuration in <strong>OrthoFlow</strong>.</p>',
     });
     console.log('Email sent successfully! MessageId:', result.messageId);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to send email via SMTP:', err);
   }
 }

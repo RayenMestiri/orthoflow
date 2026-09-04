@@ -61,9 +61,10 @@ import { communicationRoutes } from './communications/communication.routes.js';
  * any existing module.
  */
 export const registerModules: FastifyPluginAsyncZod = async (app) => {
-  // Health lives outside the versioned prefix: probes should not have to track
-  // API versions.
+  // Health lives at both root and under the API prefix so orchestrators,
+  // load balancers and API monitors can probe either path.
   await app.register(healthRoutes);
+  await app.register(healthRoutes, { prefix: API_PREFIX });
 
   await app.register(authRoutes, { prefix: `${API_PREFIX}/auth` });
   await app.register(portalAuthRoutes, { prefix: `${API_PREFIX}/portal/auth` });

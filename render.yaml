@@ -1,0 +1,74 @@
+services:
+  - type: web
+    name: orthoflow-api
+    runtime: node
+    rootDir: backend
+    plan: starter
+    region: frankfurt # Low latency for Western Europe / Tunisia
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: API_REPLICA_COUNT
+        value: "1"
+      - key: LOG_LEVEL
+        value: info
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: orthoflow
+      - key: MONGODB_TRANSACTIONS_ENABLED
+        value: "true"
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: PORTAL_JWT_ACCESS_SECRET
+        sync: false
+      - key: PORTAL_JWT_REFRESH_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_UPLOAD_FOLDER
+        value: orthoflow
+      - key: FRONTEND_URL
+        sync: false # e.g. https://orthoflow.vercel.app
+      - key: CORS_ADDITIONAL_ORIGINS
+        value: ""
+      - key: AUTH_CODE_SECRET
+        sync: false
+      - key: COMMUNICATION_PAYLOAD_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM_ADDRESS
+        sync: false
+      - key: SMTP_FROM_NAME
+        value: OrthoFlow
+      - key: NOTIFICATION_WORKER_ENABLED
+        value: "true"
+      - key: COMMUNICATION_WORKER_ENABLED
+        value: "true"
+      - key: SWAGGER_ENABLED
+        value: "false"

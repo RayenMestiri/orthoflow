@@ -46,7 +46,7 @@ export const securityPlugin = fp(
        * and the credential endpoints get their own tighter one below.
        */
       keyGenerator: (request) => request.ip,
-      allowList: (request) => request.url.startsWith('/health'),
+      allowList: (request) => request.url.startsWith('/health') || request.url.includes('/health'),
     });
   },
   { name: 'security-plugin' },

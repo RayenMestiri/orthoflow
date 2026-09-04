@@ -21,6 +21,14 @@ describe('GET /health', () => {
     expect(response.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/i);
   });
 
+  it('mirrors liveness at /api/v1/health', async () => {
+    const response = await app.inject({ method: 'GET', url: '/api/v1/health' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ status: 'ok', environment: 'test' });
+    expect(response.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/i);
+  });
+
   it('leaks nothing about the infrastructure', async () => {
     const body = response(await app.inject({ method: 'GET', url: '/health' }));
 

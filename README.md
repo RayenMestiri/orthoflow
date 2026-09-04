@@ -796,3 +796,18 @@ and polished enough for a modern private practice.**
 ### OrthoFlow
 
 **From appointment to treatment — one connected clinical workflow.**
+
+---
+
+## 🚀 Production Deployment
+
+OrthoFlow is production-ready and configured for cloud deployment across:
+
+* **GitHub**: Source control & automated CI quality gates ([.github/workflows/ci.yml](file:///.github/workflows/ci.yml)).
+* **Vercel**: Angular 22 Single Page Application with edge caching and SPA routing rewrites ([frontend/vercel.json](file:///frontend/vercel.json)).
+* **Render**: Managed Fastify Node.js API with health checks and graceful shutdown ([render.yaml](file:///render.yaml)).
+* **MongoDB Atlas**: Managed replica-set database with connection pooling and automated index sync.
+* **Cloudinary**: Authenticated & secure clinical document and photography storage.
+
+For detailed step-by-step instructions, environment variable references, and post-deployment validation checklists, see **[DEPLOYMENT.md](file:///DEPLOYMENT.md)**.
+
