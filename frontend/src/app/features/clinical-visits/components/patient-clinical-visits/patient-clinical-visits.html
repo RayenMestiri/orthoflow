@@ -1,50 +1,247 @@
 <section class="visits" aria-labelledby="visits-title">
-  <header>
-    <div>
-      <span>Clinical record</span>
-      <h2 id="visits-title">Visits</h2>
+  <header class="visits-header">
+    <div class="visits-header__left">
+      <span class="visits-eyebrow">Dossier clinique & Séances</span>
+      <h2 id="visits-title">Historique des visites & consultations</h2>
+      <p class="visits-subtitle">
+        Séances au fauteuil, rendez-vous planifiés et comptes-rendus cliniques de ce patient.
+      </p>
     </div>
-    <p>Signed session notes and drafts linked to appointments.</p>
+
+    @if (!loading() && totalCount() > 0) {
+      <div class="visits-stats">
+        <div class="stat-pill">
+          <span class="stat-pill__count">{{ totalCount() }}</span>
+          <span class="stat-pill__label">séances</span>
+        </div>
+        <div class="stat-pill stat-pill--completed">
+          <span class="stat-pill__count">{{ completedCount() }}</span>
+          <span class="stat-pill__label">terminées</span>
+        </div>
+        <div class="stat-pill stat-pill--notes">
+          <span class="stat-pill__count">{{ notesCount() }}</span>
+          <span class="stat-pill__label">notes rédigées</span>
+        </div>
+      </div>
+    }
   </header>
 
+  <!-- Filter Pills -->
+  @if (!loading() && totalCount() > 0) {
+    <nav class="visits-filters" aria-label="Filtrer les visites">
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="activeFilter() === 'ALL'"
+        (click)="setFilter('ALL')"
+      >
+        Toutes les visites ({{ totalCount() }})
+      </button>
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="activeFilter() === 'COMPLETED'"
+        (click)="setFilter('COMPLETED')"
+      >
+        Terminées ({{ completedCount() }})
+      </button>
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="activeFilter() === 'ACTIVE'"
+        (click)="setFilter('ACTIVE')"
+      >
+        En cours & À venir
+      </button>
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="activeFilter() === 'WITH_NOTES'"
+        (click)="setFilter('WITH_NOTES')"
+      >
+        Notes cliniques ({{ notesCount() }})
+      </button>
+    </nav>
+  }
+
   @if (loading()) {
-    <div class="state" aria-live="polite">Loading clinical history…</div>
+    <div class="state state--loading" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      <span>Chargement de l’historique des visites…</span>
+    </div>
   } @else if (error()) {
     <div class="state state--error" role="alert">
-      <span>{{ error() }}</span>
-      <button type="button" (click)="load()">Try again</button>
+      <span class="material-icons" aria-hidden="true">error_outline</span>
+      <strong>Erreur de chargement</strong>
+      <p>{{ error() }}</p>
+      <button type="button" class="btn-retry" (click)="load()">Réessayer</button>
     </div>
-  } @else if (visits().length === 0) {
-    <div class="state">
-      <span class="material-icons" aria-hidden="true">edit_note</span>
-      <strong>No clinical visits yet</strong>
-      <p>A visit note appears here after an appointment is started from Today.</p>
-    </div>
+  } @else if (filteredVisits().length === 0) {
+    @if (totalCount() === 0) {
+      <div class="state state--empty">
+        <span class="material-icons empty-icon" aria-hidden="true">event_available</span>
+        <strong>Aucune visite ni rendez-vous enregistré</strong>
+        <p>Ce patient n’a aucun rendez-vous planifié ou terminé dans le cabinet.</p>
+        <a routerLink="/app/schedule" class="btn-schedule-appointment">
+          <span class="material-icons" aria-hidden="true">add_circle</span>
+          <span>Planifier un rendez-vous</span>
+        </a>
+      </div>
+    } @else {
+      <div class="state state--empty">
+        <span class="material-icons empty-icon" aria-hidden="true">filter_list_off</span>
+        <strong>Aucune visite ne correspond au filtre</strong>
+        <p>Ajustez le filtre pour afficher les autres séances du patient.</p>
+        <button type="button" class="btn-retry" (click)="setFilter('ALL')">
+          Voir toutes les visites
+        </button>
+      </div>
+    }
   } @else {
     <ol class="visit-list">
-      @for (visit of visits(); track visit.id) {
-        <li>
-          <div class="date">
-            <strong>{{ visit.startedAt | date: 'd' }}</strong>
-            <span>{{ visit.startedAt | date: 'MMM y' }}</span>
+      @for (item of filteredVisits(); track item.id) {
+        <li class="visit-card" [class.visit-card--completed]="item.appointmentStatus === 'COMPLETED'">
+          <!-- Date / Time block -->
+          <div class="visit-card__date">
+            <strong class="date-day">{{ item.startAt | date: 'd' }}</strong>
+            <span class="date-month">{{ item.startAt | date: 'MMM y' }}</span>
+            <span class="date-time">{{ item.startAt | date: 'HH:mm' }}</span>
           </div>
-          <div class="summary">
-            <div>
-              <h3>{{ visit.reasonOther || label(visit.reasonCode) }}</h3>
-              <span class="status" [attr.data-status]="visit.status">{{ label(visit.status) }}</span>
+
+          <!-- Main details -->
+          <div class="visit-card__details">
+            <div class="details-top">
+              <h3 class="appointment-type-name">{{ item.appointmentTypeName }}</h3>
+
+              <!-- Status Badges -->
+              <div class="badges-row">
+                <span class="status-badge" [attr.data-status]="item.appointmentStatus">
+                  {{ statusLabel(item.appointmentStatus) }}
+                </span>
+
+                @if (item.clinicalVisit; as visit) {
+                  <span
+                    class="note-badge"
+                    [class.note-badge--completed]="visit.status === 'COMPLETED'"
+                    [class.note-badge--draft]="visit.status === 'DRAFT'"
+                  >
+                    <span class="material-icons note-icon" aria-hidden="true">
+                      {{ visit.status === 'COMPLETED' ? 'check_circle' : 'edit' }}
+                    </span>
+                    <span>{{ visit.status === 'COMPLETED' ? 'Note signée' : 'Brouillon note' }}</span>
+                  </span>
+                }
+
+                @if (item.treatment; as tx) {
+                  <span class="treatment-badge" title="Traitement lié">
+                    <span class="material-icons" aria-hidden="true">medical_services</span>
+                    <span>{{ tx.label }}</span>
+                  </span>
+                }
+              </div>
             </div>
-            <p>
-              {{ visit.procedures.length ? visit.procedures.length + ' procedure(s)' : 'No procedures recorded' }}
-              · {{ visit.clinicianName }}
-            </p>
-            @if (visit.nextStepNote) { <small>Next: {{ visit.nextStepNote }}</small> }
+
+            <!-- Clinician and duration meta -->
+            <div class="details-meta">
+              <span>Praticien : Dr. {{ item.doctorName }}</span>
+              <span class="meta-dot">·</span>
+              <span>Durée : {{ item.durationMinutes }} min</span>
+              @if (item.endAt) {
+                <span class="meta-dot">·</span>
+                <span>Fin : {{ item.endAt | date: 'HH:mm' }}</span>
+              }
+            </div>
+
+            <!-- Clinical note preview if exists -->
+            @if (item.clinicalVisit; as visit) {
+              <div class="details-clinical-box">
+                @if (visit.procedures.length > 0) {
+                  <div class="procedures-tags">
+                    @for (proc of visit.procedures; track proc) {
+                      <span class="proc-tag">{{ procedureLabel(proc) }}</span>
+                    }
+                  </div>
+                }
+
+                @if (visit.observations) {
+                  <p class="observations-text">{{ visit.observations }}</p>
+                }
+
+                @if (visit.nextStepNote) {
+                  <p class="next-step-text">
+                    <span class="material-icons" aria-hidden="true">next_plan</span>
+                    <span>Prochaine étape : {{ visit.nextStepNote }}</span>
+                  </p>
+                }
+              </div>
+            } @else {
+              <!-- No clinical note banner -->
+              @if (item.appointmentStatus === 'COMPLETED') {
+                <p class="no-note-hint">
+                  <span class="material-icons" aria-hidden="true">info_outline</span>
+                  <span>Séance terminée · Compte-rendu clinique en attente de rédaction.</span>
+                </p>
+              } @else if (item.appointmentStatus === 'IN_TREATMENT') {
+                <p class="no-note-hint in-treatment">
+                  <span class="material-icons" aria-hidden="true">play_circle</span>
+                  <span>Patient actuellement au fauteuil · Consultation en cours.</span>
+                </p>
+              }
+            }
+
+            @if (item.note) {
+              <p class="appointment-note">
+                <strong>Consigne accueil :</strong> {{ item.note }}
+              </p>
+            }
           </div>
-          <a [routerLink]="['/app/clinical-visits', visit.id]">
-            {{ visit.status === 'DRAFT' ? 'Resume note' : 'View note' }}
-            <span class="material-icons" aria-hidden="true">arrow_forward</span>
-          </a>
+
+          <!-- Actions -->
+          <div class="visit-card__actions">
+            @if (item.clinicalVisit; as visit) {
+              <a [routerLink]="['/app/clinical-visits', visit.id]" class="btn-action btn-action--primary">
+                <span>{{ visit.status === 'DRAFT' ? 'Reprendre la note' : 'Voir le compte-rendu' }}</span>
+                <span class="material-icons" aria-hidden="true">arrow_forward</span>
+              </a>
+            } @else {
+              @if (item.appointmentStatus === 'COMPLETED' || item.appointmentStatus === 'IN_TREATMENT') {
+                <button
+                  type="button"
+                  class="btn-action btn-action--primary"
+                  [disabled]="startingVisitId() === item.id"
+                  (click)="startOrOpenNote(item)"
+                >
+                  <span class="material-icons" aria-hidden="true">edit_note</span>
+                  <span>Rédiger la note</span>
+                </button>
+              } @else if (item.appointmentStatus !== 'CANCELLED' && item.appointmentStatus !== 'NO_SHOW') {
+                <button
+                  type="button"
+                  class="btn-action btn-action--start"
+                  [disabled]="startingVisitId() === item.id"
+                  (click)="startOrOpenNote(item)"
+                >
+                  <span class="material-icons" aria-hidden="true">play_arrow</span>
+                  <span>Démarrer consultation</span>
+                </button>
+              }
+            }
+
+            @if (item.appointmentStatus === 'COMPLETED') {
+              <a
+                [routerLink]="['/app/patients', patientId()]"
+                [queryParams]="paymentQueryParams(item)"
+                class="btn-action btn-action--payment"
+                title="Enregistrer un règlement pour cette consultation"
+              >
+                <span class="material-icons" aria-hidden="true">payments</span>
+                <span>Encaisser</span>
+              </a>
+            }
+          </div>
         </li>
       }
     </ol>
   }
 </section>
+

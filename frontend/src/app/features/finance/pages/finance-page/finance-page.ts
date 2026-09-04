@@ -170,6 +170,10 @@ export class FinancePage {
     ].filter((item) => item.count > 0);
   });
 
+  protected readonly totalAttentionCount = computed(() =>
+    this.attentionItems().reduce((sum, item) => sum + item.count, 0),
+  );
+
   constructor() {
     void this.store.load();
 

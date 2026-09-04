@@ -62,8 +62,16 @@ input:focus-visible {
  * document — on the paper. Nothing outside a printed page is affected.
  */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 15mm;
+  }
+
   body:has(.receipt-overlay) {
     visibility: hidden;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
   }
 
   body:has(.receipt-overlay) .receipt-overlay,
@@ -72,8 +80,13 @@ input:focus-visible {
   }
 
   body:has(.receipt-overlay) .receipt-overlay {
-    position: absolute;
-    inset: 0 auto auto 0;
-    width: 100%;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    overflow: hidden !important;
   }
 }

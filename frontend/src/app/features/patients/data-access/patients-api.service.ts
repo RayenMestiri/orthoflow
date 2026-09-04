@@ -13,6 +13,7 @@ import type {
   Patient,
   PatientActivity,
   PatientActivityFilter,
+  PatientAppointment,
   PatientInput,
   PatientListQuery,
   PortalAccessStatus,
@@ -46,6 +47,10 @@ export class PatientsApiService {
 
   get(patientId: string): Observable<Patient> {
     return this.getData<Patient>(`${this.patientsUrl}/${patientId}`);
+  }
+
+  listPatientAppointments(patientId: string): Observable<PatientAppointment[]> {
+    return this.getData<PatientAppointment[]>(`${this.patientsUrl}/${patientId}/appointments`);
   }
 
   create(input: PatientInput): Observable<Patient> {

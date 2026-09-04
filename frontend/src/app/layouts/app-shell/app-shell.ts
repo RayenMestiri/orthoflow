@@ -268,6 +268,65 @@ export class AppShell {
     this.commandCenterOpen.set(true);
   }
 
+  openQuickPayment(): void {
+    void this.router.navigate(['/app/cash-records'], { queryParams: { action: 'new' } });
+  }
+
+  openQuickAppointment(): void {
+    void this.router.navigate(['/app/schedule'], { queryParams: { action: 'new' } });
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleGlobalShortcuts(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    const isEditing =
+      target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+
+    // Ctrl + K or Cmd + K: Open/toggle Command Center
+    if ((event.ctrlKey || event.metaKey) && (event.key === 'k' || event.key === 'K')) {
+      event.preventDefault();
+      this.commandCenterOpen.update((open) => !open);
+      return;
+    }
+
+    // Ctrl + P or Cmd + P or Alt + P: Open Payment
+    if (
+      ((event.ctrlKey || event.metaKey) && (event.key === 'p' || event.key === 'P')) ||
+      (event.altKey && (event.key === 'p' || event.key === 'P'))
+    ) {
+      event.preventDefault();
+      this.commandCenterOpen.set(false);
+      this.openQuickPayment();
+      return;
+    }
+
+    // Alt + A (Agenda - no NVIDIA conflict!), Ctrl + Shift + A, Alt + R, or Ctrl + Shift + R: Open Schedule
+    if (
+      (event.altKey && (event.key === 'a' || event.key === 'A' || event.key === 'r' || event.key === 'R')) ||
+      ((event.ctrlKey || event.metaKey) && event.shiftKey && (event.key === 'a' || event.key === 'A' || event.key === 'r' || event.key === 'R'))
+    ) {
+      if (!isEditing) {
+        event.preventDefault();
+        this.commandCenterOpen.set(false);
+        this.openQuickAppointment();
+        return;
+      }
+    }
+
+    // Alt + N or Ctrl + Shift + N: New Patient
+    if (
+      (event.altKey && (event.key === 'n' || event.key === 'N')) ||
+      ((event.ctrlKey || event.metaKey) && event.shiftKey && (event.key === 'n' || event.key === 'N'))
+    ) {
+      if (!isEditing) {
+        event.preventDefault();
+        this.commandCenterOpen.set(false);
+        void this.router.navigate(['/app/patients/new']);
+        return;
+      }
+    }
+  }
+
   toggleAccount(): void {
     this.accountOpen.update((open) => !open);
   }

@@ -1,6 +1,7 @@
 import type { CalendarOptions, EventInput } from '@fullcalendar/angular';
 import type { Appointment, ClinicScheduleConfiguration } from '../models/schedule.models';
 import { minutesToDuration, toCalendarTime } from './appointment-time.utils';
+import { computeCollisionGroups, type CollisionMetadata } from './collision-layout.utils';
 
 /**
  * Translation layer between the schedule domain and FullCalendar.
@@ -11,22 +12,38 @@ import { minutesToDuration, toCalendarTime } from './appointment-time.utils';
 
 export interface AppointmentEventProps {
   appointment: Appointment;
+  collision?: CollisionMetadata;
 }
 
-export function toCalendarEvents(appointments: Appointment[]): EventInput[] {
+export function toCalendarEvents(
+  appointments: Appointment[],
+  collisionMap?: Map<string, CollisionMetadata>
+): EventInput[] {
+  const computedMap = collisionMap ?? computeCollisionGroups(appointments);
   return (
     appointments
       // A cancelled slot is free again — keeping the block on the grid would
       // make the day look fuller than it is. History stays in the backend.
       .filter((appointment) => appointment.status !== 'CANCELLED')
-      .map((appointment) => ({
-        id: appointment.id,
-        start: appointment.startAt,
-        end: appointment.endAt,
-        title: appointment.patient?.fullName ?? 'Appointment',
-        editable: !['COMPLETED', 'NO_SHOW'].includes(appointment.status),
-        extendedProps: { appointment } satisfies AppointmentEventProps,
-      }))
+      .map((appointment) => {
+        const collision = computedMap.get(appointment.id);
+        return {
+          id: appointment.id,
+          start: appointment.startAt,
+          end: appointment.endAt,
+          title: appointment.patient?.fullName ?? 'Appointment',
+          editable: !['COMPLETED', 'NO_SHOW'].includes(appointment.status),
+          classNames: [
+            `fc-event--status-${appointment.status.toLowerCase()}`,
+            `fc-event--capacity-${appointment.slotCapacity?.state?.toLowerCase() ?? 'available'}`,
+            collision?.isOverlapping ? 'fc-event--overlapping' : 'fc-event--solo',
+            collision?.isOverlapping ? `fc-event--overlap-idx-${collision.groupIndex}` : '',
+            collision?.isOverlapping ? `fc-event--overlap-total-${collision.groupTotal}` : '',
+            collision?.hiddenInCompact ? 'fc-event--compact-hidden' : '',
+          ].filter(Boolean),
+          extendedProps: { appointment, collision } satisfies AppointmentEventProps,
+        };
+      })
   );
 }
 
@@ -78,11 +95,29 @@ export function buildScheduleGridOptions(schedule: ClinicScheduleConfiguration):
     expandRows: true,
     displayEventTime: false,
     eventMinHeight: 18,
-    slotEventOverlap: false,
+    slotEventOverlap: true,
     eventOrder: 'start,-duration,title',
-    eventOrderStrict: true,
-    dayMaxEventRows: 4,
+    dayMaxEvents: false,
+    dayMaxEventRows: false,
+    views: {
+      timeGridWeek: {
+        dayMaxEvents: false,
+        dayMaxEventRows: false,
+        slotEventOverlap: true,
+      },
+      timeGridDay: {
+        dayMaxEvents: false,
+        dayMaxEventRows: false,
+        slotEventOverlap: true,
+      },
+      dayGridMonth: {
+        dayMaxEvents: 3,
+        dayMaxEventRows: 3,
+        moreLinkClick: 'popover',
+      },
+    },
     longPressDelay: 180,
     scrollTime: toCalendarTime(earliestOpen),
   };
 }
+

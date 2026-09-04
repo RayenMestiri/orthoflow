@@ -300,6 +300,10 @@
   align-items: stretch;
 }
 
+.dash-col-12 {
+  grid-column: span 12;
+}
+
 .dash-col-8 {
   grid-column: span 8;
 }
@@ -1539,56 +1543,85 @@
    12. RESPONSIVE BREAKPOINTS
    ========================================================================== */
 @media (max-width: 72rem) {
-  .dash-col-8 {
-    grid-column: span 12;
-  }
-
+  .dash-col-12,
+  .dash-col-8,
+  .dash-col-6,
   .dash-col-4 {
-    grid-column: span 12;
-  }
-
-  .dash-col-6 {
     grid-column: span 12;
   }
 }
 
 @media (max-width: 48rem) {
   :host {
-    padding: 0.95rem;
+    padding: 0.85rem;
   }
 
   .dash-header__main {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 1rem;
   }
 
   .dash-header__actions {
     width: 100%;
-    justify-content: space-between;
+    display: flex;
+    gap: 0.5rem;
 
     .dash-search-trigger {
       flex: 1;
     }
   }
 
-  .dash-next-hero__top {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .dash-next-hero__countdown {
-    margin-left: 0;
-  }
-
   .dash-metrics-strip {
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.45rem;
+    gap: 0.5rem;
+  }
+
+  .dash-next-hero {
+    padding: 1.15rem 1.25rem;
+
+    &__top {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.85rem;
+    }
+
+    &__countdown {
+      margin-left: 0;
+    }
+
+    &__actions {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+
+      .dash-btn-primary,
+      .dash-btn-secondary {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  }
+
+  .dash-card {
+    padding: 1.15rem 1.25rem;
   }
 }
 
-@media (max-width: 28rem) {
+@media (max-width: 32rem) {
   .dash-metrics-strip {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .dash-metric-pill:last-child:nth-child(odd) {
+    grid-column: span 2;
+  }
+
+  .dash-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
 }
+
 

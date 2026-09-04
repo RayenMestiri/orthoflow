@@ -46,6 +46,16 @@ export class VerifyEmailPage {
     interval(1000)
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.now.set(Date.now()));
+
+    const email = this.route.snapshot.queryParamMap.get('email');
+    if (email && !this.deliveryUnavailable) {
+      this.noticeMessage.set('Un code d\'activation sécurisé à 6 chiffres a été envoyé à votre adresse e-mail.');
+      this.resendAvailableAt.set(Date.now() + 60_000);
+      this.api.resendVerification(email).subscribe({
+        next: () => {},
+        error: () => {},
+      });
+    }
   }
 
   async submit(): Promise<void> {
@@ -58,7 +68,13 @@ export class VerifyEmailPage {
     const { email, code } = this.form.getRawValue();
     try {
       await this.auth.verifyEmail(email, code);
-      await this.router.navigateByUrl(this.auth.isAuthenticated() ? '/app/dashboard' : '/login');
+      if (this.auth.isAuthenticated()) {
+        await this.router.navigateByUrl('/app/dashboard');
+      } else {
+        await this.router.navigate(['/login'], {
+          queryParams: { verified: 'true', email },
+        });
+      }
     } catch (error) {
       this.errorMessage.set(getApiProblem(error).message);
     } finally {

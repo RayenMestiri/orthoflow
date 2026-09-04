@@ -32,7 +32,7 @@
     <!-- Sub Navigation Tabs Sidebar -->
     <nav class="settings-nav" aria-label="Settings sections">
       @for (tab of tabs; track tab.id) {
-        @if ((tab.id !== 'consents' || canViewConsentTemplates) && (tab.id !== 'documents' || canViewDocumentTemplates)) {
+        @if ((tab.id !== 'consents' || canViewConsentTemplates) && (tab.id !== 'documents' || canViewDocumentTemplates) && (tab.id !== 'team' || canManageTeam)) {
         <button
           type="button"
           class="settings-nav__item"
@@ -90,6 +90,12 @@
             }
           }
         }
+
+        <!-- Team section: always mounted when permitted so it never reloads on tab switch -->
+        @if (canManageTeam) {
+          <app-settings-team [hidden]="activeSection() !== 'team'" />
+        }
+
       } @else if (!store.isLoading()) {
         <div class="settings-page__loading" role="status">
           <span>Clinic configuration is currently unavailable.</span>

@@ -89,6 +89,34 @@
     } @else {
       <p class="reception__clear">No arrivals or late patients need reception attention.</p>
     }
+
+    @if (store.completedToday().length > 0) {
+      <div class="reception__completed-bar">
+        <div class="reception__completed-badge">
+          <span class="material-icons" aria-hidden="true">check_circle</span>
+          <span>Terminés aujourd'hui ({{ store.completedToday().length }}) :</span>
+        </div>
+        <div class="reception__completed-list">
+          @for (appointment of store.completedToday(); track appointment.id) {
+            <div class="reception__completed-item">
+              <span class="patient-name" (click)="store.openEdit(appointment.id)">
+                <time>{{ appointmentTime(appointment.completedAt ?? appointment.startAt) }}</time>
+                <strong>{{ appointment.patient?.fullName ?? 'Patient' }}</strong>
+              </span>
+              <a
+                class="btn-quick-record-payment"
+                [routerLink]="['/app/patients', appointment.patientId]"
+                [queryParams]="{ tab: 'payments', action: 'record-payment', appointmentId: appointment.id }"
+                title="Enregistrer le paiement pour ce patient"
+              >
+                <span class="material-icons" aria-hidden="true">payments</span>
+                <span>Encaisser</span>
+              </a>
+            </div>
+          }
+        </div>
+      </div>
+    }
   </section>
 
   <!-- Interactive Calendar Toolbar -->

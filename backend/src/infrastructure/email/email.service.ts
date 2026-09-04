@@ -10,6 +10,17 @@ export interface AuthCodeEmail {
   expiresInMinutes: number;
 }
 
+export interface StaffInvitationEmail {
+  recipient: string;
+  recipientName: string;
+  clinicName: string;
+  invitedByName: string;
+  roleName: string;
+  isNewAccount: boolean;
+  temporaryPassword?: string;
+  loginUrl: string;
+}
+
 export interface EmailServiceContract {
   sendAuthCode(message: AuthCodeEmail): Promise<boolean>;
   sendTransactional?(message: TransactionalEmail): Promise<{ messageId: string | null }>;
@@ -28,6 +39,7 @@ export interface EmailServiceContract {
     expiresInHours: number;
     clinicName: string;
   }): Promise<boolean>;
+  sendStaffInvitation?(message: StaffInvitationEmail): Promise<boolean>;
 }
 
 export interface TransactionalEmail {
@@ -451,6 +463,158 @@ export class SmtpEmailService implements EmailServiceContract {
       to: message.recipient,
       subject,
       text: `Bonjour ${message.recipientName},\n\nPour réinitialiser votre mot de passe pour le Portail Famille ${message.clinicName}, cliquez sur le lien suivant : ${message.resetUrl}\n\nCe lien expire dans ${message.expiresInHours} heures.`,
+      html: htmlContent,
+    });
+    return true;
+  }
+
+  async sendStaffInvitation(message: StaffInvitationEmail): Promise<boolean> {
+    if (!this.transporter || env.SMTP_FROM_ADDRESS === '') return false;
+    const name = escapeHtml(message.recipientName);
+    const clinic = escapeHtml(message.clinicName);
+    const invitedBy = escapeHtml(message.invitedByName);
+    const role = escapeHtml(message.roleName);
+    const url = escapeHtml(message.loginUrl);
+    const recipient = escapeHtml(message.recipient);
+    const password = message.temporaryPassword ? escapeHtml(message.temporaryPassword) : null;
+    const subject = `Invitation à rejoindre l'équipe de ${message.clinicName} · OrthoFlow`;
+
+    const credentialsBox = message.isNewAccount && password
+      ? `
+        <!-- Credentials Card Box -->
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F0F4F2; border: 1.5px dashed #173F38; border-radius: 14px; margin: 24px 0 24px 0; overflow: hidden;">
+          <tr>
+            <td style="padding: 22px 24px;">
+              <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; color: #173F38; font-weight: 800; margin-bottom: 12px;">
+                🔐 Vos identifiants de connexion
+              </div>
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="padding: 5px 0; font-size: 14px; color: #56635F; width: 140px;">Identifiant (E-mail) :</td>
+                  <td style="padding: 5px 0; font-size: 14px; font-weight: 700; color: #0D2925;">${recipient}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; font-size: 14px; color: #56635F;">Mot de passe temporaire :</td>
+                  <td style="padding: 5px 0; font-size: 15px; font-weight: 800; color: #C86445; font-family: monospace, 'Courier New', sans-serif; letter-spacing: 0.5px;">${password}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>`
+      : `
+        <!-- Existing Account Box -->
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F0F4F2; border: 1px solid #173F38; border-radius: 12px; margin: 20px 0 24px 0; overflow: hidden;">
+          <tr>
+            <td style="padding: 16px 20px;">
+              <p style="margin: 0; font-size: 14px; color: #0D2925; line-height: 1.5;">
+                ℹ️ <strong>Compte déjà actif :</strong> Vous pouvez vous connecter directement avec votre adresse <strong>${recipient}</strong> et votre mot de passe habituel pour accéder aux dossiers du cabinet.
+              </p>
+            </td>
+          </tr>
+        </table>`;
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(subject)}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #F6F3EC; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #17201E;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F6F3EC; padding: 36px 16px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; margin: 0 auto; background-color: #FFFEFB; border-radius: 16px; overflow: hidden; border: 1px solid #DCE2DE; box-shadow: 0 12px 36px rgba(13, 41, 37, 0.07);">
+
+          <!-- Top Header with Deep Pine Gradient -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0D2925 0%, #173F38 100%); padding: 32px 36px; text-align: center; border-bottom: 3px solid #C86445;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <div style="display: inline-block; background: rgba(255, 254, 251, 0.08); border: 1px solid rgba(255, 254, 251, 0.16); border-radius: 12px; padding: 9px 22px; margin-bottom: 6px;">
+                      <span style="font-size: 22px; font-weight: 700; color: #FFFEFB; letter-spacing: -0.3px;">${clinic}<span style="color: #C86445;">.</span></span>
+                    </div>
+                    <div style="font-size: 12px; color: #DCE2DE; font-weight: 500; letter-spacing: 0.6px; text-transform: uppercase;">Cabinet Dentaire & Orthodontie</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 36px 36px 28px 36px; text-align: left;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td>
+                    <!-- Badge Pill -->
+                    <span style="display: inline-block; background-color: #F7EBE8; color: #A94830; border: 1px solid #F3D2C9; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 16px;">
+                      ✨ Invitation Cabinet & Équipe
+                    </span>
+
+                    <!-- Main Headline -->
+                    <h1 style="margin: 0 0 14px 0; font-size: 22px; font-weight: 800; color: #0D2925; line-height: 1.35;">
+                      Bienvenue dans l'équipe de ${clinic}
+                    </h1>
+
+                    <!-- Body Paragraph -->
+                    <p style="margin: 0 0 16px 0; font-size: 15px; color: #56635F; line-height: 1.65;">
+                      Bonjour <strong>${name}</strong>,<br>
+                      <strong>${invitedBy}</strong> vous invite à rejoindre le cabinet <strong>${clinic}</strong> avec le rôle de <strong>${role}</strong> sur l'espace praticien et équipe OrthoFlow.
+                    </p>
+
+                    ${credentialsBox}
+
+                    <!-- CTA Button -->
+                    <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin: 28px 0 20px 0; width: 100%;">
+                      <tr>
+                        <td align="center">
+                          <a href="${url}" style="display: inline-block; background: linear-gradient(135deg, #0D2925 0%, #173F38 100%); color: #FFFFFF; font-weight: 700; font-size: 15px; padding: 15px 36px; border-radius: 12px; text-decoration: none; box-shadow: 0 6px 18px rgba(13, 41, 37, 0.22); letter-spacing: 0.2px;">
+                            Accéder à l'espace cabinet →
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Security Notice Box -->
+                    <div style="background-color: #F6F3EC; border-left: 3.5px solid #173F38; border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 22px 0 10px 0;">
+                      <p style="margin: 0; font-size: 13px; color: #56635F; line-height: 1.55;">
+                        🔒 <strong>Sécurité &amp; Activation :</strong> Lors de votre première connexion, un code de vérification à 6 chiffres envoyé à votre adresse e-mail vous sera demandé pour activer définitivement votre accès.
+                      </p>
+                    </div>
+
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #F6F3EC; padding: 24px 36px; text-align: center; border-top: 1px solid #DCE2DE;">
+              <p style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600; color: #173F38;">
+                ${clinic} · OrthoFlow Pro
+              </p>
+              <p style="margin: 0; font-size: 12px; color: #73847F; line-height: 1.45;">
+                Accès réservé aux praticiens et au personnel autorisé du cabinet.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    await this.transporter.sendMail({
+      from: { name: env.SMTP_FROM_NAME, address: env.SMTP_FROM_ADDRESS },
+      to: message.recipient,
+      subject,
+      text: `Bonjour ${message.recipientName},\n\n${message.invitedByName} vous invite à rejoindre le cabinet ${message.clinicName} (${message.roleName}) sur OrthoFlow.\n\nAccédez à votre espace : ${message.loginUrl}\n${message.temporaryPassword ? `Mot de passe temporaire : ${message.temporaryPassword}\n` : ''}`,
       html: htmlContent,
     });
     return true;

@@ -12,6 +12,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { DatePipe } from '@angular/common';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { AuthStore } from '../../../../core/auth/auth.store';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
@@ -20,7 +21,7 @@ import { PatientsStore } from '../../data-access/patients.store';
 
 @Component({
   selector: 'app-patients-list-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [DatePipe, ReactiveFormsModule, RouterLink],
   templateUrl: './patients-list-page.html',
   styleUrl: './patients-list-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -90,5 +91,15 @@ export class PatientsListPage {
 
   relationshipLabel(value: string): string {
     return value.toLowerCase().replaceAll('_', ' ');
+  }
+
+  getVisitDate(visit: unknown): string | null {
+    if (!visit) return null;
+    if (typeof visit === 'string') return visit;
+    if (typeof visit === 'object' && 'date' in visit) {
+      const d = (visit as { date: unknown }).date;
+      return typeof d === 'string' ? d : null;
+    }
+    return null;
   }
 }

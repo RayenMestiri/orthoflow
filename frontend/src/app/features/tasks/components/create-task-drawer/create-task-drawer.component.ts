@@ -40,10 +40,14 @@ interface ActionSuggestion {
             <div class="drawer-header__titles">
               <div class="drawer-icon-box">
                 <span class="material-icons" aria-hidden="true">add_task</span>
+                <span class="drawer-icon-sparkle material-icons" aria-hidden="true">auto_awesome</span>
               </div>
-              <div>
+              <div class="drawer-header__text">
+                <div class="drawer-header__badge-row">
+                  <span class="drawer-header__badge">Délégation interne & coordination</span>
+                </div>
                 <h2 id="slide-over-title">Nouvelle tâche</h2>
-                <p>Délégation interne & coordination</p>
+                <p>Assignez une action clinique, administrative ou logistique</p>
               </div>
             </div>
             <button
@@ -289,9 +293,11 @@ interface ActionSuggestion {
                 [disabled]="isSubmitting() || !title.trim()"
               >
                 @if (isSubmitting()) {
-                  Création...
+                  <span class="spinner-sm"></span>
+                  <span>Création en cours...</span>
                 } @else {
-                  Créer la tâche
+                  <span class="material-icons" style="font-size: 1.1rem;" aria-hidden="true">send</span>
+                  <span>Créer la tâche</span>
                 }
               </button>
             </div>

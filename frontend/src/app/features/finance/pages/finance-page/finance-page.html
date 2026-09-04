@@ -88,25 +88,47 @@
     }
   }
 
-  <!-- Needs attention: a compact rail, not four cards -->
+  <!-- Needs attention: single-line horizontal action ribbon -->
   @if (attentionItems().length > 0) {
     <section class="fin-attention" aria-labelledby="fin-attention-title">
-      <h2 id="fin-attention-title">Needs your attention</h2>
-      <ul>
+      <div class="fin-attention__lead">
+        <span class="material-icons fin-attention__icon" aria-hidden="true">error_outline</span>
+        <h2 id="fin-attention-title">Needs attention</h2>
+        <span class="fin-attention__total-badge" [title]="totalAttentionCount() + ' items requiring attention'">
+          {{ totalAttentionCount() }}
+        </span>
+      </div>
+
+      <div class="fin-attention__divider" aria-hidden="true"></div>
+
+      <div class="fin-attention__track" role="list">
         @for (item of attentionItems(); track item.label) {
-          <li [class.fin-attention__item--active]="activeAttention() === item.key">
-            <span class="fin-attention__count">{{ item.count }}</span>
+          <button
+            type="button"
+            class="fin-attention__item"
+            [class.fin-attention__item--active]="activeAttention() === item.key"
+            [attr.data-key]="item.key ?? 'UNCORRECTED'"
+            (click)="reviewAttention(item.key)"
+            [title]="item.reviewable ? 'Filter by ' + item.label + ' (' + item.count + ')' : item.label"
+            role="listitem"
+          >
+            <span class="fin-attention__count" [attr.data-key]="item.key ?? 'UNCORRECTED'">
+              {{ item.count }}
+            </span>
+
             <span class="fin-attention__label">{{ item.label }}</span>
+
             @if (item.detail) {
               <span class="fin-attention__detail">{{ item.detail }}</span>
             }
-            <button type="button" class="fin-review" (click)="reviewAttention(item.key)">
-              Review
-              <span class="material-icons" aria-hidden="true">arrow_forward</span>
-            </button>
-          </li>
+
+            <span class="fin-attention__action">
+              <span class="fin-attention__action-label">Review</span>
+              <span class="material-icons fin-attention__arrow" aria-hidden="true">arrow_forward</span>
+            </span>
+          </button>
         }
-      </ul>
+      </div>
     </section>
   }
 

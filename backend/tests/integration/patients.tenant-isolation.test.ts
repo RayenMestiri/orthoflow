@@ -38,6 +38,9 @@ vi.mock('../../src/modules/audit-logs/audit-log.repository.js', async () => ({
   auditLogRepository: (await import('../helpers/repository-mocks.js')).auditLogRepositoryMock,
 }));
 
+import { AppointmentModel } from '../../src/modules/appointments/appointment.model.js';
+import { ClinicalVisitModel } from '../../src/modules/clinical-visits/clinical-visit.model.js';
+
 /**
  * Tenant isolation is the single most important property of this backend: one
  * clinic must never read or write another clinic's patients. These tests attack
@@ -58,6 +61,15 @@ describe('patient tenancy', () => {
   beforeEach(() => {
     resetTestState();
     resetRepositoryMocks();
+    const queryMock = {
+      sort: () => ({
+        lean: () => ({ exec: async () => [] }),
+        limit: () => ({ lean: () => ({ exec: async () => [] }) }),
+      }),
+      lean: () => ({ exec: async () => [] }),
+    };
+    vi.spyOn(AppointmentModel, 'find').mockReturnValue(queryMock as never);
+    vi.spyOn(ClinicalVisitModel, 'find').mockReturnValue(queryMock as never);
   });
 
   it('scopes the query to the clinic the caller belongs to', async () => {
@@ -158,6 +170,15 @@ describe('patient authorization', () => {
   beforeEach(() => {
     resetTestState();
     resetRepositoryMocks();
+    const queryMock = {
+      sort: () => ({
+        lean: () => ({ exec: async () => [] }),
+        limit: () => ({ lean: () => ({ exec: async () => [] }) }),
+      }),
+      lean: () => ({ exec: async () => [] }),
+    };
+    vi.spyOn(AppointmentModel, 'find').mockReturnValue(queryMock as never);
+    vi.spyOn(ClinicalVisitModel, 'find').mockReturnValue(queryMock as never);
   });
 
   it('lets an assistant read patients', async () => {

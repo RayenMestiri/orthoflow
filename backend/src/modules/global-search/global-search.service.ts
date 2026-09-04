@@ -1,9 +1,15 @@
 import { PERMISSIONS, type Permission } from '../../common/constants/permissions.js';
+import { toObjectId } from '../../common/utils/object-id.js';
 import { escapeRegex } from '../../infrastructure/database/query.helpers.js';
 import { AppointmentModel } from '../appointments/appointment.model.js';
 import { AppointmentTypeModel } from '../appointment-types/appointment-type.model.js';
 import { PatientMediaModel } from '../patient-media/patient-media.model.js';
+import {
+  buildSmartPatientSearchFilter,
+  calculatePatientSearchScore,
+} from '../patients/patient-search.engine.js';
 import { PatientModel } from '../patients/patient.model.js';
+import { PATIENT_STATUSES } from '../patients/patient.types.js';
 import { ReceiptModel } from '../receipts/receipt.model.js';
 import { TreatmentModel } from '../treatments/treatment.model.js';
 import type {
@@ -103,10 +109,10 @@ export class GlobalSearchService {
     let totalMatches = 0;
 
     for (const cat of categoryOrder) {
-      const group = groupsMap.get(cat);
-      if (group) {
-        groups.push(group);
-        totalMatches += group.items.length;
+      const g = groupsMap.get(cat);
+      if (g) {
+        groups.push(g);
+        totalMatches += g.items.length;
       }
     }
 
@@ -124,30 +130,15 @@ export class GlobalSearchService {
     query: string,
     limit: number,
   ): Promise<GlobalSearchResultItemDto[]> {
-    const escaped = escapeRegex(query);
-    const regex = new RegExp(escaped, 'i');
-
-    const digits = query.replace(/\D/g, '');
-    const phoneConditions = [];
-    if (digits.length >= 2) {
-      phoneConditions.push({ phone: { $regex: new RegExp(escapeRegex(digits), 'i') } });
-      phoneConditions.push({
-        phone: { $regex: new RegExp(digits.split('').join('[\\s.-]?'), 'i') },
-      });
-    }
+    const searchFilter = buildSmartPatientSearchFilter(query);
+    const filter = {
+      clinicId: toObjectId(clinicId, 'clinicId'),
+      status: { $ne: PATIENT_STATUSES.ARCHIVED },
+      ...searchFilter,
+    };
 
     const patients = await PatientModel.find(
-      {
-        clinicId,
-        status: { $ne: 'ARCHIVED' },
-        $or: [
-          { firstName: regex },
-          { lastName: regex },
-          { referenceNumber: regex },
-          { phone: regex },
-          ...phoneConditions,
-        ],
-      },
+      filter as never,
       {
         _id: 1,
         firstName: 1,
@@ -158,12 +149,23 @@ export class GlobalSearchService {
         status: 1,
       },
     )
-      .limit(limit)
+      .limit(Math.max(limit * 3, 20))
       .lean();
 
     if (patients.length === 0) return [];
 
-    const patientIds = patients.map((p) => p._id);
+    // Prioritize results by search relevance
+    patients.sort((a, b) => {
+      const scoreA = calculatePatientSearchScore(a, query);
+      const scoreB = calculatePatientSearchScore(b, query);
+      if (scoreB !== scoreA) return scoreB - scoreA;
+      const lastCmp = a.lastName.localeCompare(b.lastName);
+      if (lastCmp !== 0) return lastCmp;
+      return a.firstName.localeCompare(b.firstName);
+    });
+
+    const topPatients = patients.slice(0, limit);
+    const patientIds = topPatients.map((p) => p._id);
     const activeTreatments = await TreatmentModel.find(
       { clinicId, patientId: { $in: patientIds }, status: 'ACTIVE' },
       { patientId: 1, type: 1, customTypeLabel: 1, status: 1 },

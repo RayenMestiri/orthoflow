@@ -463,6 +463,62 @@ tbody tr {
   font-weight: 500;
 }
 
+.patient-visit-cell {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.15rem;
+
+  .visit-primary-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+
+    .visit-icon {
+      font-size: 0.95rem;
+      color: var(--color-pine-600);
+    }
+
+    .visit-date {
+      color: var(--color-pine-900);
+      font-size: 0.825rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+  }
+
+  .visit-time {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-slate);
+    padding-left: 1.3rem;
+  }
+
+  &.is-recommended {
+    .visit-icon {
+      color: var(--color-copper-600);
+    }
+    .visit-date {
+      color: var(--color-copper-700);
+    }
+  }
+
+  .visit-badge-rec {
+    display: inline-block;
+    align-self: flex-start;
+    margin-left: 1.3rem;
+    font-size: 0.65rem;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    background: #f7ebe8;
+    color: #a94830;
+    border: 1px solid #f3d2c9;
+  }
+}
+
 /* Action Button */
 .patient-action {
   text-align: right;

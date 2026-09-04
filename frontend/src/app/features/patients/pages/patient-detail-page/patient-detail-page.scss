@@ -213,6 +213,23 @@
   }
 }
 
+.btn-record-payment-header {
+  background: linear-gradient(135deg, #173f38, #0a2420);
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 2px 8px rgba(10, 36, 32, 0.2);
+
+  &:hover {
+    background: linear-gradient(135deg, #1d4e46, #0e302b) !important;
+    box-shadow: 0 4px 14px rgba(10, 36, 32, 0.3);
+    transform: translateY(-1px);
+  }
+
+  .material-icons {
+    color: #64d2b4;
+  }
+}
+
 /* Summary Fact Cards */
 .profile-facts {
   display: grid;

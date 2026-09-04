@@ -59,6 +59,7 @@ export class PatientCashRecords {
   readonly initialRecordId = input<string | null>(null);
   readonly initialReceiptNumber = input<string | null>(null);
   readonly initialReceiptId = input<string | null>(null);
+  readonly autoOpenRecordDrawer = input<boolean>(false);
 
   protected readonly methodLabels = PAYMENT_METHOD_LABELS;
   protected readonly payerLabels = PAYER_TYPE_LABELS;
@@ -210,12 +211,20 @@ export class PatientCashRecords {
   );
 
   private openedInitialTarget: string | null = null;
+  private hasAutoOpened = false;
 
   constructor() {
     effect(() => {
       const patientId = this.patientId();
       if (patientId) {
         void this.store.load(patientId, this.treatmentId());
+      }
+    });
+
+    effect(() => {
+      if (this.autoOpenRecordDrawer() && this.canRecord && !this.hasAutoOpened && this.store.isLoaded()) {
+        this.hasAutoOpened = true;
+        this.store.openRecordDrawer();
       }
     });
 
@@ -253,6 +262,12 @@ export class PatientCashRecords {
         }
       }
     });
+  }
+
+  openRecordDrawerDirectly(): void {
+    if (this.canRecord) {
+      this.store.openRecordDrawer();
+    }
   }
 
   protected money(amountMinor: number | null | undefined): string {

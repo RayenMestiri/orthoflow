@@ -194,21 +194,74 @@ import type { TaskAttachment, TaskDto, TaskScope, TaskStatus } from '../../model
         </div>
       } @else if (store.items().length === 0) {
         <div class="tasks-empty-state">
-          <span class="material-icons" aria-hidden="true">task_alt</span>
-          <h3>Aucune tâche trouvée</h3>
-          <p>
-            Toutes les actions sont à jour pour cette sélection. Créez une nouvelle tâche pour
-            déléguer une action interne.
-          </p>
-          <button
-            type="button"
-            class="btn-new-task"
-            style="margin-top: 0.5rem;"
-            (click)="store.openCreateDrawer()"
-          >
-            <span class="material-icons" aria-hidden="true">add</span>
-            <span>Créer une tâche</span>
-          </button>
+          <div class="empty-state-aura">
+            <div class="empty-state-badge">
+              <span class="material-icons" aria-hidden="true">assignment_turned_in</span>
+              <span class="empty-state-sparkle material-icons" aria-hidden="true">auto_awesome</span>
+            </div>
+          </div>
+
+          <div class="empty-state-content">
+            <h3>Aucune tâche trouvée</h3>
+            <p>
+              Toutes les actions sont à jour pour cette sélection. Créez une nouvelle tâche pour
+              déléguer une action interne et coordonner votre équipe.
+            </p>
+          </div>
+
+          <div class="empty-state-actions">
+            <button
+              type="button"
+              class="btn-new-task btn-new-task--empty"
+              (click)="store.openCreateDrawer()"
+            >
+              <div class="btn-icon-wrapper">
+                <span class="material-icons" aria-hidden="true">add_task</span>
+              </div>
+              <span>Créer une tâche</span>
+            </button>
+          </div>
+
+          <div class="empty-state-suggestions">
+            <span class="suggestions-title">Suggestions rapides :</span>
+            <div class="suggestions-chips">
+              <button
+                type="button"
+                class="empty-shortcut-chip"
+                (click)="store.openCreateDrawer({ title: 'Rappeler le tuteur pour accord' })"
+              >
+                <span class="material-icons" aria-hidden="true">phone_in_talk</span>
+                <span>Rappeler tuteur</span>
+              </button>
+
+              <button
+                type="button"
+                class="empty-shortcut-chip"
+                (click)="store.openCreateDrawer({ title: 'Vérifier réception appareil' })"
+              >
+                <span class="material-icons" aria-hidden="true">inventory_2</span>
+                <span>Réception appareil</span>
+              </button>
+
+              <button
+                type="button"
+                class="empty-shortcut-chip"
+                (click)="store.openCreateDrawer({ title: 'Vérifier radiographie panoramique' })"
+              >
+                <span class="material-icons" aria-hidden="true">medical_services</span>
+                <span>Vérifier radio</span>
+              </button>
+
+              <button
+                type="button"
+                class="empty-shortcut-chip"
+                (click)="store.openCreateDrawer({ title: 'Préparer dossier et devis' })"
+              >
+                <span class="material-icons" aria-hidden="true">description</span>
+                <span>Préparer devis</span>
+              </button>
+            </div>
+          </div>
         </div>
       } @else {
         <div class="tasks-list">

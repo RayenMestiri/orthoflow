@@ -99,6 +99,11 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'app/login',
+    redirectTo: 'login',
+    pathMatch: 'full',
+  },
+  {
     path: 'login',
     title: 'Sign in — OrthoFlow',
     canActivate: [guestGuard],

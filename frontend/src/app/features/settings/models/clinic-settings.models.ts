@@ -125,5 +125,6 @@ export const SETTINGS_SECTIONS = [
   'communications',
   'consents',
   'documents',
+  'team',
 ] as const;
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];

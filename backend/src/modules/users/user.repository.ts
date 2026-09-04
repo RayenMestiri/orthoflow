@@ -48,6 +48,7 @@ export class UserRepository {
           phone: input.phone ?? null,
           platformRole: input.platformRole ?? PLATFORM_ROLES.USER,
           status: USER_STATUSES.ACTIVE,
+          emailVerifiedAt: input.emailVerifiedAt ?? null,
         },
       ],
       { session, ordered: true },

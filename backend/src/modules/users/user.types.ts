@@ -44,6 +44,7 @@ export interface CreateUserInput {
   lastName: string;
   phone?: string | null;
   platformRole?: PlatformRole;
+  emailVerifiedAt?: Date | null;
 }
 
 /** Public shape of a user as returned by the API. */

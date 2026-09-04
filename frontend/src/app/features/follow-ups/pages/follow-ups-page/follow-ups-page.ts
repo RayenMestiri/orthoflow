@@ -54,6 +54,14 @@ export class FollowUpsPage {
     this.filter() === 'ALL' ? 'No follow-ups yet' : 'You’re all caught up',
   );
 
+  protected readonly hasActiveFilters = computed(() => {
+    if (this.search().trim()) return true;
+    if (this.mode() === 'recommendations') {
+      return this.filter() !== 'NEEDS_SCHEDULING';
+    }
+    return this.attentionState() !== null;
+  });
+
   constructor() {
     void this.load();
   }
@@ -170,4 +178,60 @@ export class FollowUpsPage {
     };
     return labels[reason] ?? this.stateLabel(reason);
   }
+
+  protected refresh(): void {
+    void this.load();
+  }
+
+  protected clearSearch(): void {
+    this.search.set('');
+    this.page.set(1);
+    void this.load();
+  }
+
+  protected resetFilters(): void {
+    this.search.set('');
+    if (this.mode() === 'recommendations') {
+      this.filter.set('NEEDS_SCHEDULING');
+    } else {
+      this.attentionState.set(null);
+    }
+    this.page.set(1);
+    void this.load();
+  }
+
+  protected getInitials(name: string | null | undefined): string {
+    if (!name) return 'PT';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }
+
+  protected getFilterCount(value: FollowUpFilter): number | null {
+    const res = this.result();
+    if (!res) return null;
+    switch (value) {
+      case 'NEEDS_SCHEDULING':
+        return res.summary.needsScheduling;
+      case 'OVERDUE':
+        return res.summary.overdue;
+      case 'SCHEDULED':
+        return res.summary.scheduled;
+      case 'ALL':
+        return res.pagination.total;
+      default:
+        return null;
+    }
+  }
+
+  protected getAttentionCount(state: CareContinuityState | null): number | null {
+    const res = this.attentionResult();
+    if (!res) return null;
+    if (state === 'NEEDS_ATTENTION') return res.summary.needsAttention;
+    if (state === 'LOST_TO_FOLLOW_UP') return res.summary.lostToFollowUp;
+    return res.pagination.total;
+  }
 }
+

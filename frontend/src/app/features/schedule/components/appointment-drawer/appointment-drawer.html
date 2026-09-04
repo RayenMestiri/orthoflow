@@ -128,6 +128,101 @@
             }
           </section>
         }
+
+        @if (current.status === 'IN_TREATMENT') {
+          <section class="drawer__section drawer__section--in-treatment" aria-label="Consultation en cours">
+            <div class="drawer__payment-card drawer__payment-card--chairside">
+              <div class="drawer__payment-card-header">
+                <div class="drawer__payment-icon-tile drawer__payment-icon-tile--chairside">
+                  <span class="material-icons" aria-hidden="true">dentistry</span>
+                </div>
+                <div class="drawer__payment-card-copy">
+                  <div class="drawer__payment-title-row">
+                    <h4>Consultation au fauteuil</h4>
+                    <span class="drawer__payment-status-pill drawer__payment-status-pill--active">En cours</span>
+                  </div>
+                  <p>Accédez à la fiche clinique pour saisir les actes, observations et consignes.</p>
+                </div>
+              </div>
+              <div class="drawer__payment-card-actions">
+                <a
+                  class="btn-drawer-payment-primary btn-drawer-payment-primary--chairside"
+                  [routerLink]="['/app/clinical-visits/appointments', current.id]"
+                  (click)="close()"
+                  title="Ouvrir la fiche de consultation au fauteuil"
+                >
+                  <span class="material-icons" aria-hidden="true">edit_note</span>
+                  <span>Ouvrir la fiche clinique</span>
+                  <span class="material-icons arrow-icon" aria-hidden="true">arrow_forward</span>
+                </a>
+              </div>
+            </div>
+          </section>
+        }
+
+        @if (current.status === 'COMPLETED') {
+          <section class="drawer__section drawer__section--payment-completed" aria-label="Règlement des honoraires">
+            @if (justCompleted()) {
+              <div class="drawer__completion-toast" role="status">
+                <span class="material-icons toast-icon" aria-hidden="true">check_circle</span>
+                <div class="toast-text">
+                  <strong>Consultation validée et terminée !</strong>
+                  <span>Le statut du rendez-vous est mis à jour.</span>
+                </div>
+              </div>
+            }
+
+            <div class="drawer__payment-card">
+              <div class="drawer__payment-card-header">
+                <div class="drawer__payment-icon-tile">
+                  <span class="material-icons" aria-hidden="true">point_of_sale</span>
+                </div>
+                <div class="drawer__payment-card-copy">
+                  <div class="drawer__payment-title-row">
+                    <h4>Règlement des honoraires</h4>
+                    <span class="drawer__payment-status-pill">À encaisser</span>
+                  </div>
+                  <p>Enregistrez le paiement du patient pour mettre à jour son solde comptable et délivrer son reçu.</p>
+                </div>
+              </div>
+
+              <div class="drawer__payment-card-actions">
+                <a
+                  class="btn-drawer-payment-primary"
+                  [routerLink]="['/app/patients', current.patientId]"
+                  [queryParams]="paymentQueryParams(current)"
+                  (click)="close()"
+                  title="Enregistrer directement un règlement pour ce patient"
+                >
+                  <span class="material-icons" aria-hidden="true">payments</span>
+                  <span>Enregistrer un paiement</span>
+                  <span class="material-icons arrow-icon" aria-hidden="true">arrow_forward</span>
+                </a>
+
+                <a
+                  class="btn-drawer-payment-secondary"
+                  [routerLink]="['/app/clinical-visits/appointments', current.id]"
+                  (click)="close()"
+                  title="Consulter ou rédiger le compte-rendu clinique de cette séance"
+                >
+                  <span class="material-icons" aria-hidden="true">edit_note</span>
+                  <span>Fiche clinique & Notes</span>
+                </a>
+
+                <a
+                  class="btn-drawer-payment-secondary"
+                  [routerLink]="['/app/patients', current.patientId]"
+                  [queryParams]="{ tab: 'payments' }"
+                  (click)="close()"
+                  title="Consulter le dossier financier et les reçus"
+                >
+                  <span class="material-icons" aria-hidden="true">receipt_long</span>
+                  <span>Historique financier</span>
+                </a>
+              </div>
+            </div>
+          </section>
+        }
       }
 
       <form class="drawer__form" [formGroup]="form" (ngSubmit)="submit()" novalidate>

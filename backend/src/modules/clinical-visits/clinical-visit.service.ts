@@ -58,8 +58,11 @@ export class ClinicalVisitService {
     const appointment = await this.requireAppointment(clinicId, appointmentId);
     const existing = await this.visits.findByAppointment(appointmentId, clinicId);
     if (existing) return this.hydrate(clinicId, existing);
-    if (appointment.status !== APPOINTMENT_STATUSES.IN_TREATMENT) {
-      throw new BusinessRuleError('A clinical visit can only begin when the appointment is in treatment', {
+    if (
+      appointment.status !== APPOINTMENT_STATUSES.IN_TREATMENT &&
+      appointment.status !== APPOINTMENT_STATUSES.COMPLETED
+    ) {
+      throw new BusinessRuleError('A clinical visit can only begin when the appointment is in treatment or completed', {
         code: ERROR_CODES.CLINICAL_VISIT_INVALID_APPOINTMENT_STATE,
       });
     }
@@ -100,7 +103,7 @@ export class ClinicalVisitService {
         appointmentId,
         treatmentId: activeTreatment?._id.toString() ?? null,
         retentionPlanId: retentionPlan?._id.toString() ?? null,
-        startedAt: appointment.treatmentStartedAt ?? new Date(),
+        startedAt: appointment.treatmentStartedAt ?? appointment.startAt ?? new Date(),
         createdBy: context.actorUserId,
       });
     } catch (error) {
@@ -208,8 +211,11 @@ export class ClinicalVisitService {
       });
     }
     const appointment = await this.requireAppointment(clinicId, visit.appointmentId.toString());
-    if (appointment.status !== APPOINTMENT_STATUSES.IN_TREATMENT) {
-      throw new BusinessRuleError('The linked appointment must be in treatment before completion', {
+    if (
+      appointment.status !== APPOINTMENT_STATUSES.IN_TREATMENT &&
+      appointment.status !== APPOINTMENT_STATUSES.COMPLETED
+    ) {
+      throw new BusinessRuleError('The linked appointment must be in treatment or completed before completion', {
         code: ERROR_CODES.CLINICAL_VISIT_INVALID_APPOINTMENT_STATE,
       });
     }
@@ -234,17 +240,19 @@ export class ClinicalVisitService {
       if (Object.keys(fields).length > 0) {
         await this.visits.update(visitId, clinicId, fields, context.actorUserId, session);
       }
-      await this.appointmentLifecycle.changeStatus(
-        clinicId,
-        appointment._id.toString(),
-        APPOINTMENT_STATUSES.COMPLETED,
-        {
-          ...context,
-          canStartVisit: true,
-          canCompleteVisit: context.canCompleteAppointment,
-        },
-        session,
-      );
+      if (appointment.status !== APPOINTMENT_STATUSES.COMPLETED) {
+        await this.appointmentLifecycle.changeStatus(
+          clinicId,
+          appointment._id.toString(),
+          APPOINTMENT_STATUSES.COMPLETED,
+          {
+            ...context,
+            canStartVisit: true,
+            canCompleteVisit: context.canCompleteAppointment,
+          },
+          session,
+        );
+      }
       const record = await this.visits.complete(
         visitId,
         clinicId,

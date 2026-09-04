@@ -3,78 +3,150 @@
 <div class="receipt-overlay" role="dialog" aria-modal="true" aria-labelledby="receipt-title">
   <div class="receipt-shell">
     <header class="receipt-shell__bar">
-      <h2 id="receipt-title">Receipt {{ doc.receiptNumber }}</h2>
+      <div class="receipt-shell__title-block">
+        <span class="material-icons receipt-bar-icon" aria-hidden="true">receipt_long</span>
+        <h2 id="receipt-title">Reçu de paiement · {{ doc.receiptNumber }}</h2>
+      </div>
       <div class="receipt-shell__actions">
         <button type="button" class="receipt-btn receipt-btn--primary" (click)="print()">
           <span class="material-icons" aria-hidden="true">print</span>
           <span>Imprimer / PDF</span>
         </button>
-        <button type="button" class="receipt-btn" (click)="close()">Fermer</button>
+        <button type="button" class="receipt-btn" (click)="close()">
+          <span class="material-icons" aria-hidden="true">close</span>
+          <span>Fermer</span>
+        </button>
       </div>
     </header>
 
-    <!-- The printed document itself. Everything outside it is hidden on print. -->
+    <!-- The printed document itself: Black & White, Professional, Exactly 1 Page -->
     <article class="receipt" id="receipt-print-area">
       @if (doc.status === 'CANCELLED') {
-        <p class="receipt__void" role="status">Cancelled — this payment was voided</p>
+        <div class="receipt__void-banner" role="status">
+          <strong>DOCUMENT ANNULÉ / VOID</strong>
+          <span>Ce reçu et le règlement associé ont été annulés.</span>
+          @if (doc.cancellationReason) {
+            <small>Motif : {{ doc.cancellationReason }}</small>
+          }
+        </div>
       }
 
-      <header class="receipt__head">
-        <p class="receipt__clinic">{{ doc.clinicName }}</p>
-        @if (doc.clinicAddress) {
-          <p class="receipt__clinic-line">{{ doc.clinicAddress }}</p>
-        }
-        @if (doc.clinicPhone) {
-          <p class="receipt__clinic-line">{{ doc.clinicPhone }}</p>
-        }
+      <!-- Cabinet Header -->
+      <header class="receipt__cabinet-header">
+        <div class="cabinet-brand">
+          <div class="cabinet-symbol" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2C7.5 2 4 4.5 4 8c0 2.5 1.5 5 2.5 7.5S8 21 10 21c1.5 0 2-2 2-3s.5 3 2 3c2 0 2.5-3 3.5-5.5S20 10.5 20 8c0-3.5-3.5-6-8-6z" />
+            </svg>
+          </div>
+          <div class="cabinet-text">
+            <h1 class="cabinet-name">{{ doc.clinicName }}</h1>
+            <p class="cabinet-sub">CABINET D'ORTHODONTIE & DE SOINS DENTAIRES</p>
+          </div>
+        </div>
+
+        <div class="cabinet-contact">
+          @if (cleanAddress(doc.clinicAddress); as addr) {
+            <p class="cabinet-line"><span class="cabinet-label">Adresse :</span> {{ addr }}</p>
+          }
+          @if (cleanPhone(doc.clinicPhone); as phone) {
+            <p class="cabinet-line"><span class="cabinet-label">Tél :</span> {{ phone }}</p>
+          }
+          <p class="cabinet-line"><span class="cabinet-label">Praticien :</span> {{ doc.issuedByName }}</p>
+        </div>
       </header>
 
-      <div class="receipt__title">
-        <h3>Receipt</h3>
-        <p class="receipt__number">{{ doc.receiptNumber }}</p>
-        <p class="receipt__date">{{ doc.issuedAt | date: 'dd MMMM y · HH:mm' }}</p>
-      </div>
+      <!-- Document Title & Identification -->
+      <section class="receipt__doc-meta">
+        <div class="doc-meta__title">
+          <h2>REÇU DE PAIEMENT</h2>
+          <span class="sub-title">PAYMENT RECEIPT</span>
+        </div>
+        <div class="doc-meta__box">
+          <div class="meta-item">
+            <span class="meta-label">N° Reçu :</span>
+            <strong class="meta-value meta-mono">{{ doc.receiptNumber }}</strong>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Date :</span>
+            <span class="meta-value">{{ doc.issuedAt | date: 'dd/MM/yyyy · HH:mm' }}</span>
+          </div>
+        </div>
+      </section>
 
-      <dl class="receipt__rows">
-        <div>
-          <dt>Patient</dt>
-          <dd>{{ doc.patientName }}</dd>
-        </div>
-        @if (doc.treatmentLabel) {
-          <div>
-            <dt>Treatment</dt>
-            <dd>{{ doc.treatmentLabel }}</dd>
-          </div>
-        }
-        <div class="receipt__rows--amount">
-          <dt>Amount received</dt>
-          <dd>{{ doc.amountFormatted }} {{ doc.currency }}</dd>
-        </div>
-        <div>
-          <dt>Method</dt>
-          <dd>{{ methodLabels[doc.paymentMethod] }}</dd>
-        </div>
-        @if (doc.payerName) {
-          <div>
-            <dt>Payer</dt>
-            <dd>{{ doc.payerName }}</dd>
-          </div>
-        }
-        <div>
-          <dt>Received by</dt>
-          <dd>{{ doc.issuedByName }}</dd>
-        </div>
-        @if (doc.cancellationReason) {
-          <div>
-            <dt>Cancellation reason</dt>
-            <dd>{{ doc.cancellationReason }}</dd>
-          </div>
-        }
-      </dl>
+      <!-- Details Table -->
+      <section class="receipt__table-wrapper">
+        <table class="receipt__table" aria-label="Détails du reçu">
+          <tbody>
+            <tr>
+              <th scope="row">Patient (Bénéficiaire)</th>
+              <td><strong>{{ doc.patientName }}</strong></td>
+            </tr>
+            @if (doc.treatmentLabel) {
+              <tr>
+                <th scope="row">Traitement / Soins</th>
+                <td>{{ doc.treatmentLabel }}</td>
+              </tr>
+            }
+            @if (doc.payerName && doc.payerName !== doc.patientName) {
+              <tr>
+                <th scope="row">Règlement effectué par</th>
+                <td>{{ doc.payerName }}</td>
+              </tr>
+            }
+            <tr>
+              <th scope="row">Mode de règlement</th>
+              <td>{{ methodLabelsFr[doc.paymentMethod] || methodLabels[doc.paymentMethod] }}</td>
+            </tr>
+            <tr>
+              <th scope="row">Encaissé par</th>
+              <td>{{ doc.issuedByName }}</td>
+            </tr>
+            @if (doc.cancellationReason) {
+              <tr>
+                <th scope="row">Motif d'annulation</th>
+                <td>{{ doc.cancellationReason }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
 
-      <footer class="receipt__foot">
-        <p>This receipt confirms that the clinic recorded the above amount as received.</p>
+      <!-- Amount Received Box -->
+      <section class="receipt__amount-box">
+        <div class="amount-label-col">
+          <span class="amount-title">MONTANT TOTAL REÇU</span>
+          <span class="amount-sub">TOTAL AMOUNT RECEIVED</span>
+        </div>
+        <div class="amount-value-col">
+          <span class="amount-figures">{{ doc.amountFormatted }} {{ doc.currency }}</span>
+        </div>
+      </section>
+
+      <!-- Legal Declaration & Stamp Area -->
+      <footer class="receipt__closing">
+        <div class="closing-declaration">
+          <p class="attestation-text">
+            Le présent reçu certifie l'encaissement effectif de la somme indiquée ci-dessus
+            pour le traitement orthodontique du patient nommé.
+          </p>
+          <p class="mention-legal">
+            Document officiel délivré par le cabinet médical dentaire.
+          </p>
+        </div>
+
+        <div class="closing-stamp-box">
+          <span class="stamp-title">Cachet & Signature du Cabinet :</span>
+          <div class="stamp-frame" aria-hidden="true">
+            <span class="stamp-placeholder">Emplacement réservé au cachet</span>
+          </div>
+        </div>
       </footer>
+
+      <!-- Bottom Reference Line -->
+      <div class="receipt__bottom-note">
+        <span>OrthoFlow Dental Suite · Réf. {{ doc.receiptNumber }} · Émis le {{ doc.issuedAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+      </div>
     </article>
   </div>
 </div>

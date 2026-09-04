@@ -30,6 +30,15 @@ export interface Patient {
   updatedAt: string;
   archivedAt: string | null;
   primaryGuardian: { id: string; fullName: string; relationship: string } | null;
+  lastVisit?: {
+    date: string;
+    status?: string;
+  } | null;
+  nextVisit?: {
+    date: string;
+    status?: string;
+    isRecommended?: boolean;
+  } | null;
 }
 
 export interface Guardian {
@@ -159,3 +168,50 @@ export interface PortalAccessStatus {
   email: string | null;
   expiresAt: string | null;
 }
+
+export interface PatientAppointment {
+  id: string;
+  startAt: string;
+  endAt: string;
+  durationMinutes: number;
+  status:
+    | 'SCHEDULED'
+    | 'CONFIRMED'
+    | 'ARRIVED'
+    | 'WAITING'
+    | 'IN_TREATMENT'
+    | 'COMPLETED'
+    | 'CANCELLED'
+    | 'NO_SHOW';
+  note: string | null;
+  cancellationReason: string | null;
+  treatmentStartedAt: string | null;
+  completedAt: string | null;
+  appointmentType: {
+    id: string;
+    name: string;
+    color?: string | null;
+    durationMinutes?: number | null;
+  };
+  doctor: {
+    id: string;
+    name: string;
+  };
+  treatment: {
+    id: string;
+    label: string;
+    status: string;
+  } | null;
+  clinicalVisit: {
+    id: string;
+    status: 'DRAFT' | 'COMPLETED';
+    reasonCode: string | null;
+    reasonOther: string | null;
+    procedures: string[];
+    observations: string | null;
+    nextStepNote: string | null;
+    completedAt: string | null;
+    clinicianName: string;
+  } | null;
+}
+

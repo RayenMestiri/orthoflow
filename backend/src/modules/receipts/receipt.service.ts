@@ -177,9 +177,7 @@ export class ReceiptService {
       issuedByName: issuer ? `${issuer.firstName} ${issuer.lastName}`.trim() : 'Clinic team member',
       clinicName: clinic?.name ?? 'Clinic',
       clinicAddress: clinic
-        ? [clinic.address.line1, clinic.address.city, clinic.address.country]
-            .filter(Boolean)
-            .join(', ') || null
+        ? formatClinicAddress(clinic.address)
         : null,
       clinicPhone: clinic?.phone ?? null,
       patientName: patient ? `${patient.firstName} ${patient.lastName}`.trim() : 'Patient',
@@ -197,6 +195,28 @@ export class ReceiptService {
 function formatTreatmentType(type: string): string {
   const words = type.toLowerCase().replaceAll('_', ' ');
   return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+function formatClinicAddress(
+  address?: { line1?: string | null; line2?: string | null; city?: string | null; state?: string | null; country?: string | null } | null,
+): string | null {
+  if (!address) return null;
+  const rawParts = [address.line1, address.line2, address.city, address.country]
+    .filter(Boolean)
+    .flatMap((p) => p!.split(','))
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const seen = new Set<string>();
+  const uniqueParts: string[] = [];
+  for (const part of rawParts) {
+    const key = part.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueParts.push(part);
+    }
+  }
+  return uniqueParts.join(', ') || null;
 }
 
 export const receiptService = new ReceiptService();

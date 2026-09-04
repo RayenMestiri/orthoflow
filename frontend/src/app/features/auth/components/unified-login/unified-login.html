@@ -1,0 +1,369 @@
+<main
+  class="unified-auth"
+  [class.unified-auth--portal]="mode() === 'portal'"
+  [class.unified-auth--animating]="isAnimating()"
+>
+  <!-- Ambient Lighting Effects -->
+  <div class="unified-auth__ambient" aria-hidden="true">
+    <div class="glow glow--top"></div>
+    <div class="glow glow--bottom"></div>
+  </div>
+
+  <div class="unified-auth__frame">
+    <!-- Brand Showcase Green Panel -->
+    <section class="unified-auth__brand-panel" aria-label="Présentation OrthoFlow">
+      <header class="brand-panel__header">
+        <a class="brand-panel__brand" routerLink="/" aria-label="Retour à l'accueil OrthoFlow">
+          <div class="brand-panel__logo">
+            <span class="material-icons" aria-hidden="true">spa</span>
+          </div>
+          <span class="brand-panel__name">OrthoFlow</span>
+        </a>
+
+        <div class="brand-panel__badge">
+          <span class="brand-panel__badge-dot"></span>
+          <span>{{ mode() === 'clinic' ? 'Espace Cabinet Sécurisé' : 'Portail Privé Famille' }}</span>
+        </div>
+      </header>
+
+      <div class="brand-panel__body">
+        @if (mode() === 'clinic') {
+          <div class="showcase-content showcase-content--clinic">
+            <p class="auth-frame__eyebrow"><span></span>Espace Praticien & Équipe</p>
+            <h1 class="showcase-headline">
+              Care moves better when the whole clinic sees the same picture.
+            </h1>
+            <p class="showcase-copy">
+              Un espace de travail sécurisé pour les rendez-vous, les traitements, les transmissions et le suivi du cabinet.
+            </p>
+
+            <!-- Clinic Live Timeline Preview (Register Nuance) -->
+            <div class="auth-frame__workflow" aria-label="Aperçu du flux clinique en direct">
+              <div class="auth-frame__workflow-head">
+                <div>
+                  <span>Today's handoff</span>
+                  <strong>Thursday · 08:40</strong>
+                </div>
+                <span class="auth-frame__live"><i></i>Clinic live</span>
+              </div>
+
+              <div class="auth-frame__patient">
+                <span class="auth-frame__time">09:00</span>
+                <span class="auth-frame__avatar">LM</span>
+                <div>
+                  <strong>Lina M.</strong>
+                  <small>Adjustment · Room 2</small>
+                </div>
+                <span class="auth-frame__status">Confirmed</span>
+              </div>
+
+              <div class="auth-frame__patient auth-frame__patient--muted">
+                <span class="auth-frame__time">09:30</span>
+                <span class="auth-frame__avatar">YS</span>
+                <div>
+                  <strong>Youssef S.</strong>
+                  <small>Records review · Room 1</small>
+                </div>
+                <span class="auth-frame__status auth-frame__status--warm">Arrived</span>
+              </div>
+
+              <div class="auth-frame__handoff">
+                <span class="material-icons" aria-hidden="true">task_alt</span>
+                <div>
+                  <strong>Front desk handoff complete</strong>
+                  <small>Guardian and receipt notes attached</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="showcase-content showcase-content--portal">
+            <p class="auth-frame__eyebrow"><span></span>Espace Patient & Famille</p>
+            <h1 class="showcase-headline">
+              Suivez les soins de vos proches,<br />
+              <span class="showcase-headline--highlight">avec sérénité et clarté.</span>
+            </h1>
+            <p class="showcase-copy">
+              Rendez-vous, consignes de traitement, relevés de règlements et documents certifiés partagés par votre clinique — réunis dans un espace privé d'exception.
+            </p>
+
+            <!-- Family Portal Feature Cards -->
+            <div class="portal-features" aria-label="Fonctionnalités du portail famille">
+              <div class="portal-feature-card">
+                <div class="portal-feature-card__icon portal-feature-card__icon--cal">
+                  <span class="material-icons">event_available</span>
+                </div>
+                <div class="portal-feature-card__content">
+                  <strong>Agenda en direct</strong>
+                  <small>Rappels automatiques & contrôles</small>
+                </div>
+              </div>
+
+              <div class="portal-feature-card">
+                <div class="portal-feature-card__icon portal-feature-card__icon--treatment">
+                  <span class="material-icons">health_and_safety</span>
+                </div>
+                <div class="portal-feature-card__content">
+                  <strong>Suivi du traitement</strong>
+                  <small>Conseils & appareils de rétention</small>
+                </div>
+              </div>
+
+              <div class="portal-feature-card">
+                <div class="portal-feature-card__icon portal-feature-card__icon--finance">
+                  <span class="material-icons">receipt_long</span>
+                </div>
+                <div class="portal-feature-card__content">
+                  <strong>Reçus & règlements</strong>
+                  <small>Reçus certifiés téléchargeables</small>
+                </div>
+              </div>
+
+              <div class="portal-feature-card">
+                <div class="portal-feature-card__icon portal-feature-card__icon--doc">
+                  <span class="material-icons">verified_user</span>
+                </div>
+                <div class="portal-feature-card__content">
+                  <strong>Documents officiels</strong>
+                  <small>Consentements & bilans cliniques</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <footer class="brand-panel__footer">
+        <ul class="auth-frame__trust" aria-label="Engagements de sécurité">
+          @if (mode() === 'clinic') {
+            <li><span class="material-icons" aria-hidden="true">lock</span>Protected access</li>
+            <li><span class="material-icons" aria-hidden="true">history</span>Traceable activity</li>
+            <li><span class="material-icons" aria-hidden="true">groups</span>Role-aware workspace</li>
+          } @else {
+            <li><span class="material-icons" aria-hidden="true">lock</span>Accès chiffré HDS</li>
+            <li><span class="material-icons" aria-hidden="true">verified_user</span>Données de santé protégées</li>
+            <li><span class="material-icons" aria-hidden="true">family_restroom</span>Espace famille certifié</li>
+          }
+        </ul>
+      </footer>
+    </section>
+
+    <!-- Interactive Form Panel -->
+    <section class="unified-auth__form-panel" aria-label="Formulaire de connexion">
+      <!-- Interactive Dual Switcher with Animated Glider -->
+      <div class="auth-switcher" role="tablist" aria-label="Espaces de connexion">
+        <div
+          class="auth-switcher__glider"
+          [class.auth-switcher__glider--portal]="mode() === 'portal'"
+          aria-hidden="true"
+        ></div>
+
+        <button
+          type="button"
+          class="auth-switcher__tab"
+          [class.auth-switcher__tab--active]="mode() === 'clinic'"
+          role="tab"
+          [attr.aria-selected]="mode() === 'clinic'"
+          (click)="switchMode('clinic')"
+        >
+          <span class="auth-switcher__icon">
+            <span class="material-icons">local_hospital</span>
+          </span>
+          <span class="auth-switcher__label">Espace Cabinet</span>
+        </button>
+
+        <button
+          type="button"
+          class="auth-switcher__tab"
+          [class.auth-switcher__tab--active]="mode() === 'portal'"
+          role="tab"
+          [attr.aria-selected]="mode() === 'portal'"
+          (click)="switchMode('portal')"
+        >
+          <span class="auth-switcher__icon">
+            <span class="material-icons">family_restroom</span>
+          </span>
+          <span class="auth-switcher__label">Portail Famille</span>
+        </button>
+      </div>
+
+      <!-- Transferred Coordinates Notice -->
+      @if (copiedNotice()) {
+        <div class="auth-alert auth-alert--success" role="status">
+          <span class="material-icons" aria-hidden="true">auto_awesome</span>
+          <div class="auth-alert__content">
+            <strong>Coordonnées transmises</strong>
+            <p>{{ copiedNotice() }}</p>
+          </div>
+        </div>
+      }
+
+      <header class="form-panel__header">
+        <div class="form-panel__context-chip">
+          <span class="material-icons" aria-hidden="true">lock</span>
+          <span>{{ mode() === 'clinic' ? 'Espace sécurisé du cabinet' : 'Portail privé patient & famille' }}</span>
+        </div>
+        <h2 class="form-panel__title">
+          {{ mode() === 'clinic' ? 'Connexion à votre cabinet' : 'Connexion Famille' }}
+        </h2>
+        <p class="form-panel__subtitle">
+          {{
+            mode() === 'clinic'
+              ? 'Utilisez votre adresse email professionnelle OrthoFlow.'
+              : "Renseignez l'adresse email invitée par votre cabinet orthodontique."
+          }}
+        </p>
+      </header>
+
+      <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        @if (errorMessage()) {
+          <div class="auth-alert auth-alert--error" role="alert">
+            <span class="material-icons" aria-hidden="true">error_outline</span>
+            <div class="auth-alert__content">
+              <span>{{ errorMessage() }}</span>
+              @if (isAlternateAccount()) {
+                <button
+                  type="button"
+                  class="smart-bridge-btn"
+                  (click)="switchMode(mode() === 'clinic' ? 'portal' : 'clinic')"
+                >
+                  <span class="material-icons">swap_horiz</span>
+                  Basculer vers {{ mode() === 'clinic' ? 'le Portail Famille' : "l'Espace Cabinet" }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="auth-field">
+          <label for="unified-email">
+            {{ mode() === 'clinic' ? 'Email professionnel' : 'Adresse email du responsable' }}
+          </label>
+          <div
+            class="auth-control"
+            [class.auth-control--invalid]="form.controls.email.touched && form.controls.email.invalid"
+          >
+            <div class="auth-control__icon-chip" aria-hidden="true">
+              <span class="material-icons">mail_outline</span>
+            </div>
+            <input
+              id="unified-email"
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+              inputmode="email"
+              [placeholder]="mode() === 'clinic' ? 'praticien@cabinet.com' : 'parent@famille.fr'"
+              [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
+              aria-describedby="unified-email-error"
+            />
+          </div>
+          <p id="unified-email-error" class="auth-field__error" aria-live="polite">
+            @if (form.controls.email.touched && form.controls.email.hasError('required')) {
+              Veuillez renseigner votre adresse email.
+            } @else if (form.controls.email.touched && form.controls.email.hasError('email')) {
+              Veuillez saisir une adresse email valide.
+            }
+          </p>
+        </div>
+
+        <div class="auth-field">
+          <div class="auth-field__label-row">
+            <label for="unified-password">Mot de passe</label>
+            <a
+              class="form-link form-link--subtle"
+              [routerLink]="mode() === 'clinic' ? '/forgot-password' : '/portal/forgot-password'"
+            >
+              Mot de passe oublié ?
+            </a>
+          </div>
+          <div
+            class="auth-control"
+            [class.auth-control--invalid]="
+              form.controls.password.touched && form.controls.password.invalid
+            "
+          >
+            <div class="auth-control__icon-chip" aria-hidden="true">
+              <span class="material-icons">lock_outline</span>
+            </div>
+            <input
+              id="unified-password"
+              [type]="passwordVisible() ? 'text' : 'password'"
+              formControlName="password"
+              autocomplete="current-password"
+              placeholder="••••••••••••"
+              [attr.aria-invalid]="
+                form.controls.password.touched && form.controls.password.invalid
+              "
+              aria-describedby="unified-password-error"
+            />
+            <button
+              class="auth-control__toggle"
+              type="button"
+              [attr.aria-label]="passwordVisible() ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+              (click)="togglePassword()"
+            >
+              <span class="material-icons" aria-hidden="true">
+                {{ passwordVisible() ? 'visibility_off' : 'visibility' }}
+              </span>
+            </button>
+          </div>
+          <p id="unified-password-error" class="auth-field__error" aria-live="polite">
+            @if (form.controls.password.touched && form.controls.password.hasError('required')) {
+              Veuillez renseigner votre mot de passe.
+            }
+          </p>
+        </div>
+
+        <button
+          class="button button--primary form-submit-btn"
+          type="submit"
+          [disabled]="submitting()"
+        >
+          @if (submitting()) {
+            <span class="btn-spinner" aria-hidden="true"></span>
+            <span>Connexion en cours…</span>
+          } @else {
+            <span class="material-icons" aria-hidden="true">
+              {{ mode() === 'clinic' ? 'dashboard' : 'family_restroom' }}
+            </span>
+            <span>
+              {{ mode() === 'clinic' ? 'Accéder au Cabinet' : 'Accéder au Portail Famille' }}
+            </span>
+          }
+        </button>
+      </form>
+
+      <footer class="form-panel__footer">
+        @if (mode() === 'clinic') {
+          <div class="form-panel__links">
+            <p class="form-panel__auxiliary">
+              Nouveau cabinet ?
+              <a class="form-link" routerLink="/register">Créer un espace cabinet</a>
+            </p>
+            <div class="form-panel__alt-switch">
+              <span>Vous êtes patient ou famille ?</span>
+              <button type="button" class="alt-switch-btn" (click)="switchMode('portal')">
+                <span class="material-icons">family_restroom</span>
+                Accéder au Portail Famille
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="form-panel__links">
+            <p class="form-panel__auxiliary">
+              Première visite ?
+              <a class="form-link" routerLink="/portal/activate">Activer mon compte famille</a>
+            </p>
+            <div class="form-panel__alt-switch">
+              <span>Vous êtes membre du cabinet ?</span>
+              <button type="button" class="alt-switch-btn" (click)="switchMode('clinic')">
+                <span class="material-icons">local_hospital</span>
+                Accéder à l'Espace Cabinet
+              </button>
+            </div>
+          </div>
+        }
+      </footer>
+    </section>
+  </div>
+</main>

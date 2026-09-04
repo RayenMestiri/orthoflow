@@ -32,9 +32,9 @@ full-calendar {
 :host ::ng-deep full-calendar {
   /* Clean Column Headers & Axis */
   .fc-col-header-cell {
-    padding: 0.65rem 0.4rem;
+    padding: 0.35rem 0.4rem;
     background: var(--color-porcelain);
-    font-size: 0.8125rem;
+    font-size: 0.78rem;
     font-weight: 750;
     letter-spacing: 0.02em;
     text-transform: uppercase;
@@ -48,14 +48,18 @@ full-calendar {
   .fc-timegrid-axis-cushion,
   .fc-timegrid-slot-label-cushion {
     color: var(--color-slate);
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 650;
     font-variant-numeric: tabular-nums;
   }
 
-  /* Grid slot lines */
+  /* Grid slot lines — DEZOOMED */
   .fc-timegrid-slot {
-    height: 3rem;
+    height: 1.6rem;
+  }
+
+  .fc-timegrid-slot-lane {
+    min-height: 1.6rem;
   }
 
   .fc-timegrid-slot-minor {
@@ -69,7 +73,11 @@ full-calendar {
     border-radius: var(--radius-sm);
   }
 
-  /* Event Container overrides */
+  /* Event Container overrides & Full Width Layout */
+  .fc-timegrid-col-events {
+    perspective: 800px;
+  }
+
   .fc-timegrid-event {
     border: 0;
     border-radius: var(--radius-sm);
@@ -80,6 +88,393 @@ full-calendar {
       z-index: 10 !important;
       transform: translateY(-1px);
       box-shadow: 0 8px 20px rgb(13 41 37 / 0.16);
+    }
+  }
+
+  /* ==========================================================================
+     WEEK VIEW: Full-Width Stacked Cards with Intelligent Stagger (Proven Perfect)
+     ========================================================================== */
+  .fc-timeGridWeek-view {
+    .fc-timegrid-event,
+    .fc-event-main {
+      overflow: visible !important;
+    }
+
+    .fc-timegrid-col-events > div,
+    .fc-timegrid-event-harness {
+      // FULL WIDTH: never horizontally shrunk into columns
+      left: 2px !important;
+      right: 2px !important;
+      inset-inline-start: 2px !important;
+      inset-inline-end: 2px !important;
+      width: calc(100% - 4px) !important;
+      min-width: calc(100% - 4px) !important;
+      max-width: calc(100% - 4px) !important;
+      box-sizing: border-box !important;
+      transition:
+        transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 200ms ease;
+    }
+
+    /* Intelligent Vertical Stagger for Overlapping Events (Full Width & Aligned) */
+    .fc-timegrid-col-events > div.fc-harness--overlapping,
+    .fc-timegrid-event-harness.fc-harness--overlapping {
+      --step-y: 22px;
+
+      left: 2px !important;
+      right: 2px !important;
+      inset-inline-start: 2px !important;
+      inset-inline-end: 2px !important;
+      width: calc(100% - 4px) !important;
+      min-width: calc(100% - 4px) !important;
+      max-width: calc(100% - 4px) !important;
+
+      transform: translateY(calc(var(--staircase-index) * var(--step-y)));
+      z-index: calc(10 + var(--group-index, var(--staircase-index, 0))) !important;
+
+      /* Boosted height, presence and vertical spacing for all collision cases (3, 4, 5, 6, ...) */
+      &[data-group-total] {
+        min-height: 4.8rem !important;
+
+        .fc-timegrid-event {
+          min-height: 4.8rem !important;
+        }
+
+        .schedule-event {
+          min-height: 4.8rem !important;
+          padding: 0.4rem 0.55rem;
+          gap: 0.2rem;
+
+          .schedule-event__patient {
+            font-size: 0.82rem;
+            font-weight: 850;
+          }
+
+          .schedule-event__type-row {
+            display: flex !important;
+            font-size: 0.7rem;
+          }
+
+          .schedule-event__time-row {
+            display: flex !important;
+            font-size: 0.7rem;
+            font-weight: 750;
+          }
+        }
+      }
+
+      &[data-group-total='3'] {
+        --step-y: 26px !important;
+      }
+
+      &[data-group-total='4'] {
+        --step-y: 24px !important;
+      }
+
+      &[data-group-total='5'] {
+        --step-y: 22px !important;
+      }
+
+      &[data-group-total='6'],
+      &[data-group-total='7'],
+      &[data-group-total='8'],
+      &[data-group-total='9'],
+      &[data-group-total='10'] {
+        --step-y: 20px !important;
+      }
+
+      /* Hover Elevation & Group Cohesion */
+      &.is-group-hovered {
+        z-index: calc(30 + var(--group-index, var(--staircase-index, 0))) !important;
+
+        .schedule-event {
+          border-color: color-mix(in srgb, var(--event-accent, var(--color-pine-700)) 45%, var(--color-line));
+          box-shadow: 0 4px 14px rgba(13, 41, 37, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05);
+          opacity: 0.88;
+          filter: saturate(0.95);
+        }
+      }
+
+      &.is-card-hovered,
+      &:hover {
+        z-index: 120 !important;
+        transform: translateY(calc(var(--staircase-index) * var(--step-y) - 4px)) scale(1.015) !important;
+
+        .fc-timegrid-event {
+          box-shadow: none !important;
+          border: none !important;
+          background: transparent !important;
+          overflow: visible !important;
+        }
+
+        .schedule-event {
+          opacity: 1 !important;
+          filter: none !important;
+          background: #ffffff !important;
+          border-color: var(--event-accent, var(--color-pine-700)) !important;
+          border-left-width: 5px !important;
+          box-shadow:
+            0 14px 32px -4px rgba(13, 41, 37, 0.28),
+            0 4px 12px rgba(0, 0, 0, 0.06),
+            0 0 0 1.5px color-mix(in srgb, var(--event-accent, var(--color-pine-700)) 75%, white) !important;
+
+          .schedule-event__patient {
+            color: var(--color-pine-900, #0d2925) !important;
+            font-weight: 900 !important;
+          }
+
+          .schedule-event__initials {
+            background: var(--event-accent, var(--color-pine-700)) !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 6px rgba(13, 41, 37, 0.25);
+          }
+
+          .schedule-event__stack-pill {
+            background: var(--color-copper-600) !important;
+            box-shadow: 0 2px 8px rgba(169, 72, 48, 0.4);
+            transform: scale(1.08);
+          }
+        }
+      }
+    }
+
+    .fc-event[class*='fc-event--overlap-total-'] {
+      min-height: 4.8rem !important;
+
+      .schedule-event {
+        min-height: 4.8rem !important;
+      }
+    }
+
+    /* Expanded height for the last card holding the "Voir tout" button */
+    .fc-timegrid-col-events > div:has(.schedule-event__view-group-btn),
+    .fc-timegrid-event-harness:has(.schedule-event__view-group-btn) {
+      min-height: 5.6rem !important;
+
+      .fc-timegrid-event,
+      .schedule-event {
+        min-height: 5.6rem !important;
+      }
+    }
+  }
+
+  /* ==========================================================================
+     DAY VIEW: Executive Parallel Layout (Professional Multi-Chair Spacing)
+     ========================================================================== */
+  .fc-timeGridDay-view {
+    .fc-col-header-cell {
+      padding: 0.75rem 1rem !important;
+      background: color-mix(in srgb, var(--color-sage) 45%, var(--color-white)) !important;
+      border-bottom: 2px solid var(--color-pine-700) !important;
+    }
+
+    .fc-col-header-cell-cushion {
+      font-size: 1rem !important;
+      font-weight: 850 !important;
+      color: var(--color-pine-900) !important;
+      letter-spacing: -0.01em;
+    }
+
+    .fc-timegrid-col-events {
+      padding-inline: 6px;
+    }
+
+    .fc-timegrid-event-harness {
+      box-sizing: border-box !important;
+      padding-inline: 3px;
+      transition: all var(--transition-fast);
+
+      &:hover {
+        z-index: 25 !important;
+      }
+    }
+
+    .fc-timegrid-event {
+      border: 0;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 2px 8px rgba(13, 41, 37, 0.08);
+
+      &:hover {
+        box-shadow: 0 8px 24px rgba(13, 41, 37, 0.16);
+      }
+    }
+  }
+
+  /* ==========================================================================
+     MONTH VIEW: High-Density Polish with 1-Line Chips and Today Badge
+     ========================================================================== */
+  .fc-dayGridMonth-view {
+    border-radius: var(--radius-md);
+
+    .fc-col-header-cell {
+      padding: 0.6rem 0.5rem !important;
+      background: color-mix(in srgb, var(--color-sage) 45%, var(--color-white)) !important;
+      border-color: var(--color-line) !important;
+    }
+
+    .fc-col-header-cell-cushion {
+      font-size: 0.74rem !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-pine-900) !important;
+    }
+
+    .fc-daygrid-day {
+      transition: background var(--transition-fast);
+
+      &:hover {
+        background: color-mix(in srgb, var(--color-sage) 18%, var(--color-white));
+      }
+
+      &.fc-day-today {
+        background: color-mix(in srgb, var(--color-copper-600) 4%, var(--color-white)) !important;
+
+        .fc-daygrid-day-number {
+          background: var(--color-pine-700);
+          color: var(--color-white) !important;
+          border-radius: var(--radius-pill);
+          min-width: 1.55rem;
+          height: 1.55rem;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 850 !important;
+          box-shadow: 0 2px 6px rgba(23, 63, 56, 0.28);
+        }
+      }
+
+      &.fc-day-other {
+        opacity: 0.4;
+        background: color-mix(in srgb, var(--color-porcelain) 50%, transparent);
+      }
+    }
+
+    .fc-daygrid-day-top {
+      padding: 0.3rem 0.45rem;
+      flex-direction: row;
+    }
+
+    .fc-daygrid-day-number {
+      font-size: 0.8rem;
+      font-weight: 750;
+      color: var(--color-ink);
+      padding: 0.1rem 0.3rem;
+    }
+
+    .fc-daygrid-day-events {
+      padding: 0.15rem 0.35rem 0.35rem;
+      gap: 0.2rem;
+    }
+
+    .fc-daygrid-event {
+      margin-block: 1.5px !important;
+      border: 0 !important;
+      background: transparent !important;
+      border-radius: var(--radius-sm);
+    }
+
+    .fc-daygrid-more-link {
+      display: inline-flex !important;
+      align-items: center;
+      padding: 0.12rem 0.5rem !important;
+      margin-top: 0.15rem !important;
+      border-radius: var(--radius-pill) !important;
+      font-size: 0.68rem !important;
+      font-weight: 800 !important;
+      color: var(--color-copper-700) !important;
+      background: color-mix(in srgb, var(--color-copper-100) 65%, var(--color-white)) !important;
+      border: 1px solid color-mix(in srgb, var(--color-copper-600) 25%, transparent) !important;
+      transition: all var(--transition-fast) !important;
+
+      &:hover {
+        background: var(--color-copper-600) !important;
+        color: var(--color-white) !important;
+        border-color: var(--color-copper-700) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(200, 100, 69, 0.28);
+      }
+    }
+
+    .fc-more-popover {
+      border-radius: var(--radius-md) !important;
+      box-shadow: 0 12px 36px rgba(13, 41, 37, 0.22) !important;
+      border: 1px solid var(--color-line) !important;
+      overflow: hidden;
+
+      .fc-popover-header {
+        background: var(--color-pine-900) !important;
+        color: var(--color-white) !important;
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.78rem !important;
+        font-weight: 800 !important;
+      }
+
+      .fc-popover-body {
+        padding: 0.5rem !important;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        max-height: 18rem;
+        overflow-y: auto;
+      }
+    }
+  }
+}
+
+/* Aggressively shrunken non-working / closed days */
+$closed-weekdays: (
+  sun: 'sun',
+  sat: 'sat',
+  fri: 'fri',
+  mon: 'mon',
+  tue: 'tue',
+  wed: 'wed',
+  thu: 'thu'
+);
+
+@each $slug, $day in $closed-weekdays {
+  :host.is-#{$slug}-closed ::ng-deep {
+    .fc-col-header-cell.fc-day-#{$day},
+    .fc-timegrid-col.fc-day-#{$day},
+    .fc-daygrid-day.fc-day-#{$day} {
+      width: clamp(18px, 2%, 24px) !important;
+      max-width: 24px !important;
+      min-width: 18px !important;
+      padding: 0 !important;
+      background-color: var(--color-porcelain) !important;
+      background-image: repeating-linear-gradient(
+        -45deg,
+        color-mix(in srgb, var(--color-mist) 45%, transparent),
+        color-mix(in srgb, var(--color-mist) 45%, transparent) 4px,
+        transparent 4px,
+        transparent 8px
+      ) !important;
+      opacity: 0.38;
+      pointer-events: none;
+      user-select: none;
+      overflow: hidden !important;
+
+      .fc-scrollgrid-sync-inner,
+      .fc-timegrid-col-frame {
+        padding: 0 !important;
+        overflow: hidden !important;
+        min-width: 0 !important;
+      }
+
+      .fc-col-header-cell-cushion {
+        display: block !important;
+        font-size: 0.52rem !important;
+        font-weight: 800 !important;
+        text-align: center !important;
+        padding: 0.25rem 0 !important;
+        overflow: hidden !important;
+        text-overflow: clip !important;
+        letter-spacing: -0.05em !important;
+        white-space: nowrap !important;
+        opacity: 0.45 !important;
+      }
     }
   }
 }
@@ -100,14 +495,75 @@ full-calendar {
   height: 100%;
   min-height: 0;
   flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.4rem 0.55rem;
+  gap: 0.18rem;
+  padding: 0.35rem 0.55rem;
   border-left: 4px solid var(--event-accent, var(--color-pine-700));
   border-radius: var(--radius-sm);
   color: var(--color-ink);
-  background: color-mix(in srgb, var(--event-accent, var(--color-pine-700)) 10%, var(--color-white));
+  background: color-mix(in srgb, var(--event-accent, var(--color-pine-700)) 9%, var(--color-white));
   font-size: 0.78rem;
-  line-height: 1.3;
+  line-height: 1.25;
+  box-shadow: 0 1px 4px rgba(13, 41, 37, 0.04);
+  cursor: pointer;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    opacity var(--transition-fast),
+    filter var(--transition-fast);
+
+  &:hover {
+    box-shadow: 0 6px 18px rgba(13, 41, 37, 0.14);
+    border-color: var(--event-accent, var(--color-pine-700));
+  }
+
+  &.is-group-hovered {
+    border-color: color-mix(in srgb, var(--event-accent, var(--color-pine-700)) 45%, var(--color-line));
+    box-shadow: 0 4px 14px rgba(13, 41, 37, 0.12);
+  }
+
+  &.is-card-hovered {
+    background: #ffffff !important;
+    border-color: var(--event-accent, var(--color-pine-700)) !important;
+    border-left-width: 5px !important;
+    box-shadow:
+      0 14px 32px -4px rgba(13, 41, 37, 0.28),
+      0 4px 12px rgba(0, 0, 0, 0.06),
+      0 0 0 1.5px color-mix(in srgb, var(--event-accent, var(--color-pine-700)) 75%, white) !important;
+    opacity: 1 !important;
+    filter: none !important;
+
+    .schedule-event__patient {
+      color: var(--color-pine-900, #0d2925) !important;
+      font-weight: 900 !important;
+    }
+
+    .schedule-event__initials {
+      background: var(--event-accent, var(--color-pine-700)) !important;
+      color: #ffffff !important;
+    }
+
+    .schedule-event__stack-pill {
+      background: var(--color-copper-600) !important;
+      box-shadow: 0 2px 8px rgba(169, 72, 48, 0.4);
+      transform: scale(1.08);
+    }
+  }
+
+  &.is-overlapping {
+    border: 1px solid color-mix(in srgb, var(--event-accent, var(--color-pine-700)) 22%, var(--color-line));
+    border-left-width: 4px;
+    box-shadow: 0 2px 8px rgba(13, 41, 37, 0.08);
+
+    &[data-group-total] {
+      min-height: 5rem;
+      padding: 0.38rem 0.55rem;
+      border-left-width: 5px;
+      box-shadow: 0 3px 12px rgba(13, 41, 37, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
+      overflow: visible;
+    }
+  }
 
   &[data-status='ARRIVED'] {
     border-left-color: var(--color-copper-600);
@@ -131,13 +587,12 @@ full-calendar {
   }
 }
 
-.schedule-event__time {
-  overflow: hidden;
-  color: var(--color-pine-900);
-  font-size: 0.75rem;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.schedule-event__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-width: 0;
 }
 
 .schedule-event__initials {
@@ -150,22 +605,96 @@ full-calendar {
 
 .schedule-event__patient {
   color: var(--color-pine-900);
-  font-size: 0.8125rem;
-  font-weight: 750;
-  line-height: 1.25;
-}
-
-.schedule-event__type {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   overflow: hidden;
-  color: var(--color-slate);
-  font-size: 0.72rem;
-  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.schedule-event__badge {
+.schedule-event__stack-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.08rem 0.4rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.62rem;
+  font-weight: 800;
+  background: var(--color-pine-700);
+  color: var(--color-white);
+  line-height: 1.2;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--color-copper-600);
+    transform: scale(1.06);
+    box-shadow: 0 2px 6px rgba(13, 41, 37, 0.25);
+  }
+}
+
+.schedule-event__type-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-event__type {
+  color: var(--color-slate);
+  font-size: 0.7rem;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-event__treatment {
+  color: var(--color-pine-700);
+  font-size: 0.68rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-event__time-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--color-copper-700);
+  font-size: 0.7rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.schedule-event__clock-icon {
+  font-size: 0.78rem;
+  color: var(--color-copper-600);
+}
+
+.schedule-event__time {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-event__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
   margin-top: auto;
+  padding-top: 0.15rem;
+}
+
+.schedule-event__badge {
+  margin-left: auto;
 }
 
 .schedule-event__late,
@@ -180,41 +709,362 @@ full-calendar {
 
 .schedule-event__capacity .material-icons { font-size: 0.8rem; }
 
+.schedule-event__action-row {
+  display: flex;
+  align-items: center;
+  margin-top: 0.15rem;
+  margin-bottom: 0.12rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.schedule-event__view-group-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.18rem 0.52rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid #8e3822;
+  background: linear-gradient(135deg, var(--color-copper-600) 0%, var(--color-copper-700) 100%);
+  color: var(--color-white);
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  cursor: pointer;
+  width: fit-content;
+  max-width: 100%;
+  box-shadow: 0 2px 7px rgba(169, 72, 48, 0.32), 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: all var(--transition-fast);
+  user-select: none;
+  flex-shrink: 0;
+  z-index: 2;
+
+  .schedule-event__btn-icon {
+    font-size: 0.8rem;
+    color: var(--color-white);
+    flex-shrink: 0;
+  }
+
+  .schedule-event__btn-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 850;
+  }
+
+  .schedule-event__btn-chevron {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.9);
+    flex-shrink: 0;
+    transition: transform var(--transition-fast);
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #d86d4e 0%, var(--color-copper-700) 100%);
+    border-color: #722614;
+    box-shadow: 0 3px 10px rgba(169, 72, 48, 0.44);
+    transform: translateY(-1px);
+
+    .schedule-event__btn-chevron {
+      transform: translateX(2px);
+      color: var(--color-white);
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(169, 72, 48, 0.3);
+  }
+
+  @media (max-width: 600px) {
+    padding: 0.14rem 0.4rem;
+    font-size: 0.65rem;
+
+    .schedule-event__btn-chevron {
+      display: none;
+    }
+  }
+}
+
+/* ==========================================================================
+   MONTH VIEW: Sleek 1-Line Appointment Chip
+   ========================================================================== */
+.schedule-month-event {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  height: 1.55rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--event-accent, var(--color-pine-700)) 10%, var(--color-white));
+  border-left: 3.5px solid var(--event-accent, var(--color-pine-700));
+  box-shadow: 0 1px 3px rgba(13, 41, 37, 0.05);
+  cursor: pointer;
+  overflow: hidden;
+  transition: all var(--transition-fast);
+  user-select: none;
+
+  &:hover {
+    background: var(--color-white);
+    border-left-width: 4.5px;
+    box-shadow: 0 3px 8px rgba(13, 41, 37, 0.14), 0 1px 2px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+  }
+
+  .schedule-month-event__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-pill);
+    background: var(--event-accent, var(--color-pine-700));
+    flex-shrink: 0;
+  }
+
+  .schedule-month-event__time {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--color-copper-700);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .schedule-month-event__patient {
+    font-size: 0.72rem;
+    font-weight: 750;
+    color: var(--color-pine-900);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .schedule-month-event__treatment {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--color-slate);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &[data-status='ARRIVED'] {
+    border-left-color: var(--color-copper-600);
+    .schedule-month-event__dot { background: var(--color-copper-600); }
+  }
+
+  &[data-status='IN_TREATMENT'] {
+    border-left-color: var(--color-info);
+    .schedule-month-event__dot { background: var(--color-info); }
+  }
+
+  &[data-status='COMPLETED'] {
+    opacity: 0.75;
+    border-left-color: var(--color-success);
+    .schedule-month-event__dot { background: var(--color-success); }
+  }
+
+  &[data-status='NO_SHOW'] {
+    opacity: 0.65;
+    border-left-style: dashed;
+    border-left-color: var(--color-danger);
+    .schedule-month-event__dot { background: var(--color-danger); }
+  }
+}
+
+/* ==========================================================================
+   DAY VIEW: Executive Spacious Horizontal Card
+   ========================================================================== */
+.schedule-day-event {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 100%;
+  padding: 0.45rem 0.85rem;
+  border-left: 5px solid var(--event-accent, var(--color-pine-700));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--event-accent, var(--color-pine-700)) 8%, var(--color-white));
+  box-shadow: 0 1px 4px rgba(13, 41, 37, 0.05);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  overflow: hidden;
+
+  &:hover {
+    background: var(--color-white);
+    border-left-width: 6px;
+    box-shadow: 0 4px 14px rgba(13, 41, 37, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+  }
+
+  .schedule-day-event__avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--radius-pill);
+    background: var(--event-accent, var(--color-pine-700));
+    color: var(--color-white);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 850;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+    box-shadow: 0 2px 5px rgba(13, 41, 37, 0.15);
+  }
+
+  .schedule-day-event__main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .schedule-day-event__row-primary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .schedule-day-event__patient {
+    font-size: 0.88rem;
+    font-weight: 850;
+    color: var(--color-pine-900);
+    letter-spacing: -0.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .schedule-day-event__priority {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-danger);
+    color: var(--color-white);
+    font-size: 0.65rem;
+    font-weight: 900;
+    flex-shrink: 0;
+  }
+
+  .schedule-day-event__time {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.74rem;
+    font-weight: 750;
+    color: var(--color-copper-700);
+    font-variant-numeric: tabular-nums;
+    margin-left: 0.35rem;
+    white-space: nowrap;
+  }
+
+  .schedule-day-event__clock-icon {
+    font-size: 0.82rem;
+    color: var(--color-copper-600);
+  }
+
+  .schedule-day-event__row-secondary {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    color: var(--color-slate);
+    min-width: 0;
+  }
+
+  .schedule-day-event__type {
+    font-weight: 650;
+    color: var(--color-pine-700);
+  }
+
+  .schedule-day-event__treatment {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .schedule-day-event__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .schedule-day-event__late,
+  .schedule-day-event__capacity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--color-danger);
+  }
+
+  .schedule-day-event__badge {
+    flex-shrink: 0;
+  }
+
+  &[data-status='ARRIVED'] {
+    border-left-color: var(--color-copper-600);
+    background: color-mix(in srgb, var(--color-copper-600) 9%, var(--color-white));
+  }
+
+  &[data-status='IN_TREATMENT'] {
+    border-left-color: var(--color-info);
+    background: color-mix(in srgb, var(--color-info) 9%, var(--color-white));
+  }
+
+  &[data-status='COMPLETED'] {
+    opacity: 0.78;
+    border-left-color: var(--color-success);
+    background: color-mix(in srgb, var(--color-success) 9%, var(--color-white));
+  }
+
+  &[data-status='NO_SHOW'] {
+    opacity: 0.7;
+    border-left-style: dashed;
+    border-left-color: var(--color-danger);
+  }
+}
+
 /* Container query optimizations for small appointment heights */
 :host ::ng-deep .fc-timegrid-event .schedule-event {
   container-type: size;
 }
 
-@container (max-height: 3.2rem) {
-  .schedule-event__type,
+@container (max-height: 3.5rem) {
+  .schedule-event__type-row,
   .schedule-event__badge {
     display: none;
   }
 }
 
-@container (max-width: 6rem) {
-  .schedule-event {
-    justify-content: center;
-    padding: 0.2rem 0.25rem;
-    text-align: center;
+@container (max-height: 2.4rem) {
+  .schedule-event__time-row,
+  .schedule-event__meta {
+    display: none;
   }
+}
 
-  .schedule-event__initials { display: block; }
-  .schedule-event__time,
-  .schedule-event__type,
-  .schedule-event__late,
-  .schedule-event__capacity,
-  .schedule-event__badge { display: none; }
+@media (max-width: 64rem) {
+  :host ::ng-deep .fc-timegrid-event-harness.fc-harness--overlapping {
+    --step-x: clamp(10px, 5%, 16px);
+  }
 }
 
 @media (max-width: 42rem) {
   :host ::ng-deep .fc-scroller {
     overflow-x: hidden !important;
   }
-}
 
-@container (max-height: 4.8rem) {
-  .schedule-event__badge {
-    display: none;
+  :host ::ng-deep .fc-timegrid-event-harness.fc-harness--overlapping {
+    --step-x: 0px !important;
+    width: calc(100% - 4px) !important;
+    inset-inline-start: 2px !important;
   }
 }

@@ -53,8 +53,9 @@ export class AuthChallengeService {
     userId: string,
     email: string,
     firstName: string,
+    force = false,
   ): Promise<'SENT' | 'UNAVAILABLE'> {
-    return this.issue(userId, email, firstName, AUTH_CHALLENGE_PURPOSES.EMAIL_VERIFICATION);
+    return this.issue(userId, email, firstName, AUTH_CHALLENGE_PURPOSES.EMAIL_VERIFICATION, force);
   }
 
   async resendEmailVerification(email: string): Promise<void> {
@@ -135,15 +136,18 @@ export class AuthChallengeService {
     email: string,
     firstName: string,
     purpose: AuthChallengePurpose,
+    force = false,
   ): Promise<'SENT' | 'UNAVAILABLE'> {
     const now = new Date();
-    const existing = await this.challenges.find(userId, purpose);
-    if (
-      existing &&
-      existing.sentAt.getTime() + this.cooldownSeconds * 1000 > now.getTime() &&
-      existing.consumedAt === null
-    ) {
-      return 'SENT';
+    if (!force) {
+      const existing = await this.challenges.find(userId, purpose);
+      if (
+        existing &&
+        existing.sentAt.getTime() + this.cooldownSeconds * 1000 > now.getTime() &&
+        existing.consumedAt === null
+      ) {
+        return 'SENT';
+      }
     }
 
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');

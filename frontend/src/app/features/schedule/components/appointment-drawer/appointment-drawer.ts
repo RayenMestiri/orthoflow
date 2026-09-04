@@ -100,6 +100,7 @@ export class AppointmentDrawer {
   protected readonly searchOpen = signal(false);
   protected readonly cancelPanelOpen = signal(false);
   protected readonly moreActionsOpen = signal(false);
+  protected readonly justCompleted = signal(false);
   protected readonly treatmentOptions = signal<TreatmentWithMilestones[]>([]);
   protected readonly retentionOptions = signal<RetentionPlan[]>([]);
 
@@ -209,6 +210,7 @@ export class AppointmentDrawer {
     // Re-seed the form whenever the drawer opens or its subject changes.
     effect(() => {
       const mode = this.mode();
+      this.justCompleted.set(false);
       if (mode === 'create') {
         void this.seedCreateForm();
       } else if (mode === 'edit') {
@@ -309,7 +311,22 @@ export class AppointmentDrawer {
     const current = this.appointment();
     if (current) {
       await this.store.changeStatus(current.id, status);
+      if (status === 'COMPLETED') {
+        this.justCompleted.set(true);
+      }
     }
+  }
+
+  paymentQueryParams(current: Appointment): Record<string, string> {
+    const params: Record<string, string> = {
+      tab: 'payments',
+      action: 'record-payment',
+      appointmentId: current.id,
+    };
+    if (current.treatmentId) {
+      params['treatmentId'] = current.treatmentId;
+    }
+    return params;
   }
 
   async confirmCancel(): Promise<void> {
@@ -333,6 +350,7 @@ export class AppointmentDrawer {
   }
 
   close(): void {
+    this.justCompleted.set(false);
     this.cancelPanelOpen.set(false);
     this.moreActionsOpen.set(false);
     this.store.closeDrawer();
@@ -358,6 +376,7 @@ export class AppointmentDrawer {
     this.selectedPatient.set(null);
     this.treatmentOptions.set([]);
     this.cancelPanelOpen.set(false);
+    this.form.enable();
     this.form.reset({
       patientSearch: '',
       treatmentId: prefill?.treatmentId ?? '',
@@ -471,6 +490,11 @@ export class AppointmentDrawer {
       durationMinutes: appointment.durationMinutes,
       note: appointment.note ?? '',
     });
+    if (this.isClosed()) {
+      this.form.disable();
+    } else {
+      this.form.enable();
+    }
     this.searchOpen.set(false);
   }
 

@@ -14,12 +14,18 @@ import type { PaginatedResult, PaginationParams } from '../../common/types/commo
 import type { MutationContext } from '../../common/utils/request-context.js';
 import { toPaginationParams } from '../../common/utils/pagination.js';
 import { withTransaction } from '../../infrastructure/database/transaction.js';
+import { env } from '../../config/env.js';
+import {
+  emailService,
+  type EmailServiceContract,
+} from '../../infrastructure/email/email.service.js';
 import {
   passwordService,
   type PasswordService,
 } from '../../infrastructure/security/password.service.js';
 import { auditLogService, type AuditLogService } from '../audit-logs/audit-log.service.js';
 import { AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '../audit-logs/audit-log.types.js';
+import { clinicRepository, type ClinicRepository } from '../clinics/clinic.repository.js';
 import { userRepository, type UserRepository } from '../users/user.repository.js';
 import type { SafeUserRecord } from '../users/user.types.js';
 import { toMembershipDto } from './membership.mapper.js';
@@ -29,6 +35,23 @@ import type {
   MembershipListFilters,
   UpdateMembershipInput,
 } from './membership.types.js';
+
+function formatRoleName(role: ClinicRole): string {
+  switch (role) {
+    case CLINIC_ROLES.CLINIC_OWNER:
+      return 'Responsable du cabinet / Titulaire';
+    case CLINIC_ROLES.ORTHODONTIST:
+      return 'Orthodontiste';
+    case CLINIC_ROLES.DENTIST:
+      return 'Chirurgien-dentiste';
+    case CLINIC_ROLES.SECRETARY:
+      return 'Secrétaire médicale & Accueil';
+    case CLINIC_ROLES.ASSISTANT:
+      return 'Assistante dentaire';
+    default:
+      return role;
+  }
+}
 
 export interface AddMemberInput {
   email: string;
@@ -44,8 +67,10 @@ export class MembershipService {
   constructor(
     private readonly memberships: MembershipRepository = membershipRepository,
     private readonly users: UserRepository = userRepository,
+    private readonly clinics: ClinicRepository = clinicRepository,
     private readonly passwords: PasswordService = passwordService,
     private readonly audit: AuditLogService = auditLogService,
+    private readonly emails: EmailServiceContract = emailService,
   ) {}
 
   async list(
@@ -106,6 +131,7 @@ export class MembershipService {
           firstName: input.firstName as string,
           lastName: input.lastName as string,
           phone: input.phone ?? null,
+          emailVerifiedAt: null,
         },
         session,
       );
@@ -137,6 +163,31 @@ export class MembershipService {
 
       return { membership: createdMembership, user: createdUser };
     });
+
+    // Send invitation email to the newly invited team member
+    try {
+      const [clinic, actor] = await Promise.all([
+        this.clinics.findById(clinicId),
+        this.users.findById(context.actorUserId),
+      ]);
+      const clinicName = clinic?.name ?? 'Cabinet Dentaire';
+      const invitedByName = actor
+        ? `${actor.firstName} ${actor.lastName}`
+        : 'Le responsable du cabinet';
+
+      await this.emails.sendStaffInvitation?.({
+        recipient: email,
+        recipientName: `${user.firstName} ${user.lastName}`,
+        clinicName,
+        invitedByName,
+        roleName: formatRoleName(input.role),
+        isNewAccount: true,
+        temporaryPassword: input.password,
+        loginUrl: `${env.FRONTEND_URL}/login`,
+      });
+    } catch {
+      // Best-effort notification delivery
+    }
 
     return toMembershipDto(membership, user);
   }
@@ -271,6 +322,29 @@ export class MembershipService {
       ip: context.ip,
       userAgent: context.userAgent,
     });
+
+    try {
+      const [clinic, actor] = await Promise.all([
+        this.clinics.findById(clinicId),
+        this.users.findById(context.actorUserId),
+      ]);
+      const clinicName = clinic?.name ?? 'Cabinet Dentaire';
+      const invitedByName = actor
+        ? `${actor.firstName} ${actor.lastName}`
+        : 'Le responsable du cabinet';
+
+      await this.emails.sendStaffInvitation?.({
+        recipient: user.email,
+        recipientName: `${user.firstName} ${user.lastName}`,
+        clinicName,
+        invitedByName,
+        roleName: formatRoleName(role),
+        isNewAccount: false,
+        loginUrl: `${env.FRONTEND_URL}/login`,
+      });
+    } catch {
+      // Best-effort notification delivery
+    }
 
     return toMembershipDto(membership, user);
   }

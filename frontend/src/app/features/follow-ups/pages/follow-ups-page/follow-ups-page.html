@@ -1,62 +1,176 @@
 <main class="follow-ups" aria-labelledby="follow-ups-title">
+  <!-- Executive Clinical Command Header (Compact & Harmonized) -->
   <header class="follow-ups__header">
-    <div>
-      <span class="eyebrow">Care continuity</span>
-      <h1 id="follow-ups-title">Follow-ups</h1>
-      <p>Recommendations that need a deliberate appointment decision.</p>
+    <div class="header-intro">
+      <div class="header-badge-row">
+        <span class="eyebrow">Care continuity</span>
+        <span class="live-pill">
+          <span class="live-pulse" aria-hidden="true"></span>
+          Cabinet synchronisé
+        </span>
+      </div>
+      <h1 id="follow-ups-title">Suivis & Continuité des Soins</h1>
+      <p class="subtitle">
+        Recommendations that need a deliberate appointment decision.
+      </p>
     </div>
-    @if (mode() === 'recommendations' && result(); as data) {
-      <dl class="summary" aria-label="Follow-up summary">
-        <div>
-          <dt>Needs scheduling</dt>
-          <dd>{{ data.summary.needsScheduling }}</dd>
-        </div>
-        <div class="summary--overdue">
-          <dt>Overdue</dt>
-          <dd>{{ data.summary.overdue }}</dd>
-        </div>
-        <div>
-          <dt>Scheduled</dt>
-          <dd>{{ data.summary.scheduled }}</dd>
-        </div>
-      </dl>
-    } @else if (mode() === 'attention' && attentionResult(); as data) {
-      <dl class="summary" aria-label="Care continuity summary">
-        <div>
-          <dt>Needs attention</dt>
-          <dd>{{ data.summary.needsAttention }}</dd>
-        </div>
-        <div class="summary--overdue">
-          <dt>Lost to follow-up</dt>
-          <dd>{{ data.summary.lostToFollowUp }}</dd>
-        </div>
-      </dl>
-    }
+
+    <div class="header-actions">
+      <button
+        type="button"
+        class="btn-refresh"
+        (click)="refresh()"
+        [disabled]="loading()"
+        title="Actualiser les suivis et rappels"
+      >
+        <span class="material-icons" [class.spinning]="loading()" aria-hidden="true">refresh</span>
+        <span>Actualiser</span>
+      </button>
+    </div>
   </header>
 
+  <!-- Interactive Executive KPI Stat Deck (Compact & Harmonized) -->
+  @if (mode() === 'recommendations' && result(); as data) {
+    <dl class="summary summary--recommendations" aria-label="Follow-up summary">
+      <button
+        type="button"
+        class="summary-card summary-card--scheduling"
+        [class.summary-card--active]="filter() === 'NEEDS_SCHEDULING'"
+        (click)="chooseFilter('NEEDS_SCHEDULING')"
+      >
+        <div class="summary-card__icon" aria-hidden="true">
+          <span class="material-icons">event_busy</span>
+        </div>
+        <div class="summary-card__content">
+          <dt>Needs scheduling</dt>
+          <div class="summary-card__val-row">
+            <dd>{{ data.summary.needsScheduling }}</dd>
+            <span class="summary-card__hint">En attente</span>
+          </div>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        class="summary-card summary-card--overdue"
+        [class.summary-card--active]="filter() === 'OVERDUE'"
+        [class.summary-card--alert]="data.summary.overdue > 0"
+        (click)="chooseFilter('OVERDUE')"
+      >
+        <div class="summary-card__icon" aria-hidden="true">
+          <span class="material-icons">alarm_on</span>
+        </div>
+        <div class="summary-card__content">
+          <dt>Overdue</dt>
+          <div class="summary-card__val-row">
+            <dd>{{ data.summary.overdue }}</dd>
+            <span class="summary-card__hint" [class.summary-card__hint--danger]="data.summary.overdue > 0">
+              {{ data.summary.overdue > 0 ? 'Prioritaire' : 'Aucun retard' }}
+            </span>
+          </div>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        class="summary-card summary-card--scheduled"
+        [class.summary-card--active]="filter() === 'SCHEDULED'"
+        (click)="chooseFilter('SCHEDULED')"
+      >
+        <div class="summary-card__icon" aria-hidden="true">
+          <span class="material-icons">event_available</span>
+        </div>
+        <div class="summary-card__content">
+          <dt>Scheduled</dt>
+          <div class="summary-card__val-row">
+            <dd>{{ data.summary.scheduled }}</dd>
+            <span class="summary-card__hint">Confirmés</span>
+          </div>
+        </div>
+      </button>
+    </dl>
+  } @else if (mode() === 'attention' && attentionResult(); as data) {
+    <dl class="summary summary--attention" aria-label="Care continuity summary">
+      <button
+        type="button"
+        class="summary-card summary-card--needs-attention"
+        [class.summary-card--active]="attentionState() === 'NEEDS_ATTENTION'"
+        (click)="chooseAttentionState('NEEDS_ATTENTION')"
+      >
+        <div class="summary-card__icon" aria-hidden="true">
+          <span class="material-icons">contact_support</span>
+        </div>
+        <div class="summary-card__content">
+          <dt>Needs attention</dt>
+          <div class="summary-card__val-row">
+            <dd>{{ data.summary.needsAttention }}</dd>
+            <span class="summary-card__hint">Visite distante</span>
+          </div>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        class="summary-card summary-card--overdue summary-card--lost"
+        [class.summary-card--active]="attentionState() === 'LOST_TO_FOLLOW_UP'"
+        [class.summary-card--alert]="data.summary.lostToFollowUp > 0"
+        (click)="chooseAttentionState('LOST_TO_FOLLOW_UP')"
+      >
+        <div class="summary-card__icon" aria-hidden="true">
+          <span class="material-icons">person_off</span>
+        </div>
+        <div class="summary-card__content">
+          <dt>Lost to follow-up</dt>
+          <div class="summary-card__val-row">
+            <dd>{{ data.summary.lostToFollowUp }}</dd>
+            <span class="summary-card__hint" [class.summary-card__hint--danger]="data.summary.lostToFollowUp > 0">
+              {{ data.summary.lostToFollowUp > 0 ? 'Critique' : 'Sous contrôle' }}
+            </span>
+          </div>
+        </div>
+      </button>
+    </dl>
+  }
+
+  <!-- Main Worklist Cockpit Container -->
   <section class="worklist" aria-label="Follow-up worklist">
-    <div class="tabs" role="tablist" aria-label="Care continuity view">
-      <button
-        type="button"
-        role="tab"
-        [attr.aria-selected]="mode() === 'recommendations'"
-        [class.active]="mode() === 'recommendations'"
-        (click)="chooseMode('recommendations')"
-      >
-        Recommended returns
-      </button>
-      <button
-        type="button"
-        role="tab"
-        [attr.aria-selected]="mode() === 'attention'"
-        [class.active]="mode() === 'attention'"
-        (click)="chooseMode('attention')"
-      >
-        Needs attention
-      </button>
+    <!-- Segmented Mode Control Bar -->
+    <div class="worklist__nav-bar">
+      <div class="tabs mode-tabs" role="tablist" aria-label="Care continuity view">
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="mode() === 'recommendations'"
+          [class.active]="mode() === 'recommendations'"
+          (click)="chooseMode('recommendations')"
+        >
+          <span class="material-icons tab-icon" aria-hidden="true">event_repeat</span>
+          <span>Recommended returns</span>
+          @if (result()?.summary; as s) {
+            <span class="tab-badge">{{ s.needsScheduling + s.overdue }}</span>
+          }
+        </button>
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="mode() === 'attention'"
+          [class.active]="mode() === 'attention'"
+          (click)="chooseMode('attention')"
+        >
+          <span class="material-icons tab-icon" aria-hidden="true">health_and_safety</span>
+          <span>Needs attention</span>
+          @if (attentionResult()?.summary; as a) {
+            <span class="tab-badge" [class.tab-badge--warn]="a.needsAttention + a.lostToFollowUp > 0">
+              {{ a.needsAttention + a.lostToFollowUp }}
+            </span>
+          }
+        </button>
+      </div>
     </div>
+
+    <!-- Filter Pills & Search Tools Cockpit -->
     <div class="worklist__tools">
-      <div class="tabs" role="tablist" aria-label="Follow-up state">
+      <div class="tabs filter-tabs" role="tablist" aria-label="Follow-up state">
         @if (mode() === 'recommendations') {
           @for (item of filters; track item.value) {
             <button
@@ -66,90 +180,228 @@
               [class.active]="filter() === item.value"
               (click)="chooseFilter(item.value)"
             >
-              {{ item.label }}
+              <span>{{ item.label }}</span>
+              @if (getFilterCount(item.value); as count) {
+                <span class="filter-count" [class.filter-count--overdue]="item.value === 'OVERDUE' && count > 0">
+                  {{ count }}
+                </span>
+              } @else if (getFilterCount(item.value) === 0) {
+                <span class="filter-count filter-count--zero">0</span>
+              }
             </button>
           }
         } @else {
-          <button type="button" [class.active]="attentionState() === null" (click)="chooseAttentionState(null)">All</button>
-          <button type="button" [class.active]="attentionState() === 'NEEDS_ATTENTION'" (click)="chooseAttentionState('NEEDS_ATTENTION')">Needs attention</button>
-          <button type="button" [class.active]="attentionState() === 'LOST_TO_FOLLOW_UP'" (click)="chooseAttentionState('LOST_TO_FOLLOW_UP')">Lost to follow-up</button>
+          <button
+            type="button"
+            role="tab"
+            [class.active]="attentionState() === null"
+            (click)="chooseAttentionState(null)"
+          >
+            <span>All</span>
+            @if (getAttentionCount(null); as count) {
+              <span class="filter-count">{{ count }}</span>
+            }
+          </button>
+          <button
+            type="button"
+            role="tab"
+            [class.active]="attentionState() === 'NEEDS_ATTENTION'"
+            (click)="chooseAttentionState('NEEDS_ATTENTION')"
+          >
+            <span>Needs attention</span>
+            @if (getAttentionCount('NEEDS_ATTENTION'); as count) {
+              <span class="filter-count">{{ count }}</span>
+            }
+          </button>
+          <button
+            type="button"
+            role="tab"
+            [class.active]="attentionState() === 'LOST_TO_FOLLOW_UP'"
+            (click)="chooseAttentionState('LOST_TO_FOLLOW_UP')"
+          >
+            <span>Lost to follow-up</span>
+            @if (getAttentionCount('LOST_TO_FOLLOW_UP'); as count) {
+              <span class="filter-count filter-count--overdue">{{ count }}</span>
+            }
+          </button>
         }
       </div>
+
       <div class="controls">
-        <label class="search">
-          <span class="material-icons" aria-hidden="true">search</span>
-          <span class="sr-only">Search patient name or phone</span>
-          <input
-            #searchInput
-            type="search"
-            placeholder="Search patient or phone"
-            [value]="search()"
-            (keyup.enter)="searchChanged(searchInput.value)"
-            (search)="searchChanged(searchInput.value)"
-          />
-        </label>
+        <div class="search-wrapper">
+          <label class="search" [class.search--filled]="search().length > 0">
+            <span class="material-icons search-icon" aria-hidden="true">search</span>
+            <span class="sr-only">Search patient name or phone</span>
+            <input
+              #searchInput
+              type="search"
+              placeholder="Search patient name or phone…"
+              [value]="search()"
+              (keyup.enter)="searchChanged(searchInput.value)"
+              (search)="searchChanged(searchInput.value)"
+            />
+            @if (search().trim()) {
+              <button
+                type="button"
+                class="search-clear"
+                (click)="clearSearch(); searchInput.value = ''"
+                title="Effacer la recherche"
+                aria-label="Effacer la recherche"
+              >
+                <span class="material-icons">close</span>
+              </button>
+            }
+          </label>
+        </div>
+
         @if (mode() === 'recommendations') {
           <label class="sort">
-          <span class="sr-only">Sort follow-ups</span>
-          <select [value]="sort()" (change)="sortChanged($any($event.target).value)">
-            <option value="MOST_OVERDUE">Most overdue</option>
-            <option value="RECOMMENDATION_DATE">Recommendation date</option>
-            <option value="PATIENT_NAME">Patient name</option>
-            <option value="RECENTLY_VISITED">Recently visited</option>
-          </select>
+            <span class="material-icons sort-icon" aria-hidden="true">swap_vert</span>
+            <span class="sr-only">Sort follow-ups</span>
+            <select [value]="sort()" (change)="sortChanged($any($event.target).value)">
+              <option value="MOST_OVERDUE">Most overdue</option>
+              <option value="RECOMMENDATION_DATE">Recommendation date</option>
+              <option value="PATIENT_NAME">Patient name</option>
+              <option value="RECENTLY_VISITED">Recently visited</option>
+            </select>
           </label>
+        }
+
+        @if (hasActiveFilters()) {
+          <button
+            type="button"
+            class="btn-reset-filters"
+            (click)="resetFilters(); searchInput.value = ''"
+            title="Réinitialiser les filtres"
+          >
+            <span class="material-icons">restart_alt</span>
+            <span class="reset-text">Reset</span>
+          </button>
         }
       </div>
     </div>
 
+    <!-- Feedback States -->
     @if (loading()) {
-      <div class="state" role="status">Reviewing follow-up recommendations…</div>
+      <div class="state state--loading" role="status">
+        <div class="loader-spinner" aria-hidden="true"></div>
+        <div class="loading-copy">
+          <strong>Analyse des suivis en cours…</strong>
+          <p>Reviewing follow-up recommendations and care continuity status.</p>
+        </div>
+      </div>
     } @else if (error()) {
       <div class="state state--error" role="alert">
-        <span class="material-icons" aria-hidden="true">error_outline</span>
-        <div>
+        <div class="error-icon-box">
+          <span class="material-icons" aria-hidden="true">error_outline</span>
+        </div>
+        <div class="error-copy">
           <strong>Follow-ups could not be loaded</strong>
           <p>{{ error() }}</p>
         </div>
-        <button type="button" (click)="load()">Try again</button>
+        <button type="button" class="btn-retry" (click)="load()">
+          <span class="material-icons">replay</span>
+          <span>Try again</span>
+        </button>
       </div>
     } @else if (mode() === 'attention') {
       @if (attentionResult(); as data) {
         @if (data.rows.length === 0) {
+          <!-- Empty State: Care Continuity Covered -->
           <div class="state state--empty">
-            <span class="material-icons" aria-hidden="true">verified</span>
-            <div><strong>Continuity is covered</strong><p>No active-care patients match this view.</p></div>
+            <div class="empty-celebration">
+              <div class="empty-celebration__aura">
+                <div class="empty-celebration__ring"></div>
+                <div class="empty-celebration__icon-box">
+                  <span class="material-icons" aria-hidden="true">verified</span>
+                </div>
+              </div>
+              <div class="empty-celebration__text">
+                <span class="empty-celebration__tag">Continuous Care Status</span>
+                <h2 class="empty-celebration__title">Continuity is covered</h2>
+                <p class="empty-celebration__desc">
+                  @if (search().trim()) {
+                    Aucun patient en rupture de soin ne correspond à <strong>"{{ search() }}"</strong>.
+                  } @else {
+                    No active-care patients match this view. Tous les patients en traitement actif et rétention sont sous suivi régulier.
+                  }
+                </p>
+              </div>
+              <div class="empty-celebration__actions">
+                @if (hasActiveFilters()) {
+                  <button type="button" class="empty-btn empty-btn--secondary" (click)="resetFilters()">
+                    <span class="material-icons">filter_alt_off</span>
+                    <span>Réinitialiser les filtres</span>
+                  </button>
+                }
+                <button type="button" class="empty-btn empty-btn--ghost" (click)="refresh()">
+                  <span class="material-icons">refresh</span>
+                  <span>Actualiser</span>
+                </button>
+              </div>
+            </div>
           </div>
         } @else {
+          <!-- Attention Rows -->
           <div class="rows">
             @for (row of data.rows; track row.patient.id) {
-              <article class="follow-up-row" [attr.data-state]="row.state">
+              <article class="follow-up-row follow-up-row--attention" [attr.data-state]="row.state">
                 <div class="patient">
-                  <span class="avatar" aria-hidden="true">{{ row.patient.fullName.slice(0, 1) }}</span>
-                  <div>
-                    <a [routerLink]="['/app/patients', row.patient.id]">{{ row.patient.fullName }}</a>
-                    <span>{{ row.patient.phone || 'No phone on file' }}</span>
+                  <span class="avatar avatar--gradient" aria-hidden="true">{{ getInitials(row.patient.fullName) }}</span>
+                  <div class="patient-info">
+                    <a class="patient-name" [routerLink]="['/app/patients', row.patient.id]">
+                      <span>{{ row.patient.fullName }}</span>
+                      <span class="material-icons arrow-icon" aria-hidden="true">arrow_forward</span>
+                    </a>
+                    @if (row.patient.phone) {
+                      <a class="patient-phone" [href]="'tel:' + row.patient.phone" title="Appeler ce patient">
+                        <span class="material-icons phone-icon">phone</span>
+                        <span>{{ row.patient.phone }}</span>
+                      </a>
+                    } @else {
+                      <span class="patient-phone patient-phone--empty">
+                        <span class="material-icons phone-icon">phone_disabled</span>
+                        <span>No phone on file</span>
+                      </span>
+                    }
                   </div>
                 </div>
+
                 <div class="context">
-                  <strong>{{ row.context.treatment.label }}</strong>
-                  <span>{{ row.context.type === 'RETENTION' ? 'Retention' : 'Active treatment' }}</span>
+                  <div class="treatment-badge">
+                    <span class="material-icons treatment-icon">medical_services</span>
+                    <strong>{{ row.context.treatment.label }}</strong>
+                  </div>
+                  <span class="context-type">
+                    {{ row.context.type === 'RETENTION' ? 'Phase de rétention' : 'Traitement actif' }}
+                  </span>
                 </div>
+
                 <div class="recommendation">
-                  <span>Last clinical contact</span>
-                  <strong>{{ row.lastClinicalAt | date: 'mediumDate' }}</strong>
-                  <small>{{ row.daysWithoutVisit }} days ago</small>
+                  <span class="rec-label">Last clinical contact</span>
+                  <div class="rec-date-group">
+                    <span class="material-icons cal-icon">history</span>
+                    <strong>{{ row.lastClinicalAt | date: 'mediumDate' }}</strong>
+                  </div>
+                  <span class="badge-overdue">
+                    <span class="material-icons">timer_off</span>
+                    <small>{{ row.daysWithoutVisit }} days ago</small>
+                  </span>
                 </div>
+
                 <div class="resolution">
-                  <span class="status">{{ stateLabel(row.state) }}</span>
-                  @for (reason of row.reasons; track reason) {
-                    <small>{{ reasonLabel(reason) }}</small>
-                  }
+                  <span class="status" [attr.data-state]="row.state">{{ stateLabel(row.state) }}</span>
+                  <div class="reasons-list">
+                    @for (reason of row.reasons; track reason) {
+                      <span class="reason-pill">{{ reasonLabel(reason) }}</span>
+                    }
+                  </div>
                 </div>
+
                 <div class="actions">
                   @if (canSchedule) {
                     <a
-                      class="button button--primary"
+                      class="button button--primary button--schedule"
                       routerLink="/app/schedule"
                       [queryParams]="{
                         patientId: row.patient.id,
@@ -157,78 +409,195 @@
                         retentionPlanId: row.context.retentionPlanId,
                         returnUrl: '/app/follow-ups',
                       }"
-                    >Schedule</a>
+                    >
+                      <span class="material-icons">calendar_add_on</span>
+                      <span>Schedule</span>
+                    </a>
                   }
-                  <button type="button" class="button button--secondary" (click)="createTaskForAttention(row)">+ Task</button>
+                  <button
+                    type="button"
+                    class="button button--secondary button--task"
+                    (click)="createTaskForAttention(row)"
+                    title="Créer une tâche pour contacter ce patient"
+                  >
+                    <span class="material-icons">assignment_add</span>
+                    <span>+ Task</span>
+                  </button>
                 </div>
               </article>
             }
           </div>
+
           @if (data.pagination.pages > 1) {
             <nav class="pagination" aria-label="Continuity pages">
-              <button type="button" [disabled]="page() === 1" (click)="goToPage(page() - 1)">Previous</button>
-              <span>Page {{ page() }} of {{ data.pagination.pages }}</span>
-              <button type="button" [disabled]="page() === data.pagination.pages" (click)="goToPage(page() + 1)">Next</button>
+              <button
+                type="button"
+                class="pagination-btn"
+                [disabled]="page() === 1"
+                (click)="goToPage(page() - 1)"
+              >
+                <span class="material-icons">chevron_left</span>
+                <span>Previous</span>
+              </button>
+              <span class="pagination-info">Page {{ page() }} sur {{ data.pagination.pages }}</span>
+              <button
+                type="button"
+                class="pagination-btn"
+                [disabled]="page() === data.pagination.pages"
+                (click)="goToPage(page() + 1)"
+              >
+                <span>Next</span>
+                <span class="material-icons">chevron_right</span>
+              </button>
             </nav>
           }
         }
       }
     } @else if (result(); as data) {
       @if (data.rows.length === 0) {
+        <!-- Celebratory Empty State: You're all caught up -->
         <div class="state state--empty">
-          <span class="material-icons" aria-hidden="true">task_alt</span>
-          <div>
-            <strong>{{ emptyTitle() }}</strong>
-            <p>No recommendations match this view.</p>
+          <div class="empty-celebration">
+            <div class="empty-celebration__aura">
+              <div class="empty-celebration__ring"></div>
+              <div class="empty-celebration__icon-box">
+                <span class="material-icons" aria-hidden="true">task_alt</span>
+              </div>
+            </div>
+            <div class="empty-celebration__text">
+              <span class="empty-celebration__tag">Clinique à jour</span>
+              <h2 class="empty-celebration__title">{{ emptyTitle() }}</h2>
+              <p class="empty-celebration__desc">
+                @if (search().trim()) {
+                  Aucun rappel de suivi ne correspond à la recherche <strong>"{{ search() }}"</strong>.
+                } @else if (filter() === 'NEEDS_SCHEDULING' && data.summary.scheduled > 0) {
+                  Tous les patients ayant une recommandation de retour sont actuellement programmés ({{ data.summary.scheduled }} rendez-vous fixé). Aucun suivi en souffrance.
+                } @else if (filter() === 'OVERDUE' && data.summary.overdue === 0) {
+                  Excellente nouvelle ! Aucun rappel clinique n'est en retard. Les délais prescrits sont parfaitement respectés.
+                } @else {
+                  No recommendations match this view.
+                }
+              </p>
+            </div>
+            <div class="empty-celebration__actions">
+              @if (filter() !== 'ALL' && filter() !== 'SCHEDULED' && data.summary.scheduled > 0) {
+                <button type="button" class="empty-btn empty-btn--primary" (click)="chooseFilter('SCHEDULED')">
+                  <span class="material-icons">event_available</span>
+                  <span>Voir les {{ data.summary.scheduled }} rendez-vous planifiés</span>
+                </button>
+              }
+              @if (hasActiveFilters()) {
+                <button type="button" class="empty-btn empty-btn--secondary" (click)="resetFilters()">
+                  <span class="material-icons">filter_alt_off</span>
+                  <span>Afficher la liste par défaut</span>
+                </button>
+              } @else {
+                <button type="button" class="empty-btn empty-btn--ghost" (click)="chooseFilter('ALL')">
+                  <span class="material-icons">view_list</span>
+                  <span>Voir tous les suivis</span>
+                </button>
+              }
+              <button type="button" class="empty-btn empty-btn--ghost" (click)="refresh()">
+                <span class="material-icons">refresh</span>
+                <span>Actualiser</span>
+              </button>
+            </div>
+            <div class="empty-celebration__tip">
+              <span class="material-icons tip-icon">lightbulb</span>
+              <span>
+                <strong>Conseil OrthoFlow :</strong> Les rappels sont automatiquement calculés à partir de la durée recommandée saisie lors de la dernière consultation clinique ou validation du plan de rétention.
+              </span>
+            </div>
           </div>
         </div>
       } @else {
+        <!-- Recommendations Patient Rows -->
         <div class="rows">
           @for (row of data.rows; track row.patient.id + row.recommendedAt) {
             <article class="follow-up-row" [attr.data-state]="row.state">
               <div class="patient">
-                <span class="avatar" aria-hidden="true">{{
-                  row.patient.fullName.slice(0, 1)
-                }}</span>
-                <div>
-                  <a [routerLink]="['/app/patients', row.patient.id]">{{ row.patient.fullName }}</a>
-                  <span>{{ row.patient.phone || 'No phone on file' }}</span>
+                <span class="avatar avatar--gradient" aria-hidden="true">{{ getInitials(row.patient.fullName) }}</span>
+                <div class="patient-info">
+                  <a class="patient-name" [routerLink]="['/app/patients', row.patient.id]">
+                    <span>{{ row.patient.fullName }}</span>
+                    <span class="material-icons arrow-icon" aria-hidden="true">arrow_forward</span>
+                  </a>
+                  @if (row.patient.phone) {
+                    <a class="patient-phone" [href]="'tel:' + row.patient.phone" title="Appeler ce patient">
+                      <span class="material-icons phone-icon">phone</span>
+                      <span>{{ row.patient.phone }}</span>
+                    </a>
+                  } @else {
+                    <span class="patient-phone patient-phone--empty">
+                      <span class="material-icons phone-icon">phone_disabled</span>
+                      <span>No phone on file</span>
+                    </span>
+                  }
                 </div>
               </div>
+
               <div class="context">
-                <strong>{{ row.treatment?.label || 'General consultation' }}</strong>
-                <span>
+                <div class="treatment-badge">
+                  <span class="material-icons treatment-icon">medical_services</span>
+                  <strong>{{ row.treatment?.label || 'General consultation' }}</strong>
+                </div>
+                <span class="context-date">
+                  <span class="material-icons visit-icon">history</span>
                   {{ row.sourceVisit ? 'Visited' : 'Retention planned' }}
                   {{ (row.sourceVisit?.completedAt || row.sourceRetentionPlan?.createdAt) | date: 'mediumDate' }}
                 </span>
               </div>
+
               <div class="recommendation">
-                <span>Recommended</span>
-                <strong>{{ row.recommendedAt | date: 'mediumDate' }}</strong>
+                <span class="rec-label">Recommended</span>
+                <div class="rec-date-group">
+                  <span class="material-icons cal-icon">event</span>
+                  <strong>{{ row.recommendedAt | date: 'mediumDate' }}</strong>
+                </div>
                 @if (row.state === 'OVERDUE') {
-                  <small>{{ row.daysFromRecommendation }} days overdue</small>
+                  <span class="badge-overdue">
+                    <span class="material-icons">warning_amber</span>
+                    <small>{{ row.daysFromRecommendation }} days overdue</small>
+                  </span>
+                } @else if (row.state === 'DUE_SOON') {
+                  <span class="badge-due-soon">
+                    <span class="material-icons">schedule</span>
+                    <small>Échéance imminente</small>
+                  </span>
                 }
               </div>
+
               <div class="resolution">
-                <span class="status">{{ stateLabel(row.state) }}</span>
+                <span class="status" [attr.data-state]="row.state">{{ stateLabel(row.state) }}</span>
                 @if (row.appointment) {
-                  <strong>{{ row.appointment.startAt | date: 'MMM d · HH:mm' }}</strong>
-                  <span>{{ row.appointment.appointmentType || 'Appointment' }}</span>
+                  <div class="appt-preview">
+                    <span class="material-icons appt-icon">event_available</span>
+                    <div class="appt-text">
+                      <strong>{{ row.appointment.startAt | date: 'MMM d · HH:mm' }}</strong>
+                      <small>{{ row.appointment.appointmentType || 'Appointment' }}</small>
+                    </div>
+                  </div>
                 } @else {
-                  <span>No appointment scheduled</span>
+                  <span class="no-appt">
+                    <span class="material-icons">event_busy</span>
+                    <span>No appointment scheduled</span>
+                  </span>
                 }
               </div>
+
               <div class="actions">
                 @if (row.appointment) {
                   <a
-                    class="button button--secondary"
+                    class="button button--secondary button--view-appt"
                     routerLink="/app/schedule"
                     [queryParams]="{ appointmentId: row.appointment.id }"
-                    >View appointment</a
                   >
+                    <span class="material-icons">visibility</span>
+                    <span>View appointment</span>
+                  </a>
                 } @else if (canSchedule) {
                   <a
-                    class="button button--primary"
+                    class="button button--primary button--schedule"
                     routerLink="/app/schedule"
                     [queryParams]="{
                       patientId: row.patient.id,
@@ -237,38 +606,51 @@
                       recommendedDate: row.recommendedAt.slice(0, 10),
                       returnUrl: '/app/follow-ups',
                     }"
-                    >Schedule</a
                   >
+                    <span class="material-icons">calendar_add_on</span>
+                    <span>Schedule</span>
+                  </a>
                 }
                 @if (canOpenSource && row.sourceVisit) {
-                  <a class="source" [routerLink]="['/app/clinical-visits', row.sourceVisit.id]"
-                    >Source visit</a
-                  >
+                  <a class="source" [routerLink]="['/app/clinical-visits', row.sourceVisit.id]">
+                    <span class="material-icons">description</span>
+                    <span>Source visit</span>
+                  </a>
                 }
                 <button
                   type="button"
-                  class="button button--secondary"
+                  class="button button--secondary button--task"
                   (click)="createTaskForFollowUp(row)"
                   title="Créer une tâche pour relancer ce patient"
                 >
-                  + Tâche
+                  <span class="material-icons">assignment_add</span>
+                  <span>+ Tâche</span>
                 </button>
               </div>
             </article>
           }
         </div>
+
         @if (data.pagination.pages > 1) {
           <nav class="pagination" aria-label="Follow-up pages">
-            <button type="button" [disabled]="page() === 1" (click)="goToPage(page() - 1)">
-              Previous
-            </button>
-            <span>Page {{ page() }} of {{ data.pagination.pages }}</span>
             <button
               type="button"
+              class="pagination-btn"
+              [disabled]="page() === 1"
+              (click)="goToPage(page() - 1)"
+            >
+              <span class="material-icons">chevron_left</span>
+              <span>Previous</span>
+            </button>
+            <span class="pagination-info">Page {{ page() }} sur {{ data.pagination.pages }}</span>
+            <button
+              type="button"
+              class="pagination-btn"
               [disabled]="page() === data.pagination.pages"
               (click)="goToPage(page() + 1)"
             >
-              Next
+              <span>Next</span>
+              <span class="material-icons">chevron_right</span>
             </button>
           </nav>
         }
@@ -276,5 +658,6 @@
     }
   </section>
 
+  <!-- Create Task Drawer Integration -->
   <app-create-task-drawer />
 </main>

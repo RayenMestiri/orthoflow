@@ -8,17 +8,19 @@
   z-index: 70;
   display: grid;
   place-items: start center;
-  padding: 1.5rem 1rem 3rem;
-  background: rgba(13, 41, 37, 0.45);
+  padding: 2rem 1rem 4rem;
+  background: rgba(10, 25, 22, 0.55);
+  backdrop-filter: blur(4px);
   overflow-y: auto;
 }
 
 .receipt-shell {
-  width: min(100%, 34rem);
-  border-radius: var(--radius-lg);
-  background: var(--color-white);
-  box-shadow: 0 24px 60px rgba(13, 41, 37, 0.28);
+  width: min(100%, 42rem);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.35);
   overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 .receipt-shell__bar {
@@ -27,15 +29,27 @@
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
-  padding: 0.9rem 1.1rem;
-  border-bottom: 1px solid var(--color-line);
-  background: var(--color-mist);
+  padding: 0.9rem 1.25rem;
+  border-bottom: 2px solid #000000;
+  background: #f4f6f5;
 
-  h2 {
-    margin: 0;
-    color: var(--color-pine-900);
-    font-size: 0.95rem;
-    font-weight: 700;
+  .receipt-shell__title-block {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #000000;
+
+    .receipt-bar-icon {
+      font-size: 1.25rem;
+    }
+
+    h2 {
+      margin: 0;
+      color: #000000;
+      font-size: 0.95rem;
+      font-weight: 750;
+      letter-spacing: -0.01em;
+    }
   }
 }
 
@@ -48,196 +62,397 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  /* 44px — the WCAG 2.2 AA target size this project holds itself to. */
-  min-height: 2.75rem;
-  padding: 0.45rem 1rem;
-  border: 1px solid var(--color-line);
+  gap: 0.4rem;
+  min-height: 2.35rem;
+  padding: 0.4rem 0.9rem;
+  border: 1.5px solid #000000;
   border-radius: var(--radius-sm);
-  color: var(--color-pine-700);
-  background: var(--color-white);
+  color: #000000;
+  background: #ffffff;
   font: inherit;
   font-size: 0.8rem;
-  font-weight: 650;
+  font-weight: 700;
   cursor: pointer;
+  transition: all var(--transition-fast);
 
   &:hover {
-    border-color: var(--color-pine-700);
-    background: var(--color-sage);
+    background: #eef1ef;
   }
 
   &--primary {
-    border-color: transparent;
-    color: var(--color-white);
-    background: var(--color-pine-700);
+    color: #ffffff;
+    background: #000000;
+    border-color: #000000;
 
     &:hover {
-      border-color: transparent;
-      background: var(--color-pine-800);
+      background: #262626;
+      border-color: #262626;
     }
   }
 
   .material-icons {
-    font-size: 1rem;
+    font-size: 1.05rem;
   }
 }
 
-/* The document */
+/* ==========================================================================
+   THE OFFICIAL PRINTABLE RECEIPT (BLACK & WHITE MEDICAL GRADE)
+   ========================================================================== */
 .receipt {
-  padding: 2rem 2.25rem 2.5rem;
-  color: var(--color-pine-900);
+  padding: 2.25rem 2.5rem 2.25rem;
+  color: #000000;
+  background: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.45;
 }
 
-.receipt__void {
-  margin: 0 0 1.25rem;
-  padding: 0.5rem 0.8rem;
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-sm);
-  color: var(--color-danger);
-  font-size: 0.78rem;
-  font-weight: 750;
-  letter-spacing: 0.06em;
+.receipt__void-banner {
+  border: 2px solid #000000;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1.25rem;
   text-align: center;
+  background: #f7f7f7;
+
+  strong {
+    display: block;
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    color: #000000;
+  }
+
+  span {
+    display: block;
+    font-size: 0.75rem;
+    color: #333333;
+    margin-top: 0.2rem;
+  }
+
+  small {
+    display: block;
+    font-size: 0.72rem;
+    color: #555555;
+    margin-top: 0.2rem;
+  }
+}
+
+/* 1. Cabinet Header */
+.receipt__cabinet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #000000;
+  margin-bottom: 1.15rem;
+  gap: 1.25rem;
+}
+
+.cabinet-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cabinet-symbol {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1.5px solid #000000;
+  border-radius: 6px;
+  background: #fafafa;
+
+  svg {
+    stroke: #000000;
+  }
+}
+
+.cabinet-name {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #000000;
+  line-height: 1.15;
+}
+
+.cabinet-sub {
+  margin: 0.25rem 0 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #333333;
   text-transform: uppercase;
 }
 
-.receipt__head {
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-line);
-  text-align: center;
-}
+.cabinet-contact {
+  text-align: right;
+  font-size: 0.76rem;
+  color: #222222;
+  line-height: 1.45;
 
-.receipt__clinic {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 750;
-  letter-spacing: -0.01em;
-}
+  .cabinet-line {
+    margin: 0.15rem 0;
+  }
 
-.receipt__clinic-line {
-  margin: 0.2rem 0 0;
-  color: var(--color-slate);
-  font-size: 0.78rem;
-}
-
-.receipt__title {
-  padding: 1.25rem 0;
-  text-align: center;
-
-  h3 {
-    margin: 0;
-    font-size: 0.72rem;
-    font-weight: 750;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+  .cabinet-label {
+    font-weight: 700;
+    color: #000000;
   }
 }
 
-.receipt__number {
-  margin: 0.35rem 0 0;
-  font-size: 1.15rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
+/* 2. Document Meta Block */
+.receipt__doc-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.1rem;
+  border: 1.5px solid #000000;
+  background: #fafafa;
+  margin-bottom: 1.25rem;
 }
 
-.receipt__date {
-  margin: 0.2rem 0 0;
-  color: var(--color-slate);
-  font-size: 0.8rem;
+.doc-meta__title {
+  h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #000000;
+    line-height: 1.1;
+  }
+
+  .sub-title {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #555555;
+    margin-top: 0.15rem;
+  }
 }
 
-.receipt__rows {
-  margin: 0;
-  padding: 1rem 0;
-  border-block: 1px solid var(--color-line);
+.doc-meta__box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: right;
 
-  > div {
+  .meta-item {
     display: flex;
+    justify-content: flex-end;
     align-items: baseline;
-    justify-content: space-between;
-    gap: 1.5rem;
-    padding: 0.45rem 0;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+
+    .meta-label {
+      color: #444444;
+      font-size: 0.74rem;
+    }
+
+    .meta-value {
+      font-weight: 750;
+      color: #000000;
+    }
+
+    .meta-mono {
+      font-family: monospace;
+      font-size: 0.88rem;
+    }
+  }
+}
+
+/* 3. Details Table */
+.receipt__table-wrapper {
+  margin-bottom: 1.25rem;
+}
+
+.receipt__table {
+  width: 100%;
+  border-collapse: collapse;
+
+  tr {
+    border-bottom: 1px solid #d0d0d0;
+
+    &:first-child {
+      border-top: 1.5px solid #000000;
+    }
+
+    &:last-child {
+      border-bottom: 1.5px solid #000000;
+    }
   }
 
-  dt {
-    flex: 0 0 auto;
-    color: var(--color-slate);
-    font-size: 0.72rem;
+  th {
+    padding: 0.55rem 0.85rem;
+    text-align: left;
+    font-size: 0.74rem;
     font-weight: 750;
-    letter-spacing: 0.06em;
+    color: #333333;
+    width: 38%;
+    background: #fbfbfb;
     text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
-  dd {
-    margin: 0;
-    font-size: 0.9rem;
-    font-weight: 650;
-    text-align: right;
-    overflow-wrap: anywhere;
-  }
+  td {
+    padding: 0.55rem 0.85rem;
+    font-size: 0.84rem;
+    color: #000000;
 
-  &--amount {
-    dd {
-      font-size: 1.15rem;
-      font-variant-numeric: tabular-nums;
+    strong {
       font-weight: 750;
     }
   }
 }
 
-.receipt__foot {
-  padding-top: 1.25rem;
+/* 4. Highlighted Amount Box */
+.receipt__amount-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 2px solid #000000;
+  padding: 0.85rem 1.25rem;
+  background: #f5f5f5;
+  margin-bottom: 1.35rem;
 
-  p {
-    margin: 0;
-    color: var(--color-slate);
-    font-size: 0.75rem;
-    line-height: 1.55;
-    text-align: center;
+  .amount-label-col {
+    .amount-title {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 850;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #000000;
+    }
+
+    .amount-sub {
+      display: block;
+      font-size: 0.64rem;
+      font-weight: 650;
+      letter-spacing: 0.08em;
+      color: #555555;
+      margin-top: 0.15rem;
+    }
+  }
+
+  .amount-value-col {
+    .amount-figures {
+      font-size: 1.45rem;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+      color: #000000;
+    }
   }
 }
 
-/**
- * Print: the receipt and nothing else.
- *
- * The overlay is unpinned and stripped of chrome so the document flows onto the
- * page. The app shell around it is hidden by the global print rules that this
- * component relies on being in `styles.scss`; here we only guarantee our own
- * subtree prints cleanly.
- */
+/* 5. Closing & Stamp Frame */
+.receipt__closing {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding-top: 0.5rem;
+  margin-bottom: 1.25rem;
+
+  .closing-declaration {
+    flex: 1;
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: #333333;
+
+    .attestation-text {
+      margin: 0 0 0.35rem;
+    }
+
+    .mention-legal {
+      margin: 0;
+      font-size: 0.68rem;
+      color: #666666;
+      font-style: italic;
+    }
+  }
+
+  .closing-stamp-box {
+    width: 14rem;
+    text-align: center;
+
+    .stamp-title {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 750;
+      margin-bottom: 0.35rem;
+      color: #000000;
+    }
+
+    .stamp-frame {
+      height: 5.5rem;
+      border: 1.5px dashed #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+
+      .stamp-placeholder {
+        font-size: 0.65rem;
+        color: #888888;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+    }
+  }
+}
+
+/* 6. Bottom Reference Note */
+.receipt__bottom-note {
+  border-top: 1px solid #e0e0e0;
+  padding-top: 0.5rem;
+  text-align: center;
+  font-size: 0.64rem;
+  color: #777777;
+  letter-spacing: 0.02em;
+}
+
+/* ==========================================================================
+   DIRECT MEDIA PRINT FALLBACK (e.g. Ctrl+P while overlay is open)
+   ========================================================================== */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+
   .receipt-overlay {
-    position: static;
-    display: block;
-    padding: 0;
-    background: none;
-    overflow: visible;
+    position: static !important;
+    display: block !important;
+    padding: 0 !important;
+    background: none !important;
+    overflow: visible !important;
   }
 
   .receipt-shell {
-    width: 100%;
-    border-radius: 0;
-    box-shadow: none;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 
   .receipt-shell__bar {
-    display: none;
+    display: none !important;
   }
 
   .receipt {
-    padding: 0;
-    color: #000;
-  }
-
-  .receipt__void {
-    border-color: #000;
-    color: #000;
-  }
-
-  .receipt__clinic-line,
-  .receipt__date,
-  .receipt__rows dt,
-  .receipt__foot p {
-    color: #333;
+    width: 100% !important;
+    max-width: 180mm !important;
+    margin: 0 auto !important;
+    padding: 8mm 10mm !important;
+    border: 2px solid #000000 !important;
+    color: #000000 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }

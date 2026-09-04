@@ -1,7 +1,10 @@
 import type { QueryFilter } from 'mongoose';
 import type { PaginatedResult, PaginationParams } from '../../common/types/common.types.js';
 import { toObjectId } from '../../common/utils/object-id.js';
-import { containsInsensitive } from '../../infrastructure/database/query.helpers.js';
+import {
+  buildSmartPatientSearchFilter,
+  calculatePatientSearchScore,
+} from './patient-search.engine.js';
 import { PatientModel } from './patient.model.js';
 import {
   PATIENT_STATUSES,
@@ -57,18 +60,49 @@ export class PatientRepository {
 
     filter.status = filters.status ?? PATIENT_STATUSES.ACTIVE;
 
-    if (filters.search !== undefined && filters.search.length > 0) {
-      // The term is escaped before it becomes a regex — see `containsInsensitive`.
-      const term = containsInsensitive(filters.search);
-      filter.$or = [
-        { firstName: term },
-        { lastName: term },
-        { phone: term },
-        { referenceNumber: term },
-      ];
+    const hasSearch = filters.search !== undefined && filters.search.trim().length > 0;
+
+    if (hasSearch) {
+      const searchFilter = buildSmartPatientSearchFilter(filters.search!);
+      Object.assign(filter, searchFilter);
     }
 
     const direction: 1 | -1 = filters.sortOrder === 'desc' ? -1 : 1;
+    const isCustomSort = filters.sortBy === 'createdAt' || filters.sortBy === 'birthDate';
+
+    // When searching without an explicit date sort, prioritize relevance scoring
+    if (hasSearch && !isCustomSort) {
+      const candidateLimit = Math.max(pagination.skip + pagination.limit, 100);
+      const [candidates, total] = await Promise.all([
+        PatientModel.find(filter)
+          .sort({ lastName: 1, firstName: 1 })
+          .limit(candidateLimit)
+          .lean<PatientRecord[]>()
+          .exec(),
+        PatientModel.countDocuments(filter).exec(),
+      ]);
+
+      const scored = candidates.map((item) => ({
+        item,
+        score: calculatePatientSearchScore(item, filters.search!),
+      }));
+
+      scored.sort((a, b) => {
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+        const lastCmp = a.item.lastName.localeCompare(b.item.lastName);
+        if (lastCmp !== 0) return lastCmp;
+        return a.item.firstName.localeCompare(b.item.firstName);
+      });
+
+      const items = scored
+        .slice(pagination.skip, pagination.skip + pagination.limit)
+        .map((s) => s.item);
+
+      return { items, total };
+    }
+
     const sort: Record<string, 1 | -1> =
       filters.sortBy === 'createdAt'
         ? { createdAt: direction }

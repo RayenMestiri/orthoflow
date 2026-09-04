@@ -176,6 +176,22 @@ describe('ClinicalVisitService', () => {
     ).rejects.toMatchObject({ code: ERROR_CODES.CLINICAL_VISIT_INVALID_APPOINTMENT_STATE });
   });
 
+  it('creates a note for a completed appointment without error', async () => {
+    const f = fixtures();
+    f.visits.findByAppointment.mockResolvedValueOnce(null);
+    f.appointments.findByIdInClinic.mockResolvedValueOnce({
+      ...appointment,
+      status: APPOINTMENT_STATUSES.COMPLETED,
+    });
+    await f.service.ensureForAppointment(clinicId, appointmentId.toString(), mutation);
+    expect(f.visits.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clinicId,
+        appointmentId: appointmentId.toString(),
+      }),
+    );
+  });
+
   it('rejects a treatment belonging to another patient', async () => {
     const f = fixtures();
     f.treatments.findByIdInClinic.mockResolvedValueOnce({

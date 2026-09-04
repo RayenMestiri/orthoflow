@@ -159,15 +159,17 @@
           <span class="material-icons" aria-hidden="true">add_task</span>
           <span>+ Tâche</span>
         </button>
-        <button
-          type="button"
-          class="btn-action-disabled"
-          disabled
-          title="Cash records are planned for a later phase"
-        >
-          <span class="material-icons" aria-hidden="true">payments</span>
-          <span>Record payment</span>
-        </button>
+        @if (canViewPayments) {
+          <button
+            type="button"
+            class="btn-edit-profile btn-record-payment-header"
+            (click)="triggerRecordDrawer()"
+            title="Enregistrer un règlement pour ce patient"
+          >
+            <span class="material-icons" aria-hidden="true">payments</span>
+            <span>Record payment</span>
+          </button>
+        }
       </div>
     </header>
 
@@ -626,6 +628,7 @@
         [initialRecordId]="selectedRecordId()"
         [initialReceiptNumber]="selectedReceiptNumber()"
         [initialReceiptId]="selectedReceiptId()"
+        [autoOpenRecordDrawer]="autoOpenRecordPayment()"
       />
     } @else if (activeView() === 'visits') {
       <!-- Clinical workspace — chairside visits and procedure records -->

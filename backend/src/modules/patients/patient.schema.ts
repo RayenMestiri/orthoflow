@@ -15,6 +15,12 @@ import {
   PATIENT_ACTIVITY_TYPE_VALUES,
 } from './patient-activity.types.js';
 import { CLINIC_ROLE_VALUES } from '../../common/constants/roles.js';
+import { APPOINTMENT_STATUS_VALUES } from '../appointments/appointment.types.js';
+import {
+  CLINICAL_PROCEDURE_VALUES,
+  CLINICAL_REASON_CODE_VALUES,
+  CLINICAL_VISIT_STATUS_VALUES,
+} from '../clinical-visits/clinical-visit.types.js';
 
 const patientAddressSchema = z.object({
   line1: z.string().trim().max(160).nullable().optional(),
@@ -64,6 +70,21 @@ export const patientDtoSchema = z.object({
   primaryGuardian: z
     .object({ id: objectIdSchema, fullName: z.string(), relationship: z.string() })
     .nullable(),
+  lastVisit: z
+    .object({
+      date: z.string(),
+      status: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
+  nextVisit: z
+    .object({
+      date: z.string(),
+      status: z.string().optional(),
+      isRecommended: z.boolean().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 /**
@@ -135,8 +156,52 @@ export const patientIdParamSchema = z.object({
   patientId: objectIdSchema,
 });
 
+export const patientAppointmentDtoSchema = z.object({
+  id: objectIdSchema,
+  startAt: z.string(),
+  endAt: z.string(),
+  durationMinutes: z.number(),
+  status: z.enum(APPOINTMENT_STATUS_VALUES),
+  note: z.string().nullable(),
+  cancellationReason: z.string().nullable(),
+  treatmentStartedAt: z.string().nullable(),
+  completedAt: z.string().nullable(),
+  appointmentType: z.object({
+    id: objectIdSchema,
+    name: z.string(),
+    color: z.string().nullable().optional(),
+    durationMinutes: z.number().nullable().optional(),
+  }),
+  doctor: z.object({
+    id: objectIdSchema,
+    name: z.string(),
+  }),
+  treatment: z
+    .object({
+      id: objectIdSchema,
+      label: z.string(),
+      status: z.string(),
+    })
+    .nullable(),
+  clinicalVisit: z
+    .object({
+      id: objectIdSchema,
+      status: z.enum(CLINICAL_VISIT_STATUS_VALUES),
+      reasonCode: z.enum(CLINICAL_REASON_CODE_VALUES).nullable(),
+      reasonOther: z.string().nullable(),
+      procedures: z.array(z.enum(CLINICAL_PROCEDURE_VALUES)),
+      observations: z.string().nullable(),
+      nextStepNote: z.string().nullable(),
+      completedAt: z.string().nullable(),
+      clinicianName: z.string(),
+    })
+    .nullable(),
+});
+
 export type CreatePatientBody = z.infer<typeof createPatientBodySchema>;
 export type UpdatePatientBody = z.infer<typeof updatePatientBodySchema>;
 export type PatientListQuery = z.infer<typeof patientListQuerySchema>;
 export type PatientActivityQuery = z.infer<typeof patientActivityQuerySchema>;
 export type PatientIdParam = z.infer<typeof patientIdParamSchema>;
+export type PatientAppointmentDto = z.infer<typeof patientAppointmentDtoSchema>;
+

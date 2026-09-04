@@ -227,6 +227,8 @@ export class AuthService {
     }
 
     if (user.emailVerifiedAt === null) {
+      await this.challenges.issueEmailVerification(user._id.toString(), user.email, user.firstName, true);
+
       throw new ForbiddenError('Verify your email address before signing in', {
         code: ERROR_CODES.EMAIL_NOT_VERIFIED,
       });

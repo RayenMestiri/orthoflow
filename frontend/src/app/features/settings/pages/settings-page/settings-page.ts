@@ -12,6 +12,7 @@ import { SettingsScheduling } from '../../components/settings-scheduling/setting
 import { SettingsWorkingHours } from '../../components/settings-working-hours/settings-working-hours';
 import { SettingsCareContinuity } from '../../components/settings-care-continuity/settings-care-continuity';
 import { SettingsCommunications } from '../../components/settings-communications/settings-communications';
+import { SettingsTeam } from '../../components/settings-team/settings-team';
 import { ClinicSettingsStore } from '../../data-access/clinic-settings.store';
 import { SettingsConsentTemplates } from '../../../consents/components/settings-consent-templates/settings-consent-templates';
 import { SettingsDocumentTemplates } from '../../../generated-documents/components/settings-document-templates/settings-document-templates';
@@ -41,6 +42,7 @@ interface SectionTab {
     SettingsCommunications,
     SettingsConsentTemplates,
     SettingsDocumentTemplates,
+    SettingsTeam,
   ],
   templateUrl: './settings-page.html',
   styleUrl: './settings-page.scss',
@@ -57,6 +59,7 @@ export class SettingsPage implements OnInit {
   protected readonly canViewConsentTemplates = this.permissions.can(PERMISSIONS.CONSENTS_VIEW);
   protected readonly canViewDocumentTemplates = this.permissions.can(PERMISSIONS.GENERATED_DOCUMENTS_VIEW);
   protected readonly canEditDocumentTemplates = this.permissions.can(PERMISSIONS.DOCUMENT_TEMPLATES_MANAGE);
+  protected readonly canManageTeam = this.permissions.can(PERMISSIONS.STAFF_MANAGE);
 
   protected readonly activeSection = signal<SettingsSection>('general');
   protected readonly careContinuityDefaults = DEFAULT_CARE_CONTINUITY_SETTINGS;
@@ -103,6 +106,12 @@ export class SettingsPage implements OnInit {
       label: 'Document templates',
       icon: 'description',
       description: 'Versioned certificates, summaries and statements',
+    },
+    {
+      id: 'team',
+      label: 'Équipe',
+      icon: 'group',
+      description: "Membres du cabinet et niveaux d'acc\u00e8s",
     },
   ];
 

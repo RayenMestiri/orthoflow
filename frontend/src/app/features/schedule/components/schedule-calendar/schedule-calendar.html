@@ -1,37 +1,172 @@
 <full-calendar [options]="options()" [events]="events()">
   <ng-template #eventContent let-arg>
     @let appointment = appointmentOf(arg);
+    @let collision = collisionOf(arg);
+
+    @let viewType = arg.view?.type;
+
     @if (appointment) {
-      <div
-        class="schedule-event"
-        [attr.data-status]="appointment.status"
-        [attr.data-capacity]="appointment.slotCapacity.state"
-        [style.--event-accent]="appointment.appointmentType?.color ?? null"
-      >
-        <span class="schedule-event__initials" aria-hidden="true">{{ patientInitials(appointment) }}</span>
-        <span class="schedule-event__time">
-          {{ formatTime(appointment.startAt) }}
-          <span class="schedule-event__patient"
-            >· {{ appointment.patient?.fullName ?? 'Patient' }}</span
-          >
-        </span>
-        <span class="schedule-event__type">{{
-          appointment.appointmentType?.name ?? 'Appointment'
-        }}</span>
-        @if (isLate(appointment)) {
-          <span class="schedule-event__late">Late</span>
-        }
-        @if (appointment.slotCapacity.state === 'OVERBOOKED') {
-          <span class="schedule-event__capacity" title="Overbooked slot">
-            <span class="material-icons" aria-hidden="true">groups</span> Overbooked
-          </span>
-        }
-        <app-appointment-status-badge class="schedule-event__badge" [status]="appointment.status" />
-      </div>
+      @if (viewType === 'dayGridMonth') {
+        <!-- MONTH VIEW: Elite compact 1-line chip -->
+        <div
+          class="schedule-month-event"
+          [attr.data-status]="appointment.status"
+          [style.--event-accent]="appointment.appointmentType?.color ?? null"
+          [title]="formatMonthTooltip(appointment)"
+        >
+          <span class="schedule-month-event__dot" aria-hidden="true"></span>
+          <span class="schedule-month-event__time">{{ formatTime(appointment.startAt) }}</span>
+          <strong class="schedule-month-event__patient">{{ appointment.patient?.fullName ?? 'Patient' }}</strong>
+          @if (appointment.treatment?.label) {
+            <span class="schedule-month-event__treatment">· {{ appointment.treatment?.label }}</span>
+          }
+        </div>
+      } @else if (viewType === 'timeGridDay') {
+        <!-- DAY VIEW: Executive spacious horizontal card -->
+        <div
+          class="schedule-day-event"
+          [attr.data-appointment-id]="appointment.id"
+          [attr.data-status]="appointment.status"
+          [attr.data-capacity]="appointment.slotCapacity.state"
+          [style.--event-accent]="appointment.appointmentType?.color ?? null"
+        >
+          <div class="schedule-day-event__avatar" aria-hidden="true">
+            {{ patientInitials(appointment) }}
+          </div>
+
+          <div class="schedule-day-event__main">
+            <div class="schedule-day-event__row-primary">
+              <strong class="schedule-day-event__patient" [title]="appointment.patient?.fullName ?? 'Patient'">
+                {{ appointment.patient?.fullName ?? 'Patient' }}
+              </strong>
+              <span class="schedule-day-event__time">
+                <span class="material-icons schedule-day-event__clock-icon" aria-hidden="true">schedule</span>
+                {{ formatTimeRange(appointment) }}
+              </span>
+            </div>
+
+            <div class="schedule-day-event__row-secondary">
+              <span class="schedule-day-event__type">
+                {{ appointment.appointmentType?.name ?? 'Consultation' }}
+              </span>
+              @if (appointment.treatment?.label) {
+                <span class="schedule-day-event__treatment" [title]="appointment.treatment?.label">
+                  · {{ appointment.treatment?.label }}
+                </span>
+              }
+            </div>
+          </div>
+
+          <div class="schedule-day-event__meta">
+            @if (isLate(appointment)) {
+              <span class="schedule-day-event__late" title="Patient en retard">Retard</span>
+            }
+            @if (appointment.slotCapacity.state === 'OVERBOOKED') {
+              <span class="schedule-day-event__capacity" title="Créneau surréservé">
+                <span class="material-icons" aria-hidden="true">groups</span>
+              </span>
+            }
+            <app-appointment-status-badge class="schedule-day-event__badge" [status]="appointment.status" />
+          </div>
+        </div>
+      } @else {
+        <!-- WEEK VIEW: The perfect stacked card architecture -->
+        <div
+          class="schedule-event"
+          [attr.data-appointment-id]="appointment.id"
+          [attr.data-status]="appointment.status"
+          [attr.data-capacity]="appointment.slotCapacity.state"
+          [attr.data-group-total]="collision?.groupTotal ?? null"
+          [class.is-overlapping]="collision?.isOverlapping"
+          [class.is-extreme-density]="collision?.isExtremeDensity"
+          [class.is-group-hovered]="hoveredGroupId() === collision?.groupId"
+          [class.is-card-hovered]="hoveredAppointmentId() === appointment.id"
+          [style.--event-accent]="appointment.appointmentType?.color ?? null"
+          (mouseenter)="onEventMouseEnter(collision, appointment.id)"
+          (mouseleave)="onEventMouseLeave()"
+        >
+          <!-- Top Row: Patient Name (Priority 1) & collision stack indicator -->
+          <div class="schedule-event__header">
+            <span class="schedule-event__initials" aria-hidden="true">{{ patientInitials(appointment) }}</span>
+            <strong class="schedule-event__patient" [title]="appointment.patient?.fullName ?? 'Patient'">
+              {{ appointment.patient?.fullName ?? 'Patient' }}
+            </strong>
+
+            @if (collision?.isOverlapping) {
+              <span
+                class="schedule-event__stack-pill"
+                (click)="openCollisionPopover(collision!, $event)"
+                [title]="collision?.groupTotal + ' rendez-vous en simultané · Cliquez pour voir le groupe'"
+              >
+                {{ (collision?.groupIndex ?? 0) + 1 }}/{{ collision?.groupTotal }}
+              </span>
+            }
+          </div>
+
+          <!-- Priority 2: Appointment Type / Treatment -->
+          <div class="schedule-event__type-row">
+            <span class="schedule-event__type">
+              {{ appointment.appointmentType?.name ?? 'Consultation' }}
+            </span>
+            @if (appointment.treatment?.label) {
+              <span class="schedule-event__treatment" [title]="appointment.treatment?.label">
+                · {{ appointment.treatment?.label }}
+              </span>
+            }
+          </div>
+
+          <!-- Priority 3: Time Range -->
+          <div class="schedule-event__time-row">
+            <span class="material-icons schedule-event__clock-icon" aria-hidden="true">schedule</span>
+            <span class="schedule-event__time">
+              {{ formatTimeRange(appointment) }}
+            </span>
+          </div>
+
+          <!-- Action on the top card of collision group: "Voir tout" (Higher & Responsive) -->
+          @if (collision?.isOverlapping && collision?.groupIndex === (collision?.groupTotal ?? 0) - 1) {
+            <div class="schedule-event__action-row">
+              <button
+                type="button"
+                class="schedule-event__view-group-btn"
+                (click)="openCollisionPopover(collision!, $event)"
+                [title]="'Voir les ' + collision?.groupTotal + ' rendez-vous de ce créneau en détail'"
+              >
+                <span class="material-icons schedule-event__btn-icon" aria-hidden="true">layers</span>
+                <span class="schedule-event__btn-label">Voir tout</span>
+                <span class="material-icons schedule-event__btn-chevron" aria-hidden="true">chevron_right</span>
+              </button>
+            </div>
+          }
+
+          <!-- Priority 4: Secondary badges & Flags -->
+          <div class="schedule-event__meta">
+            @if (isLate(appointment)) {
+              <span class="schedule-event__late" title="Patient en retard">Retard</span>
+            }
+            @if (appointment.slotCapacity.state === 'OVERBOOKED') {
+              <span class="schedule-event__capacity" title="Créneau surréservé">
+                <span class="material-icons" aria-hidden="true">groups</span>
+              </span>
+            }
+            <app-appointment-status-badge class="schedule-event__badge" [status]="appointment.status" />
+          </div>
+        </div>
+      }
     } @else {
       <div class="schedule-event schedule-event--preview">
-        <span class="schedule-event__time">{{ arg.timeText || 'New Slot' }}</span>
+        <span class="schedule-event__time">{{ arg.timeText || 'Nouveau créneau' }}</span>
       </div>
     }
   </ng-template>
 </full-calendar>
+
+@if (activePopoverGroup(); as group) {
+  <app-collision-group-popover
+    [group]="group"
+    [timezone]="clinicSchedule().timezone"
+    [activeAppointmentId]="hoveredAppointmentId()"
+    (appointmentSelected)="appointmentOpened.emit($event)"
+    (closed)="closeCollisionPopover()"
+  />
+}

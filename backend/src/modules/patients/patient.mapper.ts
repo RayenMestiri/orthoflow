@@ -19,6 +19,10 @@ function ageFromBirthDate(value: Date | null): number | null {
 export function toPatientDto(
   record: PatientRecord,
   primaryGuardian: PatientDto['primaryGuardian'] = null,
+  visits: {
+    lastVisit?: PatientDto['lastVisit'];
+    nextVisit?: PatientDto['nextVisit'];
+  } = {},
 ): PatientDto {
   return {
     id: record._id.toString(),
@@ -45,5 +49,7 @@ export function toPatientDto(
     updatedAt: record.updatedAt.toISOString(),
     archivedAt: record.archivedAt?.toISOString() ?? null,
     primaryGuardian,
+    lastVisit: visits.lastVisit ?? null,
+    nextVisit: visits.nextVisit ?? null,
   };
 }

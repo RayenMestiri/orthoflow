@@ -76,18 +76,81 @@
           </div>
         }
 
-        <!-- Empty Query State (Initial) -->
+        <!-- Empty Query State (Initial - Smart Moves) -->
         @if (!loading() && !error() && isQueryTooShort()) {
-          <div class="cmd-empty-initial">
-            <span class="material-icons cmd-empty-initial__icon" aria-hidden="true">travel_explore</span>
-            <h3>Centre de commande OrthoFlow</h3>
-            <p>Tapez au moins 2 caractères pour rechercher instantanément à travers la clinique.</p>
-            <div class="cmd-empty-initial__tags">
-              <span class="cmd-tag"><span class="material-icons" aria-hidden="true">person</span> Patients & Téléphones</span>
-              <span class="cmd-tag"><span class="material-icons" aria-hidden="true">receipt_long</span> Reçus (REC-...)</span>
-              <span class="cmd-tag"><span class="material-icons" aria-hidden="true">medical_services</span> Traitements</span>
-              <span class="cmd-tag"><span class="material-icons" aria-hidden="true">event</span> Rendez-vous</span>
-              <span class="cmd-tag"><span class="material-icons" aria-hidden="true">description</span> Documents & Radios</span>
+          <div class="cmd-smart-moves">
+            <!-- Quick Scopes Filter Strip -->
+            <div class="cmd-scopes" role="group" aria-label="Filtres rapides">
+              <span class="cmd-scopes__label">Filtres :</span>
+              <div class="cmd-scopes__list">
+                @for (scope of quickScopes; track scope.id) {
+                  <button
+                    type="button"
+                    class="cmd-scope-chip"
+                    [class.cmd-scope-chip--active]="activeScope() === scope.id"
+                    (click)="applyScopeFilter(scope)"
+                    [title]="scope.hint ?? scope.label"
+                  >
+                    <span class="material-icons" aria-hidden="true">{{ scope.icon }}</span>
+                    <span>{{ scope.label }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Smart Actions Section -->
+            <div class="cmd-smart-section">
+              <div class="cmd-smart-section__header">
+                <div class="cmd-smart-section__title-wrap">
+                  <span class="material-icons cmd-smart-section__icon" aria-hidden="true">bolt</span>
+                  <h3 class="cmd-smart-section__title">Actions Rapides · Smart Moves</h3>
+                </div>
+                <span class="cmd-smart-section__badge">Clavier ↑ ↓ + ↵</span>
+              </div>
+
+              <div class="cmd-smart-grid" role="listbox" aria-label="Actions rapides">
+                @for (action of smartActions; track action.id; let idx = $index) {
+                  <button
+                    type="button"
+                    class="cmd-smart-card"
+                    [class.cmd-smart-card--selected]="isSmartActionSelected(idx)"
+                    (mouseenter)="onSmartActionHover(idx)"
+                    (click)="executeSmartAction(action)"
+                    role="option"
+                    [attr.aria-selected]="isSmartActionSelected(idx)"
+                  >
+                    <div class="cmd-smart-card__icon-wrap" [attr.data-accent]="action.accent">
+                      <span class="material-icons" aria-hidden="true">{{ action.icon }}</span>
+                    </div>
+
+                    <div class="cmd-smart-card__content">
+                      <div class="cmd-smart-card__title-row">
+                        <strong class="cmd-smart-card__title">{{ action.title }}</strong>
+                      </div>
+                      <span class="cmd-smart-card__subtitle">{{ action.subtitle }}</span>
+                    </div>
+
+                    <div class="cmd-smart-card__meta">
+                      <div class="cmd-smart-card__combo" [title]="'Raccourci : ' + action.shortcutBadge">
+                        @if (action.shortcutModifier) {
+                          <kbd class="cmd-smart-card__kbd cmd-smart-card__kbd--mod">{{ action.shortcutModifier }}</kbd>
+                          <span class="cmd-smart-card__plus">+</span>
+                        }
+                        <kbd class="cmd-smart-card__kbd cmd-smart-card__kbd--key">{{ action.shortcutKey ?? action.shortcutBadge }}</kbd>
+                      </div>
+                      <span class="material-icons cmd-smart-card__enter-icon" aria-hidden="true">subdirectory_arrow_left</span>
+                    </div>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Quick Pro-Tip -->
+            <div class="cmd-tip">
+              <span class="material-icons cmd-tip__icon" aria-hidden="true">tips_and_updates</span>
+              <p class="cmd-tip__text">
+                <strong>Navigation ultra-rapide :</strong> tapez directement pour chercher un dossier, ou appuyez sur les flèches pour exécuter une action clinique.
+              </p>
             </div>
           </div>
         }
@@ -154,9 +217,11 @@
       <!-- Footer navigation hints -->
       <footer class="cmd-footer">
         <div class="cmd-footer__hints">
-          <span><kbd>↑</kbd><kbd>↓</kbd> Naviguer</span>
-          <span><kbd>↵</kbd> Ouvrir</span>
-          <span><kbd>ESC</kbd> Fermer</span>
+          <span class="cmd-footer__hint cmd-footer__hint--payment"><kbd>Ctrl</kbd><kbd>P</kbd> Paiement</span>
+          <span class="cmd-footer__hint"><kbd>Alt</kbd><kbd>A</kbd> RDV</span>
+          <span class="cmd-footer__hint"><kbd>↑</kbd><kbd>↓</kbd> Naviguer</span>
+          <span class="cmd-footer__hint"><kbd>↵</kbd> Ouvrir</span>
+          <span class="cmd-footer__hint"><kbd>ESC</kbd> Fermer</span>
         </div>
         <div class="cmd-footer__brand">
           <span>OrthoFlow Command Center</span>

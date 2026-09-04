@@ -206,8 +206,38 @@
                     <span>{{ patient.status.toLowerCase() }}</span>
                   </span>
                 </td>
-                <td data-label="Last Visit" class="patient-placeholder">—</td>
-                <td data-label="Next Visit" class="patient-placeholder">—</td>
+                <td data-label="Last Visit">
+                  @if (getVisitDate(patient.lastVisit); as lastDate) {
+                    <div class="patient-visit-cell">
+                      <div class="visit-primary-row">
+                        <span class="material-icons visit-icon" aria-hidden="true">history</span>
+                        <strong class="visit-date">{{ lastDate | date: 'dd MMM yyyy' }}</strong>
+                      </div>
+                      <span class="visit-time">{{ lastDate | date: 'HH:mm' }}</span>
+                    </div>
+                  } @else {
+                    <span class="patient-placeholder">—</span>
+                  }
+                </td>
+                <td data-label="Next Visit">
+                  @if (getVisitDate(patient.nextVisit); as nextDate) {
+                    <div class="patient-visit-cell" [class.is-recommended]="patient.nextVisit?.isRecommended">
+                      <div class="visit-primary-row">
+                        <span class="material-icons visit-icon" aria-hidden="true">
+                          {{ patient.nextVisit?.isRecommended ? 'event_note' : 'event' }}
+                        </span>
+                        <strong class="visit-date">{{ nextDate | date: 'dd MMM yyyy' }}</strong>
+                      </div>
+                      @if (patient.nextVisit?.isRecommended) {
+                        <span class="visit-badge-rec">Recommandée</span>
+                      } @else {
+                        <span class="visit-time">{{ nextDate | date: 'HH:mm' }}</span>
+                      }
+                    </div>
+                  } @else {
+                    <span class="patient-placeholder">—</span>
+                  }
+                </td>
                 <td class="patient-action">
                   <a
                     class="btn-open-patient"

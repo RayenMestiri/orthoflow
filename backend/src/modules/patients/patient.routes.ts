@@ -1,4 +1,5 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { z } from 'zod';
 import { PERMISSIONS } from '../../common/constants/permissions.js';
 import {
   errorResponses,
@@ -10,6 +11,7 @@ import {
   createPatientHandler,
   getPatientHandler,
   getPatientActivityHandler,
+  listPatientAppointmentsHandler,
   listPatientsHandler,
   restorePatientHandler,
   updatePatientHandler,
@@ -17,6 +19,7 @@ import {
 import {
   createPatientBodySchema,
   patientActivityQuerySchema,
+  patientAppointmentDtoSchema,
   patientDtoSchema,
   patientActivityDtoSchema,
   patientIdParamSchema,
@@ -52,6 +55,24 @@ export const patientRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     getPatientActivityHandler,
+  );
+
+  app.get(
+    '/:patientId/appointments',
+    {
+      preHandler: [app.requirePermission(PERMISSIONS.APPOINTMENT_READ)],
+      schema: {
+        tags: ['patients'],
+        summary: 'List all appointments and clinical visit history for a patient',
+        security: [{ bearerAuth: [] }],
+        params: patientIdParamSchema,
+        response: {
+          200: successSchema(z.array(patientAppointmentDtoSchema)),
+          ...errorResponses(400, 401, 403, 404),
+        },
+      },
+    },
+    listPatientAppointmentsHandler,
   );
 
   app.get(

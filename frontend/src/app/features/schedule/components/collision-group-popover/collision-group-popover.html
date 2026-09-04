@@ -1,0 +1,72 @@
+<div class="collision-popover-backdrop" (click)="closed.emit()" aria-hidden="true"></div>
+
+<div
+  class="collision-popover"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="collision-popover-title"
+>
+  <header class="collision-popover__header">
+    <div class="collision-popover__title-wrap">
+      <span class="material-icons collision-popover__icon" aria-hidden="true">layers</span>
+      <div>
+        <h3 id="collision-popover-title" class="collision-popover__title">
+          {{ group().groupTotal }} Rendez-vous en même temps
+        </h3>
+        <p class="collision-popover__subtitle">Créneau partagé · Cliquez pour ouvrir</p>
+      </div>
+    </div>
+    <button
+      type="button"
+      class="collision-popover__close"
+      aria-label="Fermer"
+      (click)="closed.emit()"
+    >
+      <span class="material-icons" aria-hidden="true">close</span>
+    </button>
+  </header>
+
+  <div class="collision-popover__list" role="list">
+    @for (appt of group().groupAppointments; track appt.id) {
+      <button
+        type="button"
+        class="collision-popover__item"
+        [class.is-active]="appt.id === activeAppointmentId()"
+        [attr.data-status]="appt.status"
+        (click)="onSelect(appt.id)"
+        role="listitem"
+      >
+        <span
+          class="collision-popover__avatar"
+          [style.background]="appt.appointmentType?.color ?? 'var(--color-pine-700)'"
+          aria-hidden="true"
+        >
+          {{ patientInitials(appt) }}
+        </span>
+
+        <div class="collision-popover__content">
+          <div class="collision-popover__primary-line">
+            <strong class="collision-popover__patient-name">
+              {{ appt.patient?.fullName ?? 'Patient sans nom' }}
+            </strong>
+            <span class="collision-popover__time">{{ formatRange(appt) }}</span>
+          </div>
+
+          <div class="collision-popover__secondary-line">
+            <span class="collision-popover__type">
+              {{ appt.appointmentType?.name ?? 'Consultation' }}
+            </span>
+            @if (appt.treatment?.label) {
+              <span class="collision-popover__treatment">· {{ appt.treatment?.label }}</span>
+            }
+          </div>
+        </div>
+
+        <div class="collision-popover__trailing">
+          <app-appointment-status-badge [status]="appt.status" />
+          <span class="material-icons collision-popover__arrow" aria-hidden="true">chevron_right</span>
+        </div>
+      </button>
+    }
+  </div>
+</div>

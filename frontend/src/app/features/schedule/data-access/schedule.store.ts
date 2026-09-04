@@ -112,6 +112,12 @@ export class ScheduleStore {
     return this.activeRangeAppointments().filter((a) => a.status === 'COMPLETED').length;
   });
 
+  readonly completedToday = computed(() => {
+    return this.todayState()
+      .filter((a) => a.status === 'COMPLETED')
+      .sort((a, b) => (b.completedAt ?? b.startAt).localeCompare(a.completedAt ?? a.startAt));
+  });
+
   readonly hasAppointmentsInView = computed(() =>
     this.appointmentsState().some((appointment) => appointment.status !== 'CANCELLED'),
   );
@@ -405,11 +411,15 @@ export class ScheduleStore {
   private upsert(appointment: Appointment): void {
     this.appointmentsState.update((appointments) => this.upsertIn(appointments, appointment));
     const schedule = this.clinicScheduleState();
-    this.todayState.update((appointments) =>
-      schedule && isSameClinicDay(appointment.startAt, new Date(), schedule.timezone)
-        ? this.upsertIn(appointments, appointment)
-        : appointments.filter((candidate) => candidate.id !== appointment.id),
-    );
+    if (schedule) {
+      this.todayState.update((appointments) =>
+        isSameClinicDay(appointment.startAt, new Date(), schedule.timezone)
+          ? this.upsertIn(appointments, appointment)
+          : appointments.filter((candidate) => candidate.id !== appointment.id),
+      );
+    } else {
+      this.todayState.update((appointments) => this.upsertIn(appointments, appointment));
+    }
     if (this.selectedState()?.id === appointment.id) {
       this.selectedState.set(appointment);
     }
@@ -441,6 +451,14 @@ export class ScheduleStore {
         this.pendingOverbooking = retryOverbooking;
       } else {
         this.errorState.set(problem.message);
+        // Automatically sync fresh data to recover from conflict / stale status
+        void this.refresh();
+        const selectedId = this.selectedState()?.id;
+        if (selectedId) {
+          void firstValueFrom(this.api.getAppointment(selectedId))
+            .then((fresh) => this.upsert(fresh))
+            .catch(() => undefined);
+        }
       }
       return false;
     } finally {

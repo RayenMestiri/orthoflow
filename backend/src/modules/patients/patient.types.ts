@@ -131,4 +131,13 @@ export interface PatientDto {
     fullName: string;
     relationship: string;
   } | null;
+  lastVisit?: {
+    date: string;
+    status?: string;
+  } | null;
+  nextVisit?: {
+    date: string;
+    status?: string;
+    isRecommended?: boolean;
+  } | null;
 }

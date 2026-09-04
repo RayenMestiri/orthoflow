@@ -96,3 +96,12 @@ export async function restorePatientHandler(request: FastifyRequest, reply: Fast
   );
   return reply.send(ok(patient));
 }
+
+export async function listPatientAppointmentsHandler(request: FastifyRequest, reply: FastifyReply) {
+  const appointments = await patientService.listAppointments(
+    requireTenant(request).clinicId,
+    validatedParams<PatientIdParam>(request).patientId,
+  );
+  return reply.send(ok(appointments));
+}
+

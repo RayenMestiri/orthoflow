@@ -104,9 +104,14 @@
     <!-- Main Operational 12-Column Grid -->
     <main class="dash-grid">
       <!-- ========================================== -->
-      <!-- 1. LIVE CLINIC & NEXT PATIENT (8 COLS)     -->
+      <!-- 1. LIVE CLINIC & NEXT PATIENT              -->
       <!-- ========================================== -->
-      <section class="dash-card dash-col-8 dash-live-clinic" aria-labelledby="live-clinic-heading">
+      <section
+        class="dash-card dash-live-clinic"
+        [class.dash-col-8]="canViewFinancialOverview() && data.finance"
+        [class.dash-col-12]="!canViewFinancialOverview() || !data.finance"
+        aria-labelledby="live-clinic-heading"
+      >
         <div class="dash-card__header">
           <div class="dash-card__title-group">
             <span class="dash-card__eyebrow">EN DIRECT</span>

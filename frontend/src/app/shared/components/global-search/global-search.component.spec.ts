@@ -212,4 +212,87 @@ describe('GlobalSearchComponent (Command Center)', () => {
     expect(component.hasResults()).toBe(false);
     expect(component.isQueryTooShort()).toBe(false);
   });
+
+  it('renders Smart Moves and Quick Scopes when query is empty', () => {
+    component.open();
+    fixture.detectChanges();
+
+    expect(component.isQueryTooShort()).toBe(true);
+    expect(component.smartActions.length).toBeGreaterThanOrEqual(6);
+    expect(component.quickScopes.length).toBeGreaterThanOrEqual(4);
+
+    const el: HTMLElement = fixture.nativeElement;
+    const smartCards = el.querySelectorAll('.cmd-smart-card');
+    const scopeChips = el.querySelectorAll('.cmd-scope-chip');
+
+    expect(smartCards.length).toBe(component.smartActions.length);
+    expect(scopeChips.length).toBe(component.quickScopes.length);
+  });
+
+  it('supports keyboard navigation and execution for Smart Moves when query is empty', () => {
+    component.open();
+    fixture.detectChanges();
+
+    expect(component.selectedSmartActionIndex()).toBe(0);
+
+    // Arrow down moves to next Smart Move
+    const downEvent = new KeyboardEvent('keydown', { key: 'ArrowDown' });
+    window.dispatchEvent(downEvent);
+    expect(component.selectedSmartActionIndex()).toBe(1);
+
+    // Arrow up moves back to first Smart Move
+    const upEvent = new KeyboardEvent('keydown', { key: 'ArrowUp' });
+    window.dispatchEvent(upEvent);
+    expect(component.selectedSmartActionIndex()).toBe(0);
+
+    // Enter executes the first Smart Move (Nouveau Patient)
+    const enterEvent = new KeyboardEvent('keydown', { key: 'Enter' });
+    window.dispatchEvent(enterEvent);
+
+    expect(router.navigate).toHaveBeenCalledWith(['/app/patients/new']);
+    expect(component.isOpen()).toBe(false);
+  });
+
+  it('executes smart action with queryParams (e.g. nouveau rdv or paiement)', () => {
+    component.open();
+    fixture.detectChanges();
+
+    const appointmentAction = component.smartActions.find((a) => a.id === 'new-appointment');
+    expect(appointmentAction).toBeDefined();
+
+    if (appointmentAction) {
+      component.executeSmartAction(appointmentAction);
+      expect(router.navigate).toHaveBeenCalledWith(['/app/schedule'], {
+        queryParams: { action: 'new' },
+      });
+      expect(component.isOpen()).toBe(false);
+    }
+  });
+
+  it('applies scope filter and updates search control on scope click', () => {
+    component.open();
+    fixture.detectChanges();
+
+    const receiptScope = component.quickScopes.find((s) => s.prefix === 'REC-');
+    expect(receiptScope).toBeDefined();
+
+    if (receiptScope) {
+      component.applyScopeFilter(receiptScope);
+      expect(component.activeScope()).toBe(receiptScope.id);
+      expect(component.searchControl.value).toBe('REC-');
+    }
+  });
+
+  it('triggers payment action on Ctrl+P key combination', () => {
+    component.open();
+    fixture.detectChanges();
+
+    const ctrlPEvent = new KeyboardEvent('keydown', { key: 'p', ctrlKey: true });
+    window.dispatchEvent(ctrlPEvent);
+
+    expect(router.navigate).toHaveBeenCalledWith(['/app/cash-records'], {
+      queryParams: { action: 'new' },
+    });
+    expect(component.isOpen()).toBe(false);
+  });
 });

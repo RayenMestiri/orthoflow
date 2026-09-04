@@ -7,7 +7,7 @@ import {
   OnInit,
   viewChild,
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PermissionService, PERMISSIONS } from '../../../../core/auth/permissions';
 import { AppointmentDrawer } from '../../components/appointment-drawer/appointment-drawer';
 import {
@@ -26,7 +26,7 @@ import { formatLongDate, formatTime } from '../../utils/appointment-time.utils';
  */
 @Component({
   selector: 'app-schedule-page',
-  imports: [ScheduleToolbar, ScheduleCalendar, AppointmentDrawer],
+  imports: [RouterLink, ScheduleToolbar, ScheduleCalendar, AppointmentDrawer],
   templateUrl: './schedule-page.html',
   styleUrl: './schedule-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -105,6 +105,13 @@ export class SchedulePage implements OnInit {
   onEscape(): void {
     if (this.store.drawerMode()) {
       this.store.closeDrawer();
+    }
+  }
+
+  @HostListener('document:visibilitychange')
+  onVisibilityChange(): void {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+      void this.store.refresh();
     }
   }
 

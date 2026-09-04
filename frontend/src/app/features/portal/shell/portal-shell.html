@@ -4,20 +4,14 @@
     <div class="portal-header__left">
       <a class="portal-brand" routerLink="/portal/home" aria-label="OrthoFlow Espace Patient & Famille">
         <div class="portal-brand__mark">
-          <svg class="brand-svg" viewBox="0 0 36 36" aria-hidden="true">
-            <path
-              class="brand-svg__shape"
-              d="M8.8 8.7c3.4-3.5 15-3.5 18.4 0 3 3.1 1.4 8.1-.8 11.7-1.8 3-2 8.8-5 8.8-2.1 0-1.4-5.8-3.4-5.8s-1.3 5.8-3.4 5.8c-3 0-3.2-5.8-5-8.8-2.2-3.6-3.8-8.6-.8-11.7Z"
-            />
-            <path class="brand-svg__line" d="M11.5 15.5h13" />
-          </svg>
+          <span class="material-icons brand-icon">spa</span>
         </div>
         <div class="portal-brand__text">
           <div class="brand-title-wrap">
             <span class="brand-name">Ortho<span class="brand-name--highlight">Flow</span></span>
-            <span class="brand-badge">PATIENT</span>
+            <span class="brand-badge">PORTAIL FAMILLE</span>
           </div>
-          <span class="brand-tag">Espace Patient &amp; Famille</span>
+          <span class="brand-tag">Espace Patient &amp; Proches</span>
         </div>
       </a>
     </div>
@@ -25,7 +19,8 @@
     <div class="portal-header__right">
       @if (auth.profile()?.clinic; as clinic) {
         <div class="clinic-badge" [title]="clinic.name">
-          <span class="material-icons clinic-badge__icon" aria-hidden="true">verified</span>
+          <span class="clinic-badge__pulse" aria-hidden="true"></span>
+          <span class="material-icons clinic-badge__icon" aria-hidden="true">local_hospital</span>
           <span class="clinic-badge__name">{{ clinic.name }}</span>
         </div>
       }
@@ -34,7 +29,10 @@
         <div class="guardian-avatar">
           {{ auth.profile()?.fullName?.charAt(0) || 'P' }}
         </div>
-        <span class="guardian-name">{{ auth.profile()?.fullName }}</span>
+        <div class="guardian-info">
+          <span class="guardian-name">{{ auth.profile()?.fullName }}</span>
+          <span class="guardian-role">Espace vérifié</span>
+        </div>
         <button class="logout-btn" type="button" aria-label="Se déconnecter" (click)="logout()" title="Se déconnecter">
           <span class="material-icons" aria-hidden="true">logout</span>
           <span class="logout-text">Déconnexion</span>
@@ -43,24 +41,30 @@
     </div>
   </header>
 
-  <!-- Main Content Layout -->
+  <!-- Main Content Layout: Flush Left Sidebar & Fluid Main Content -->
   <div class="portal-layout">
-    <!-- Desktop Sidebar -->
+    <!-- Desktop Left Sidebar -->
     <aside class="portal-sidebar" aria-label="Navigation principale">
       <div class="sidebar-section">
         <span class="sidebar-label">Navigation</span>
         <nav class="portal-nav">
           <a routerLink="/portal/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-            <span class="material-icons" aria-hidden="true">dashboard</span>
-            <span>Aperçu</span>
+            <div class="nav-icon-wrap">
+              <span class="material-icons" aria-hidden="true">dashboard</span>
+            </div>
+            <span class="nav-text">Aperçu</span>
           </a>
           <a routerLink="/portal/appointments" routerLinkActive="active">
-            <span class="material-icons" aria-hidden="true">calendar_month</span>
-            <span>Rendez-vous</span>
+            <div class="nav-icon-wrap">
+              <span class="material-icons" aria-hidden="true">calendar_month</span>
+            </div>
+            <span class="nav-text">Rendez-vous</span>
           </a>
           <a routerLink="/portal/children" routerLinkActive="active">
-            <span class="material-icons" aria-hidden="true">family_restroom</span>
-            <span>Traitements</span>
+            <div class="nav-icon-wrap">
+              <span class="material-icons" aria-hidden="true">family_restroom</span>
+            </div>
+            <span class="nav-text">Traitements</span>
           </a>
         </nav>
       </div>
@@ -69,33 +73,44 @@
         <span class="sidebar-label">Dossier médical</span>
         <nav class="portal-nav">
           <a routerLink="/portal/documents" routerLinkActive="active">
-            <span class="material-icons" aria-hidden="true">folder_shared</span>
-            <span>Documents</span>
+            <div class="nav-icon-wrap">
+              <span class="material-icons" aria-hidden="true">folder_shared</span>
+            </div>
+            <span class="nav-text">Documents</span>
           </a>
           <a routerLink="/portal/consents" routerLinkActive="active">
-            <span class="material-icons" aria-hidden="true">draw</span>
-            <span>Consentements</span>
+            <div class="nav-icon-wrap">
+              <span class="material-icons" aria-hidden="true">draw</span>
+            </div>
+            <span class="nav-text">Consentements</span>
           </a>
           <a routerLink="/portal/payments" routerLinkActive="active">
-            <span class="material-icons" aria-hidden="true">receipt_long</span>
-            <span>Paiements</span>
+            <div class="nav-icon-wrap">
+              <span class="material-icons" aria-hidden="true">receipt_long</span>
+            </div>
+            <span class="nav-text">Paiements</span>
           </a>
         </nav>
       </div>
 
       <div class="sidebar-section sidebar-section--bottom">
+        <span class="sidebar-label">Mon Compte</span>
         <nav class="portal-nav">
           <a routerLink="/portal/profile" routerLinkActive="active">
-            <span class="material-icons" aria-hidden="true">account_circle</span>
-            <span>Mon Profil</span>
+            <div class="nav-icon-wrap">
+              <span class="material-icons" aria-hidden="true">account_circle</span>
+            </div>
+            <span class="nav-text">Mon Profil</span>
           </a>
         </nav>
       </div>
     </aside>
 
-    <!-- Page Content Router Outlet -->
+    <!-- Fluid Page Content Surface -->
     <main class="portal-main">
-      <router-outlet />
+      <div class="portal-main__inner">
+        <router-outlet />
+      </div>
     </main>
   </div>
 

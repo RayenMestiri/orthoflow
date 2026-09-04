@@ -7,6 +7,7 @@ import {
   inject,
   OnDestroy,
   signal,
+  viewChild,
 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -120,6 +121,10 @@ export class PatientDetailPage implements OnDestroy {
       | null) ?? 'overview',
   );
 
+  readonly autoOpenRecordPayment = signal<boolean>(
+    this.route.snapshot.queryParamMap.get('action') === 'record-payment',
+  );
+  readonly cashRecordsComponent = viewChild(PatientCashRecords);
   readonly mediaTreatmentOptions = signal<TreatmentMediaOption[]>([]);
   private readonly mediaTreatmentsLoaded = signal(false);
   readonly guardianPanelOpen = signal(false);
@@ -255,7 +260,18 @@ export class PatientDetailPage implements OnDestroy {
       this.selectedRecordId.set(params.get('recordId') ?? params.get('cashRecordId'));
       this.selectedReceiptNumber.set(params.get('receiptNumber'));
       this.selectedReceiptId.set(params.get('receiptId'));
+      if (params.get('action') === 'record-payment') {
+        this.autoOpenRecordPayment.set(true);
+      }
     });
+  }
+
+  triggerRecordDrawer(): void {
+    this.selectTab('payments');
+    this.autoOpenRecordPayment.set(true);
+    setTimeout(() => {
+      this.cashRecordsComponent()?.openRecordDrawerDirectly();
+    }, 50);
   }
 
   selectTab(

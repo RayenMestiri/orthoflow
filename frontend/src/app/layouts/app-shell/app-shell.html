@@ -134,12 +134,45 @@
           type="button"
           class="app-shell__search-trigger"
           (click)="openCommandCenter()"
-          aria-label="Rechercher dans OrthoFlow (Ctrl + K)"
+          aria-label="Recherche intelligente dans OrthoFlow (Ctrl + K)"
         >
-          <span class="material-icons" aria-hidden="true">search</span>
-          <span class="app-shell__search-copy">Rechercher...</span>
-          <kbd class="app-shell__search-kbd"><abbr title="Control">Ctrl</abbr> K</kbd>
+          <span class="material-icons app-shell__search-icon" aria-hidden="true">search</span>
+          <span class="app-shell__search-copy">Rechercher patient, reçu, rdv, action...</span>
+          <div class="app-shell__search-kbd-wrap" aria-label="Raccourci clavier Control K">
+            <kbd class="app-shell__search-kbd"><span class="app-shell__kbd-mod">Ctrl</span><span class="app-shell__kbd-key">K</span></kbd>
+          </div>
         </button>
+
+        <!-- Responsive Quick Buttons with Clear Keyboard Combinations -->
+        <div class="app-shell__quick-actions" role="toolbar" aria-label="Raccourcis rapides">
+          <button
+            type="button"
+            class="app-shell__quick-btn app-shell__quick-btn--payment"
+            (click)="openQuickPayment()"
+            title="Enregistrer un paiement / reçu (Ctrl + P)"
+            aria-label="Enregistrer un paiement (Ctrl + P)"
+          >
+            <span class="material-icons app-shell__quick-icon" aria-hidden="true">payments</span>
+            <span class="app-shell__quick-label">Paiement</span>
+            <span class="app-shell__quick-combo" aria-hidden="true">
+              <kbd>Ctrl</kbd><kbd>P</kbd>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="app-shell__quick-btn app-shell__quick-btn--appointment"
+            (click)="openQuickAppointment()"
+            title="Nouveau rendez-vous · Agenda (Alt + A ou Ctrl + Shift + A)"
+            aria-label="Nouveau rendez-vous (Alt + A)"
+          >
+            <span class="material-icons app-shell__quick-icon" aria-hidden="true">calendar_month</span>
+            <span class="app-shell__quick-label">RDV</span>
+            <span class="app-shell__quick-combo" aria-hidden="true">
+              <kbd>Alt</kbd><kbd>A</kbd>
+            </span>
+          </button>
+        </div>
       </div>
 
       <div class="app-shell__topbar-actions">
