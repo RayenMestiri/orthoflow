@@ -3,7 +3,10 @@
   <header class="patients-page__header">
     <div class="patients-page__header-left">
       <p class="patients-page__eyebrow">Clinical Directory</p>
-      <h1 id="patients-title">Patients Directory</h1>
+      <h1 id="patients-title">
+        <span>Patients Directory</span>
+        <span class="patient-count-pill" title="Total directory patients">{{ store.total() }}</span>
+      </h1>
       <p class="patients-page__subtitle">
         Search, filter, and manage patient records with live medical history and guardian connections.
       </p>
@@ -15,39 +18,6 @@
       </a>
     }
   </header>
-
-  <!-- Metric Overview Cards -->
-  <div class="patients-metrics" aria-label="Directory statistics">
-    <div class="patient-card-metric">
-      <div class="patient-card-metric__icon">
-        <span class="material-icons">groups</span>
-      </div>
-      <div class="patient-card-metric__info">
-        <span class="patient-card-metric__value">{{ store.total() }}</span>
-        <span class="patient-card-metric__label">Total Directory</span>
-      </div>
-    </div>
-
-    <div class="patient-card-metric patient-card-metric--active">
-      <div class="patient-card-metric__icon">
-        <span class="material-icons">verified_user</span>
-      </div>
-      <div class="patient-card-metric__info">
-        <span class="patient-card-metric__value">{{ store.query().status }}</span>
-        <span class="patient-card-metric__label">Active Filter</span>
-      </div>
-    </div>
-
-    <div class="patient-card-metric">
-      <div class="patient-card-metric__icon">
-        <span class="material-icons">pages</span>
-      </div>
-      <div class="patient-card-metric__info">
-        <span class="patient-card-metric__value">{{ store.query().page }} / {{ store.pages() }}</span>
-        <span class="patient-card-metric__label">Current Page</span>
-      </div>
-    </div>
-  </div>
 
   <!-- Filter & Search Toolbar -->
   <div class="patients-toolbar" aria-label="Patient filters">
