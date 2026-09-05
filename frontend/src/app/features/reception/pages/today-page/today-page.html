@@ -1,46 +1,84 @@
 <section class="today">
   <header class="today__masthead">
-    <div>
-      <span class="today__eyebrow">Clinic flow</span>
-      <h1>Today</h1>
+    <div class="masthead-main">
+      <div class="masthead-badge-row">
+        <span class="today__eyebrow">Flux clinique &amp; Accueil</span>
+        <span class="live-flow-badge">
+          <span class="live-dot"></span>
+          <span>En direct</span>
+        </span>
+      </div>
+      <h1>Aujourd’hui</h1>
       @if (store.board(); as board) {
-        <p>{{ board.date | date: 'EEEE, d MMMM' }}</p>
+        <p class="masthead-date">
+          <span class="material-icons date-icon">calendar_today</span>
+          <span>{{ board.date | date: 'EEEE d MMMM y' }}</span>
+        </p>
       }
     </div>
 
     @if (store.summary(); as summary) {
-      <dl class="today__counters">
-        <div>
-          <dt>Appointments</dt>
-          <dd>{{ summary.total }}</dd>
+      <div class="today__counters-bar">
+        <div class="counter-tile counter-tile--total">
+          <span class="counter-label">Rendez-vous</span>
+          <span class="counter-val">{{ summary.total }}</span>
         </div>
-        <div>
-          <dt>Completed</dt>
-          <dd>{{ summary.completed }}</dd>
+        <div class="counter-tile counter-tile--completed">
+          <span class="counter-label">Terminés</span>
+          <span class="counter-val">
+            <span class="material-icons counter-icon">check_circle</span>
+            {{ summary.completed }}
+          </span>
         </div>
-        <div class="today__counters--live">
-          <dt>Waiting</dt>
-          <dd>{{ summary.waiting }}</dd>
+        <div class="counter-tile counter-tile--waiting" [class.is-live]="summary.waiting > 0">
+          <span class="counter-label">En attente</span>
+          <span class="counter-val">{{ summary.waiting }}</span>
         </div>
         @if (summary.late > 0) {
-          <div class="today__counters--late">
-            <dt>Late</dt>
-            <dd>{{ summary.late }}</dd>
+          <div class="counter-tile counter-tile--late">
+            <span class="counter-label">En retard</span>
+            <span class="counter-val">
+              <span class="material-icons counter-icon">warning_amber</span>
+              {{ summary.late }}
+            </span>
           </div>
         }
-        <div>
-          <dt>Upcoming</dt>
-          <dd>{{ summary.upcoming }}</dd>
+        <div class="counter-tile counter-tile--upcoming">
+          <span class="counter-label">À venir</span>
+          <span class="counter-val">{{ summary.upcoming }}</span>
         </div>
-      </dl>
+      </div>
     }
   </header>
+
+  <!-- Smart Clinic Day Briefing (Dynamic Smart Message) -->
+  @if (smartBriefing(); as brief) {
+    <div class="smart-briefing" [attr.data-tone]="brief.tone">
+      <div class="smart-briefing__halo" aria-hidden="true"></div>
+      <div class="smart-briefing__left">
+        <div class="smart-briefing__icon-box">
+          <span class="material-icons">{{ brief.icon }}</span>
+        </div>
+        <div class="smart-briefing__text">
+          <span class="smart-briefing__eyebrow">{{ brief.eyebrow }}</span>
+          <h2 class="smart-briefing__title">{{ brief.title }}</h2>
+          <p class="smart-briefing__message">{{ brief.message }}</p>
+        </div>
+      </div>
+      @if (brief.metricValue) {
+        <div class="smart-briefing__metric-box">
+          <span class="metric-label">{{ brief.metricLabel }}</span>
+          <strong class="metric-value">{{ brief.metricValue }}</strong>
+        </div>
+      }
+    </div>
+  }
 
   @if (store.error(); as message) {
     <div class="flow-alert" role="alert">
       <span class="material-icons" aria-hidden="true">error_outline</span>
       <span>{{ message }}</span>
-      <button type="button" (click)="store.load()">Retry</button>
+      <button type="button" (click)="store.load()">Réessayer</button>
     </div>
   }
 
@@ -52,42 +90,64 @@
     </ul>
   } @else if (store.isEmptyDay()) {
     <div class="flow-empty">
-      <h2>No appointments scheduled today.</h2>
-      <p>Use the day to review patients or prepare upcoming visits.</p>
+      <div class="flow-empty__icon-wrap">
+        <span class="material-icons">event_busy</span>
+      </div>
+      <h2>Aucun rendez-vous prévu aujourd'hui</h2>
+      <p>Profitez de cette journée pour préparer les prochains plans de traitement ou mettre à jour les dossiers.</p>
     </div>
   } @else {
-    <!-- Next patient: prominent, but not a billboard -->
+    <!-- Next patient spotlight -->
     @if (nextPatient(); as next) {
       <aside class="flow-next" aria-labelledby="flow-next-title">
-        <div>
-          <h2 id="flow-next-title">Next</h2>
-          <p class="flow-next__name">{{ next.patientName }}</p>
-          <p class="flow-next__meta">
-            {{ next.startAt | date: 'HH:mm' }} · {{ next.appointmentTypeName }}
+        <div class="flow-next__left">
+          <div class="flow-next__tag-row">
+            <span class="flow-next__tag" id="flow-next-title">Prochain patient</span>
+            <span class="flow-next__chip" [attr.data-status]="next.status">
+              {{ statusLabels[next.status] }}
+            </span>
+          </div>
+          <div class="flow-next__patient-group">
+            <span class="flow-next__avatar">{{ initials(next.patientName) }}</span>
+            <div>
+              <p class="flow-next__name">{{ next.patientName }}</p>
+              <p class="flow-next__meta">
+                <span class="material-icons meta-icon">schedule</span>
+                {{ next.startAt | date: 'HH:mm' }} · {{ next.appointmentTypeName }}
+                @if (next.treatmentLabel) {
+                  · {{ next.treatmentLabel }}
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="flow-next__right">
+          <p class="flow-next__eta">
+            <span class="material-icons timer-icon">hourglass_empty</span>
+            @if (next.status === 'WAITING') {
+              Attente {{ waitingFor(next) }}
+            } @else if (next.status === 'ARRIVED') {
+              Au cabinet {{ clinicTimeFor(next) }}
+            } @else if (nextInMinutes(); as minutes) {
+              @if (minutes > 0) {
+                dans {{ minutes }} min
+              } @else {
+                maintenant
+              }
+            }
           </p>
         </div>
-        <p class="flow-next__eta">
-          @if (next.status === 'WAITING') {
-            Waiting {{ waitingFor(next) }}
-          } @else if (next.status === 'ARRIVED') {
-            In clinic {{ clinicTimeFor(next) }}
-          } @else if (nextInMinutes(); as minutes) {
-            @if (minutes > 0) {
-              in {{ minutes }} min
-            } @else {
-              due now
-            }
-          }
-        </p>
       </aside>
     }
 
     @for (section of visibleSections(); track section.group) {
       <section class="flow-section" [attr.data-group]="section.group">
-        <header>
-          <h2>{{ section.title }}</h2>
-          <span>{{ section.rows.length }}</span>
-          <small>{{ section.hint }}</small>
+        <header class="flow-section__header">
+          <div class="flow-section__title-group">
+            <h2>{{ section.title }}</h2>
+            <span class="flow-section__count">{{ section.rows.length }}</span>
+          </div>
+          <small class="flow-section__hint">{{ section.hint }}</small>
         </header>
 
         <ul class="flow-list">
@@ -100,9 +160,11 @@
               (click)="openDetail(row)"
               (keydown.enter)="openDetail(row)"
             >
-              <time class="flow-row__time" [attr.datetime]="row.startAt">
-                {{ row.startAt | date: 'HH:mm' }}
-              </time>
+              <div class="flow-row__time-cell">
+                <time class="flow-row__time" [attr.datetime]="row.startAt">
+                  {{ row.startAt | date: 'HH:mm' }}
+                </time>
+              </div>
 
               <span class="flow-row__avatar" aria-hidden="true">{{
                 initials(row.patientName)
@@ -113,14 +175,16 @@
                   type="button"
                   class="flow-row__name"
                   (click)="openPatient(row, $event)"
-                  [attr.aria-label]="'Open ' + row.patientName + ' profile'"
+                  [attr.aria-label]="'Ouvrir la fiche de ' + row.patientName"
                 >
-                  {{ row.patientName }}
+                  <span>{{ row.patientName }}</span>
+                  <span class="material-icons name-arrow" aria-hidden="true">arrow_forward</span>
                 </button>
                 <span class="flow-row__meta">
-                  {{ row.appointmentTypeName }}
+                  <span class="meta-type">{{ row.appointmentTypeName }}</span>
                   @if (row.treatmentLabel) {
-                    · {{ row.treatmentLabel }}
+                    <span class="meta-sep">·</span>
+                    <span class="meta-treatment">{{ row.treatmentLabel }}</span>
                   }
                 </span>
               </div>
@@ -130,17 +194,30 @@
                   {{ statusLabels[row.status] }}
                 </span>
                 @if (row.flowGroup === 'WAITING') {
-                  <span class="flow-row__timer">Waiting {{ waitingFor(row) }}</span>
+                  <span class="flow-row__timer flow-row__timer--waiting">
+                    <span class="material-icons timer-icon">hourglass_top</span>
+                    Attente {{ waitingFor(row) }}
+                  </span>
                 } @else if (row.flowGroup === 'ARRIVED') {
-                  <span class="flow-row__timer">In clinic {{ clinicTimeFor(row) }}</span>
+                  <span class="flow-row__timer">
+                    <span class="material-icons timer-icon">login</span>
+                    Au cabinet {{ clinicTimeFor(row) }}
+                  </span>
                 } @else if (row.flowGroup === 'IN_TREATMENT') {
-                  <span class="flow-row__timer">In chair {{ inTreatmentFor(row) }}</span>
+                  <span class="flow-row__timer flow-row__timer--chair">
+                    <span class="material-icons timer-icon">medical_services</span>
+                    Au fauteuil {{ inTreatmentFor(row) }}
+                  </span>
                 } @else if (row.flowGroup === 'LATE') {
                   <span class="flow-row__timer flow-row__timer--late">
-                    {{ lateFor(row) }} late
+                    <span class="material-icons timer-icon">warning</span>
+                    {{ lateFor(row) }} de retard
                   </span>
                 } @else if (row.status === 'COMPLETED' && row.completedAt) {
-                  <span class="flow-row__timer">{{ row.completedAt | date: 'HH:mm' }}</span>
+                  <span class="flow-row__timer flow-row__timer--done">
+                    <span class="material-icons timer-icon">task_alt</span>
+                    {{ row.completedAt | date: 'HH:mm' }}
+                  </span>
                 }
               </div>
 
@@ -152,7 +229,7 @@
                     [disabled]="store.isPending(row.appointmentId)"
                     (click)="advance(row, $event)"
                   >
-                    {{ store.isPending(row.appointmentId) ? 'Saving…' : next.label }}
+                    {{ store.isPending(row.appointmentId) ? 'Enregistrement…' : next.label }}
                   </button>
                 }
                 @if (showNoShow(row)) {
@@ -162,7 +239,7 @@
                     [disabled]="store.isPending(row.appointmentId)"
                     (click)="markNoShow(row, $event)"
                   >
-                    No-show
+                    Absent
                   </button>
                 }
               </div>
@@ -171,7 +248,7 @@
                 <p class="flow-row__error" role="alert">
                   {{ rowError }}
                   <button type="button" (click)="store.clearRowError(row.appointmentId)">
-                    Dismiss
+                    Fermer
                   </button>
                 </p>
               }

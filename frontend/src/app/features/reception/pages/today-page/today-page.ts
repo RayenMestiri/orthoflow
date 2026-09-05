@@ -88,6 +88,102 @@ export class TodayPage {
     return Math.round((new Date(next.startAt).getTime() - this.store.now()) / 60_000);
   });
 
+  /** Smart clinical day briefing tailored to the clinic's real-time flow. */
+  protected readonly smartBriefing = computed<{
+    tone: 'celebration' | 'active' | 'warning' | 'calm';
+    eyebrow: string;
+    title: string;
+    message: string;
+    icon: string;
+    metricLabel?: string;
+    metricValue?: string;
+  } | null>(() => {
+    const summary = this.store.summary();
+    if (!summary || !this.store.isLoaded()) return null;
+
+    // 1. All completed today (e.g. 1/1 completed, 0 waiting, 0 upcoming)
+    if (
+      summary.total > 0 &&
+      summary.completed === summary.total &&
+      summary.waiting === 0 &&
+      summary.upcoming === 0 &&
+      summary.inTreatment === 0
+    ) {
+      return {
+        tone: 'celebration',
+        eyebrow: 'Excellence clinique · Clôture du jour',
+        title: summary.total === 1 ? 'Excellente journée · Consultation honorée et finalisée' : 'Journée accomplie avec succès · 100% de complétion',
+        message: 'Flux clinique parfait aujourd\'hui : tous les rendez-vous ont été pris en charge avec précision et clôturés à l\'heure. Bravo à toute l\'équipe !',
+        icon: 'verified',
+        metricLabel: 'Complétion',
+        metricValue: '100%',
+      };
+    }
+
+    // 2. Critical: late arrivals
+    if (summary.late > 0) {
+      return {
+        tone: 'warning',
+        eyebrow: 'Coordination d\'accueil · Vigilance horaire',
+        title: `${summary.late} patient${summary.late > 1 ? 's' : ''} en retard sur l'horaire`,
+        message: 'Surveillez les arrivées à l\'accueil pour réadapter l\'ordre de passage au fauteuil sans impacter les prochains créneaux.',
+        icon: 'warning_amber',
+        metricLabel: 'Retard',
+        metricValue: `${summary.late}`,
+      };
+    }
+
+    // 3. Active clinic in progress with waiting/in treatment
+    if (summary.waiting > 0 || summary.inTreatment > 0) {
+      return {
+        tone: 'active',
+        eyebrow: 'Flux clinique en direct · En cours',
+        title: 'Cadence soutenue et fluide au cabinet',
+        message: `${summary.inTreatment} patient(s) au fauteuil · ${summary.waiting} en attente · ${summary.completed} consultation(s) déjà finalisée(s).`,
+        icon: 'speed',
+        metricLabel: 'En attente',
+        metricValue: `${summary.waiting}`,
+      };
+    }
+
+    // 4. Upcoming appointments remaining
+    if (summary.upcoming > 0) {
+      return {
+        tone: 'active',
+        eyebrow: 'Planning du jour · Prochaines arrivées',
+        title: `${summary.upcoming} consultation${summary.upcoming > 1 ? 's' : ''} à venir aujourd'hui`,
+        message: 'L\'équipe d\'accueil et les salles de soins sont parées pour accueillir les prochains patients selon la planification.',
+        icon: 'schedule',
+        metricLabel: 'À venir',
+        metricValue: `${summary.upcoming}`,
+      };
+    }
+
+    // 5. Empty day
+    if (summary.total === 0) {
+      return {
+        tone: 'calm',
+        eyebrow: 'Journée sereine · Cabinet',
+        title: 'Aucune consultation planifiée aujourd\'hui',
+        message: 'Moment idéal pour le travail administratif, l\'archivage clinique, les bilans de traitement et la préparation de la semaine.',
+        icon: 'spa',
+        metricLabel: 'Planning',
+        metricValue: 'Libre',
+      };
+    }
+
+    // Fallback: general positive state
+    return {
+      tone: 'celebration',
+      eyebrow: 'Flux clinique · Progression',
+      title: 'Journée clinique bien maîtrisée',
+      message: `${summary.completed}/${summary.total} rendez-vous finalisés avec succès.`,
+      icon: 'task_alt',
+      metricLabel: 'Réalisé',
+      metricValue: `${summary.completed}/${summary.total}`,
+    };
+  });
+
   constructor() {
     void this.store.load();
   }
