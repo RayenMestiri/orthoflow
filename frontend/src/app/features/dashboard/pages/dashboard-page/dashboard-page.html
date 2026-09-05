@@ -1,21 +1,19 @@
 <div class="dash-container">
   @if (store.loading()) {
     <!-- Regional Loading Skeletons -->
-    <header class="dash-header skeleton-header">
-      <div class="skeleton-box" style="width: 240px; height: 32px; border-radius: 8px"></div>
-      <div
-        class="skeleton-box"
-        style="width: 180px; height: 20px; border-radius: 6px; margin-top: 8px"
-      ></div>
+    <header class="dash-header skeleton-header" aria-busy="true" aria-label="Chargement du tableau de bord">
+      <div class="skeleton-box" style="width: 220px; height: 16px; border-radius: 6px"></div>
+      <div class="skeleton-box" style="width: 320px; height: 36px; border-radius: 10px; margin-top: 10px"></div>
+      <div class="skeleton-box" style="width: 260px; height: 18px; border-radius: 6px; margin-top: 8px"></div>
     </header>
 
-    <div class="dash-grid">
-      <div class="dash-col-8 skeleton-card" style="height: 280px"></div>
-      <div class="dash-col-4 skeleton-card" style="height: 280px"></div>
-      <div class="dash-col-6 skeleton-card" style="height: 260px"></div>
-      <div class="dash-col-6 skeleton-card" style="height: 260px"></div>
-      <div class="dash-col-6 skeleton-card" style="height: 260px"></div>
-      <div class="dash-col-6 skeleton-card" style="height: 260px"></div>
+    <div class="dash-grid" aria-hidden="true">
+      <div class="dash-col-8 skeleton-card" style="min-height: 310px"></div>
+      <div class="dash-col-4 skeleton-card" style="min-height: 310px"></div>
+      <div class="dash-col-6 skeleton-card" style="min-height: 300px"></div>
+      <div class="dash-col-6 skeleton-card" style="min-height: 300px"></div>
+      <div class="dash-col-6 skeleton-card" style="min-height: 280px"></div>
+      <div class="dash-col-6 skeleton-card" style="min-height: 280px"></div>
     </div>
   } @else if (store.error()) {
     <div class="dash-error-card" role="alert">
@@ -30,24 +28,27 @@
       </button>
     </div>
   } @else if (store.data(); as data) {
-    <!-- Header Section -->
+    <!-- ========================================== -->
+    <!-- EXECUTIVE CLINICAL COMMAND HEADER          -->
+    <!-- ========================================== -->
     <header class="dash-header">
       <div class="dash-header__main">
         <div class="dash-header__titles">
-          <div class="dash-header__tag-row">
+          <div class="dash-header__meta-row">
             <span class="dash-header__date">{{ todayDateString() }}</span>
             <span class="dash-live-badge">
-              <span class="dash-live-dot"></span>
-              <span>Cabinet ouvert</span>
+              <span class="dash-live-dot" aria-hidden="true"></span>
+              <span>Cabinet actif</span>
             </span>
           </div>
           <h1 class="dash-header__greeting">{{ greeting() }}</h1>
           <p class="dash-header__subtitle">
-            {{ doctorTitle() }} ·
+            <span class="doctor-title">{{ doctorTitle() }}</span>
+            <span class="separator" aria-hidden="true">·</span>
             @if (data.today) {
-              <strong>{{ data.today.summary.total }} rendez-vous</strong> aujourd’hui
+              <span class="today-count"><strong>{{ data.today.summary.total }}</strong> rendez-vous prévus aujourd'hui</span>
             } @else {
-              Centre de commandement opérationnel
+              <span class="today-count">Centre de commandement clinique</span>
             }
           </p>
         </div>
@@ -57,11 +58,12 @@
             type="button"
             class="dash-search-trigger"
             (click)="triggerGlobalSearch()"
-            title="Recherche globale (Ctrl + K)"
+            title="Recherche globale rapide (Ctrl + K)"
+            aria-label="Rechercher un patient ou un dossier (Ctrl + K)"
           >
             <span class="material-icons" aria-hidden="true">search</span>
-            <span>Rechercher…</span>
-            <kbd>⌘K</kbd>
+            <span class="label">Rechercher…</span>
+            <kbd aria-hidden="true">⌘K</kbd>
           </button>
 
           <button
@@ -69,42 +71,40 @@
             class="dash-refresh-btn"
             [class.spinning]="store.refreshing()"
             (click)="store.refresh()"
-            title="Actualiser les données"
+            title="Actualiser les indicateurs en direct"
+            aria-label="Actualiser les données du tableau de bord"
           >
             <span class="material-icons" aria-hidden="true">refresh</span>
           </button>
         </div>
       </div>
 
-      <!-- Contextual Setup Alert (Only if setup is incomplete) -->
+      <!-- Contextual Setup Banner (Refined, unobtrusive) -->
       @if (!data.setup.isComplete) {
-        <div class="dash-setup-reminder" role="region" aria-label="Configuration du cabinet">
-          <div class="dash-setup-reminder__content">
-            <div class="dash-setup-reminder__icon">
-              <span class="material-icons" aria-hidden="true">tune</span>
+        <aside class="dash-setup-banner" role="region" aria-label="Configuration du cabinet">
+          <div class="dash-setup-banner__content">
+            <div class="dash-setup-banner__icon" aria-hidden="true">
+              <span class="material-icons">tune</span>
             </div>
-            <div>
-              <strong
-                >Configuration initiale du cabinet ({{ data.setup.remainingCount }} élément{{
-                  data.setup.remainingCount > 1 ? 's' : ''
-                }}
-                restant{{ data.setup.remainingCount > 1 ? 's' : '' }})</strong
-              >
-              <p>Éléments à compléter : {{ data.setup.pendingItems.join(', ') }}.</p>
+            <div class="dash-setup-banner__text">
+              <strong>Paramétrage du cabinet en cours ({{ data.setup.remainingCount }} restant{{ data.setup.remainingCount > 1 ? 's' : '' }})</strong>
+              <p>Éléments suggérés : {{ data.setup.pendingItems.join(', ') }}.</p>
             </div>
           </div>
-          <a routerLink="/app/settings" class="dash-setup-reminder__action">
-            <span>Compléter la configuration</span>
+          <a routerLink="/app/settings" class="dash-setup-banner__action">
+            <span>Finaliser</span>
             <span class="material-icons" aria-hidden="true">arrow_forward</span>
           </a>
-        </div>
+        </aside>
       }
     </header>
 
-    <!-- Main Operational 12-Column Grid -->
+    <!-- ========================================== -->
+    <!-- 12-COLUMN STRATEGIC CLINIC GRID            -->
+    <!-- ========================================== -->
     <main class="dash-grid">
       <!-- ========================================== -->
-      <!-- 1. LIVE CLINIC & NEXT PATIENT              -->
+      <!-- TIER 1A: LIVE CLINICAL OPERATIONS (8 COLS) -->
       <!-- ========================================== -->
       <section
         class="dash-card dash-live-clinic"
@@ -114,55 +114,67 @@
       >
         <div class="dash-card__header">
           <div class="dash-card__title-group">
-            <span class="dash-card__eyebrow">EN DIRECT</span>
-            <h2 id="live-clinic-heading">Activité clinique aujourd'hui</h2>
+            <span class="dash-card__eyebrow">OPÉRATIONS CLINIQUES</span>
+            <h2 id="live-clinic-heading">Activité &amp; Flux du jour</h2>
           </div>
           <a routerLink="/app/today" class="dash-card__link">
-            <span>Ouvrir Réception</span>
+            <span>Vue Réception</span>
             <span class="material-icons" aria-hidden="true">arrow_forward</span>
           </a>
         </div>
 
         @if (data.today) {
-          <!-- Compact Metrics Strip -->
-          <div class="dash-metrics-strip">
-            <div class="dash-metric-pill">
-              <span class="metric-num">{{ data.today.summary.total }}</span>
-              <span class="metric-label">Prévus</span>
+          <!-- Unified Minimalist Flow Metric Bar -->
+          <div class="dash-flow-metrics" role="region" aria-label="Compteurs des rendez-vous du jour">
+            <div class="flow-metric-item">
+              <span class="flow-metric-label">Prévus</span>
+              <span class="flow-metric-val">{{ data.today.summary.total }}</span>
             </div>
-            <div class="dash-metric-pill">
-              <span class="metric-num text-completed">{{ data.today.summary.completed }}</span>
-              <span class="metric-label">Terminés</span>
+            <div class="flow-metric-divider" aria-hidden="true"></div>
+            <div class="flow-metric-item" [class.is-active]="data.today.summary.inTreatment > 0">
+              <span class="flow-metric-label">
+                <span class="dot chair" aria-hidden="true"></span>
+                Au fauteuil
+              </span>
+              <span class="flow-metric-val text-chair">{{ data.today.summary.inTreatment }}</span>
             </div>
-            <div class="dash-metric-pill" [class.highlight]="data.today.summary.inTreatment > 0">
-              <span class="metric-num text-chair">{{ data.today.summary.inTreatment }}</span>
-              <span class="metric-label">Au fauteuil</span>
+            <div class="flow-metric-divider" aria-hidden="true"></div>
+            <div class="flow-metric-item" [class.is-active]="data.today.summary.waiting > 0">
+              <span class="flow-metric-label">
+                <span class="dot waiting" aria-hidden="true"></span>
+                En attente
+              </span>
+              <span class="flow-metric-val text-waiting">{{ data.today.summary.waiting }}</span>
             </div>
-            <div class="dash-metric-pill" [class.highlight]="data.today.summary.waiting > 0">
-              <span class="metric-num text-waiting">{{ data.today.summary.waiting }}</span>
-              <span class="metric-label">En attente</span>
+            <div class="flow-metric-divider" aria-hidden="true"></div>
+            <div class="flow-metric-item">
+              <span class="flow-metric-label">Terminés</span>
+              <span class="flow-metric-val text-completed">{{ data.today.summary.completed }}</span>
             </div>
-            <div class="dash-metric-pill" [class.highlight-late]="data.today.summary.late > 0">
-              <span class="metric-num text-late">{{ data.today.summary.late }}</span>
-              <span class="metric-label">En retard</span>
-            </div>
+            @if (data.today.summary.late > 0) {
+              <div class="flow-metric-divider" aria-hidden="true"></div>
+              <div class="flow-metric-item is-late">
+                <span class="flow-metric-label">
+                  <span class="dot late" aria-hidden="true"></span>
+                  En retard
+                </span>
+                <span class="flow-metric-val text-late">{{ data.today.summary.late }}</span>
+              </div>
+            }
           </div>
 
-          <!-- PROMINENT NEXT PATIENT CARD -->
+          <!-- SPOTLIGHT: CURRENT / NEXT PATIENT HERO -->
           @if (data.today.nextPatient; as next) {
             <div
-              class="dash-next-hero"
-              [class.is-chair]="next.flowGroup === 'IN_TREATMENT'"
-              [class.is-waiting]="next.flowGroup === 'WAITING'"
+              class="dash-patient-spotlight"
+              [class.state-chair]="next.flowGroup === 'IN_TREATMENT'"
+              [class.state-waiting]="next.flowGroup === 'WAITING'"
             >
-              <div class="dash-next-hero__top">
-                <span class="dash-next-hero__avatar">{{ initials(next.patientName) }}</span>
-                <div class="dash-next-hero__identity">
-                  <div class="dash-next-hero__title-row">
-                    <a [routerLink]="['/app/patients', next.patientId]" class="patient-name-link">
-                      <h3>{{ next.patientName }}</h3>
-                    </a>
-                    <span class="dash-flow-badge" [class]="flowGroupBadgeClass(next.flowGroup)">
+              <div class="spotlight-body">
+                <div class="spotlight-avatar" aria-hidden="true">{{ initials(next.patientName) }}</div>
+                <div class="spotlight-info">
+                  <div class="spotlight-badge-row">
+                    <span class="dash-flow-pill" [class]="flowGroupBadgeClass(next.flowGroup)">
                       <span class="material-icons" aria-hidden="true">
                         {{
                           next.flowGroup === 'IN_TREATMENT'
@@ -174,56 +186,61 @@
                       </span>
                       <span>{{ flowGroupLabel(next.flowGroup) }}</span>
                     </span>
-                  </div>
-                  <p class="dash-next-hero__treatment">
-                    <span class="treatment-name">{{
-                      next.treatmentLabel || next.appointmentTypeName
-                    }}</span>
-                    <span class="time-slot"
-                      >{{ formatTime(next.startAt) }} - {{ formatTime(next.endAt) }}</span
-                    >
-                  </p>
-                </div>
 
-                <div class="dash-next-hero__countdown">
-                  @if (next.flowGroup === 'IN_TREATMENT') {
-                    <span class="countdown-tag chair">En cours</span>
-                  } @else if (next.flowGroup === 'WAITING') {
-                    <span class="countdown-tag waiting">En salle</span>
-                  } @else if (next.isLate) {
-                    <span class="countdown-tag late">Retard</span>
-                  } @else if (next.isNow) {
-                    <span class="countdown-tag now">Maintenant</span>
-                  } @else {
-                    <span class="countdown-tag upcoming"
-                      >Dans {{ next.minutesUntilStart }} min</span
-                    >
-                  }
+                    <span class="spotlight-timing">
+                      <span class="material-icons" aria-hidden="true">schedule</span>
+                      <span>{{ formatTime(next.startAt) }} – {{ formatTime(next.endAt) }}</span>
+                    </span>
+
+                    <div class="spotlight-countdown">
+                      @if (next.flowGroup === 'IN_TREATMENT') {
+                        <span class="countdown-chip chair">En cours</span>
+                      } @else if (next.flowGroup === 'WAITING') {
+                        <span class="countdown-chip waiting">En salle</span>
+                      } @else if (next.isLate) {
+                        <span class="countdown-chip late">En retard</span>
+                      } @else if (next.isNow) {
+                        <span class="countdown-chip now">Imminent</span>
+                      } @else {
+                        <span class="countdown-chip upcoming">Dans {{ next.minutesUntilStart }} min</span>
+                      }
+                    </div>
+                  </div>
+
+                  <a [routerLink]="['/app/patients', next.patientId]" class="spotlight-name-link">
+                    <h3 class="spotlight-name">{{ next.patientName }}</h3>
+                  </a>
+
+                  <p class="spotlight-procedure">
+                    <span class="material-icons" aria-hidden="true">medical_services</span>
+                    <span>{{ next.treatmentLabel || next.appointmentTypeName }}</span>
+                  </p>
                 </div>
               </div>
 
-              <div class="dash-next-hero__actions">
+              <div class="spotlight-actions">
                 <a [routerLink]="['/app/patients', next.patientId]" class="dash-btn-primary">
-                  <span class="material-icons" aria-hidden="true">person</span>
-                  <span>Ouvrir dossier patient</span>
+                  <span class="material-icons" aria-hidden="true">folder_shared</span>
+                  <span>Ouvrir le dossier</span>
                 </a>
                 <a routerLink="/app/today" class="dash-btn-secondary">
                   <span class="material-icons" aria-hidden="true">room_service</span>
-                  <span>Accéder à la réception</span>
+                  <span>Poste Réception</span>
                 </a>
               </div>
             </div>
           } @else {
-            <div class="dash-empty-state">
-              <span class="material-icons" aria-hidden="true">event_available</span>
-              <strong>Aucun rendez-vous en cours ou imminent</strong>
-              <small
-                >Le planning de la journée est calme ou toutes les consultations sont
-                achevées.</small
-              >
-              <a routerLink="/app/schedule" class="dash-btn-secondary" style="margin-top: 0.75rem">
+            <div class="dash-empty-spotlight">
+              <div class="empty-icon-ring">
+                <span class="material-icons" aria-hidden="true">event_available</span>
+              </div>
+              <div class="empty-text">
+                <strong>Aucune consultation imminente</strong>
+                <p>Tous les patients prévus à cette heure ont été accueillis ou la vacation est terminée.</p>
+              </div>
+              <a routerLink="/app/schedule" class="dash-btn-secondary">
                 <span class="material-icons" aria-hidden="true">calendar_month</span>
-                <span>Consulter l'agenda complet</span>
+                <span>Voir le planning complet</span>
               </a>
             </div>
           }
@@ -231,13 +248,13 @@
           <div class="dash-empty-state">
             <span class="material-icons" aria-hidden="true">schedule</span>
             <strong>Module clinique non accessible</strong>
-            <small>Les autorisations actuelles ne permettent pas de charger le flux du jour.</small>
+            <small>Votre profil ne dispose pas des droits de consultation du flux de rendez-vous.</small>
           </div>
         }
       </section>
 
       <!-- ========================================== -->
-      <!-- 2. FINANCIAL PULSE (4 COLS)               -->
+      <!-- TIER 1B: FINANCIAL PULSE (4 COLS)          -->
       <!-- ========================================== -->
       @if (canViewFinancialOverview() && data.finance; as fin) {
         <section
@@ -246,70 +263,55 @@
         >
           <div class="dash-card__header">
             <div class="dash-card__title-group">
-              <span class="dash-card__eyebrow">PULSION FINANCIÈRE</span>
-              <h2 id="finance-pulse-heading">Caisse du jour</h2>
+              <span class="dash-card__eyebrow">PILOTAGE FINANCIER</span>
+              <h2 id="finance-pulse-heading">Caisse &amp; Recouvrement</h2>
             </div>
-            <a
-              routerLink="/app/finance"
-              class="dash-card__link"
-              title="Consulter la gestion financière"
-            >
+            <a routerLink="/app/finance" class="dash-card__link" title="Consulter la gestion financière">
               <span class="material-icons" aria-hidden="true">arrow_forward</span>
             </a>
           </div>
 
-          <div class="dash-finance-pulse__body">
-            <!-- Large today figure -->
-            <div class="finance-today-card">
-              <span class="finance-today-label">Encaissé aujourd’hui</span>
-              <strong class="finance-today-amount">{{
-                formatMoney(fin.receivedTodayMinor, fin.currency)
-              }}</strong>
-              <span class="finance-today-sub">
+          <div class="dash-finance-body">
+            <!-- Hero Today Card -->
+            <div class="fin-hero-card">
+              <span class="fin-hero-label">Encaissé aujourd’hui</span>
+              <strong class="fin-hero-amount">{{ formatMoney(fin.receivedTodayMinor, fin.currency) }}</strong>
+              <span class="fin-hero-meta">
                 @if (fin.receivedTodayCount > 0) {
-                  {{ fin.receivedTodayCount }} paiement{{
-                    fin.receivedTodayCount > 1 ? 's' : ''
-                  }}
-                  physique{{ fin.receivedTodayCount > 1 ? 's' : '' }} enregistré{{
-                    fin.receivedTodayCount > 1 ? 's' : ''
-                  }}
+                  {{ fin.receivedTodayCount }} versement{{ fin.receivedTodayCount > 1 ? 's' : '' }} comptabilisé{{ fin.receivedTodayCount > 1 ? 's' : '' }}
                 } @else {
-                  Aucun versement physique enregistré pour l'instant
+                  Aucun versement enregistré ce jour
                 }
               </span>
             </div>
 
-            <!-- Month & Outstanding Grid -->
-            <div class="finance-metrics-grid">
-              <div class="finance-metric-box">
-                <span class="finance-metric-label">Ce mois</span>
-                <strong class="finance-metric-val">{{
-                  formatMoney(fin.receivedMonthMinor, fin.currency)
-                }}</strong>
+            <!-- Month & Outstanding Dual Blocks -->
+            <div class="fin-metrics-row">
+              <div class="fin-metric-cell">
+                <span class="fin-metric-tag">Ce mois</span>
+                <strong class="fin-metric-num">{{ formatMoney(fin.receivedMonthMinor, fin.currency) }}</strong>
               </div>
-              <div class="finance-metric-box">
-                <span class="finance-metric-label">Restant dû</span>
-                <strong class="finance-metric-val text-due">{{
-                  formatMoney(fin.outstandingMinor, fin.currency)
-                }}</strong>
+              <div class="fin-metric-cell">
+                <span class="fin-metric-tag">Restant dû</span>
+                <strong class="fin-metric-num text-due">{{ formatMoney(fin.outstandingMinor, fin.currency) }}</strong>
               </div>
             </div>
 
-            <!-- Collection rate progress -->
-            <div class="finance-collection-progress">
-              <div class="collection-labels">
+            <!-- Sleek Collection Rate Gauge -->
+            <div class="fin-collection-box">
+              <div class="fin-collection-header">
                 <span>Taux de recouvrement global</span>
                 <strong>{{ fin.collectedPercent }}%</strong>
               </div>
-              <div class="progress-bar-track">
-                <div class="progress-bar-fill" [style.width.%]="fin.collectedPercent"></div>
+              <div class="fin-progress-track">
+                <div class="fin-progress-bar" [style.width.%]="fin.collectedPercent"></div>
               </div>
             </div>
 
-            <div class="dash-finance-pulse__footer">
+            <div class="fin-footer-action">
               <a routerLink="/app/finance" class="dash-btn-ghost">
                 <span class="material-icons" aria-hidden="true">receipt_long</span>
-                <span>Voir le journal de caisse</span>
+                <span>Journal des encaissements</span>
               </a>
             </div>
           </div>
@@ -317,360 +319,324 @@
       }
 
       <!-- ========================================== -->
-      <!-- 3. WAITING PATIENTS & LATE QUEUE (6 COLS)  -->
+      <!-- TIER 2: OPERATIONAL DUAL COLUMNS (6 + 6)   -->
       <!-- ========================================== -->
-      <section class="dash-card dash-col-6 dash-waiting-section" aria-labelledby="waiting-heading">
-        <div class="dash-card__header">
-          <div class="dash-card__title-group">
-            <span class="dash-card__eyebrow">PATIENTÈLE SUR PLACE</span>
-            <h2 id="waiting-heading">Salle d'attente &amp; Retards</h2>
-          </div>
-          @if (data.today && data.today.waitingPatients.length > 0) {
-            <span class="dash-badge-count">{{ data.today.waitingPatients.length }} en attente</span>
-          }
-        </div>
 
-        <div class="dash-waiting-body">
-          <!-- Late Patient Notice (if any) -->
-          @if (data.today && data.today.latePatients.length > 0) {
-            <div class="dash-late-banner">
-              @for (late of data.today.latePatients; track late.appointmentId) {
-                <div class="late-patient-row">
-                  <span class="material-icons late-icon" aria-hidden="true">warning_amber</span>
-                  <div class="late-patient-info">
-                    <a [routerLink]="['/app/patients', late.patientId]" class="late-patient-name">
-                      <strong>{{ late.patientName }}</strong>
-                    </a>
-                    <span
-                      >Rendez-vous de {{ formatTime(late.startAt) }} ·
-                      {{ late.appointmentTypeName }}</span
-                    >
-                  </div>
-                  <span class="late-delay-badge">{{ late.lateMinutes }} min de retard</span>
-                </div>
-              }
+      <!-- COLUMN A: CLINICAL PATIENT CONTINUITY (6 COLS) -->
+      <div class="dash-col-6 dash-vertical-stack">
+        <!-- 1. WAITING ROOM & LATE QUEUE -->
+        <section class="dash-card dash-waiting-section" aria-labelledby="waiting-heading">
+          <div class="dash-card__header">
+            <div class="dash-card__title-group">
+              <span class="dash-card__eyebrow">EN TEMPS RÉEL</span>
+              <h2 id="waiting-heading">Salle d'attente</h2>
             </div>
-          }
-
-          <!-- Waiting Patients List -->
-          @if (data.today && data.today.waitingPatients.length > 0) {
-            <ul class="dash-waiting-list">
-              @for (wait of data.today.waitingPatients; track wait.appointmentId) {
-                <li class="dash-waiting-item">
-                  <span class="waiting-avatar">{{ initials(wait.patientName) }}</span>
-                  <div class="waiting-meta">
-                    <a [routerLink]="['/app/patients', wait.patientId]" class="waiting-name">
-                      {{ wait.patientName }}
-                    </a>
-                    <small>{{ wait.treatmentLabel || wait.appointmentTypeName }}</small>
-                  </div>
-                  <span class="waiting-timer">
-                    <span class="material-icons" aria-hidden="true">hourglass_bottom</span>
-                    <span>{{ wait.waitingMinutes }} min d'attente</span>
-                  </span>
-                </li>
-              }
-            </ul>
-          } @else if (
-            !data.today ||
-            (data.today.waitingPatients.length === 0 && data.today.latePatients.length === 0)
-          ) {
-            <div class="dash-empty-state compact">
-              <span class="material-icons" aria-hidden="true">chair</span>
-              <strong>Salle d'attente vide</strong>
-              <small>Tous les patients enregistrés ont été pris en charge.</small>
-            </div>
-          }
-        </div>
-      </section>
-
-      <!-- ========================================== -->
-      <!-- 4. FOLLOW-UPS ATTENTION (6 COLS)           -->
-      <!-- ========================================== -->
-      <section
-        class="dash-card dash-col-6 dash-followups-section"
-        aria-labelledby="followups-heading"
-      >
-        <div class="dash-card__header">
-          <div class="dash-card__title-group">
-            <span class="dash-card__eyebrow">SUIVIS CLINIQUES</span>
-            <h2 id="followups-heading">Rappels &amp; Rendez-vous à fixer</h2>
-          </div>
-          <a routerLink="/app/follow-ups" class="dash-card__link">
-            <span>Tous les suivis</span>
-            <span class="material-icons" aria-hidden="true">arrow_forward</span>
-          </a>
-        </div>
-
-        @if (data.followUps) {
-          <div class="dash-followups-body">
-            <!-- Summary stats -->
-            <div class="dash-followups-summary">
-              <span class="fu-stat overdue">
-                <strong>{{ data.followUps.summary.overdue }}</strong> en retard
-              </span>
-              <span class="fu-stat pending">
-                <strong>{{ data.followUps.summary.needsScheduling }}</strong> à planifier
-              </span>
-              <span class="fu-stat scheduled">
-                <strong>{{ data.followUps.summary.scheduled }}</strong> déjà fixés
-              </span>
-            </div>
-
-            <!-- Urgent Follow-ups List -->
-            @if (data.followUps.urgentRows.length > 0) {
-              <ul class="dash-followups-list">
-                @for (row of data.followUps.urgentRows; track row.patient.id) {
-                  <li class="dash-fu-item" [class.is-overdue]="row.state === 'OVERDUE'">
-                    <div class="dash-fu-item__meta">
-                      <div class="dash-fu-item__name-row">
-                        <a [routerLink]="['/app/patients', row.patient.id]" class="dash-fu-name">
-                          {{ row.patient.fullName }}
-                        </a>
-                        <span
-                          class="dash-fu-badge"
-                          [class.overdue]="row.state === 'OVERDUE'"
-                          [class.recommended]="
-                            row.state === 'DUE_SOON' || row.state === 'NEEDS_SCHEDULING'
-                          "
-                        >
-                          @if (row.state === 'OVERDUE') {
-                            {{ row.daysFromRecommendation }}j de retard
-                          } @else if (row.daysFromRecommendation > 0) {
-                            Dans {{ row.daysFromRecommendation }}j
-                          } @else {
-                            À planifier
-                          }
-                        </span>
-                      </div>
-                      <small class="dash-fu-treatment">{{
-                        row.treatment?.label || 'Traitement orthodontique'
-                      }}</small>
-                    </div>
-
-                    <a
-                      [routerLink]="['/app/schedule']"
-                      class="dash-btn-schedule-sm"
-                      title="Fixer un rendez-vous"
-                    >
-                      <span class="material-icons" aria-hidden="true">event</span>
-                      <span>Planifier</span>
-                    </a>
-                  </li>
-                }
-              </ul>
-            } @else {
-              <div class="dash-empty-state compact">
-                <span class="material-icons" aria-hidden="true">done_all</span>
-                <strong>Tous les suivis sont à jour</strong>
-                <small>Aucun rappel en retard ne nécessite d'action immédiate.</small>
-              </div>
+            @if (data.today && data.today.waitingPatients.length > 0) {
+              <span class="dash-count-pill">{{ data.today.waitingPatients.length }} patient{{ data.today.waitingPatients.length > 1 ? 's' : '' }}</span>
             }
           </div>
-        } @else {
-          <div class="dash-empty-state compact">
-            <span class="material-icons" aria-hidden="true">event_repeat</span>
-            <strong>Suivis non disponibles</strong>
-          </div>
-        }
-      </section>
 
-      <!-- ========================================== -->
-      <!-- 4.5. TASKS & INTERNAL DELEGATION (6 COLS)  -->
-      <!-- ========================================== -->
-      <section class="dash-card dash-col-6 dash-tasks-section" aria-labelledby="tasks-heading">
-        <div class="dash-card__header">
-          <div class="dash-card__title-group">
-            <span class="dash-card__eyebrow">COORDINATION & DÉLÉGATION</span>
-            <h2 id="tasks-heading">Mes tâches prioritaires</h2>
-          </div>
-          <a routerLink="/app/tasks" class="dash-link-more" title="Voir toutes les tâches">
-            <span>Ouvrir l'espace</span>
-            <span class="material-icons" aria-hidden="true">arrow_forward</span>
-          </a>
-        </div>
-
-        @if (data.tasks; as taskSection) {
-          <div class="dash-followups-body">
-            <!-- Counters Row -->
-            <div class="dash-followups-summary">
-              <span class="fu-stat" [class.overdue]="taskSection.summary.overdue > 0">
-                <strong>{{ taskSection.summary.overdue }}</strong> en retard
-              </span>
-              <span class="fu-stat pending">
-                <strong>{{ taskSection.summary.toDo + taskSection.summary.inProgress }}</strong> à
-                traiter
-              </span>
-              <span class="fu-stat scheduled">
-                <strong>{{ taskSection.summary.completedToday ?? 0 }}</strong> terminées auj.
-              </span>
-            </div>
-
-            <!-- Top Tasks List -->
-            @if (((taskSection.topTasks ?? taskSection.myTasks)?.length ?? 0) > 0) {
-              <ul class="dash-followups-list">
-                @for (task of (taskSection.topTasks ?? taskSection.myTasks ?? []); track task.id) {
-                  <li class="dash-fu-item" [class.is-overdue]="task.isOverdue">
-                    <div class="dash-fu-item__meta">
-                      <div class="dash-fu-item__name-row">
-                        <a routerLink="/app/tasks" class="dash-fu-name">
-                          {{ task.title }}
-                        </a>
-                        <span class="dash-fu-badge" [class.overdue]="task.isOverdue">
-                          @if (task.isOverdue) {
-                            En retard
-                          } @else if (task.priority === 'URGENT') {
-                            Urgente
-                          } @else {
-                            {{ task.status === 'IN_PROGRESS' ? 'En cours' : 'À faire' }}
-                          }
-                        </span>
-                      </div>
-                      @if (task.patientName) {
-                        <small class="dash-fu-treatment">Patient : {{ task.patientName }}</small>
-                      }
+          <div class="dash-card-body">
+            <!-- Late arrivals notice -->
+            @if (data.today && data.today.latePatients.length > 0) {
+              <div class="late-arrivals-strip">
+                @for (late of data.today.latePatients; track late.appointmentId) {
+                  <div class="late-patient-entry">
+                    <span class="material-icons late-glyph" aria-hidden="true">warning_amber</span>
+                    <div class="late-patient-text">
+                      <a [routerLink]="['/app/patients', late.patientId]" class="late-patient-name">
+                        {{ late.patientName }}
+                      </a>
+                      <span class="late-patient-sub">RDV {{ formatTime(late.startAt) }} · {{ late.appointmentTypeName }}</span>
                     </div>
-
-                    <a routerLink="/app/tasks" class="dash-btn-schedule-sm" title="Ouvrir la tâche">
-                      <span class="material-icons" aria-hidden="true">check_circle</span>
-                      <span>Traiter</span>
-                    </a>
-                  </li>
+                    <span class="late-chip">{{ late.lateMinutes }} min de retard</span>
+                  </div>
                 }
-              </ul>
-            } @else {
-              <div class="dash-empty-state compact">
-                <span class="material-icons" aria-hidden="true">done_all</span>
-                <strong>Toutes vos tâches sont à jour</strong>
-                <small>Aucune action en attente pour vous aujourd'hui.</small>
               </div>
             }
-          </div>
-        } @else {
-          <div class="dash-empty-state compact">
-            <span class="material-icons" aria-hidden="true">task_alt</span>
-            <strong>Espace tâches</strong>
-            <small
-              ><a routerLink="/app/tasks" class="text-teal-600 underline"
-                >Créer une première tâche</a
-              >
-              pour l'équipe.</small
-            >
-          </div>
-        }
-      </section>
 
-      <!-- ========================================== -->
-      <!-- 5. ATTENTION CENTER (6 COLS)              -->
-      <!-- ========================================== -->
-      <section
-        class="dash-card dash-col-6 dash-attention-section"
-        aria-labelledby="attention-heading"
-      >
-        <div class="dash-card__header">
-          <div class="dash-card__title-group">
-            <span class="dash-card__eyebrow">POINTS D'ATTENTION</span>
-            <h2 id="attention-heading">Vérifications opérationnelles</h2>
-          </div>
-          @if (data.attention.length > 0) {
-            <span class="dash-badge-attention"
-              >{{ data.attention.length }} point{{ data.attention.length > 1 ? 's' : '' }}</span
-            >
-          }
-        </div>
-
-        <div class="dash-attention-body">
-          @if (data.attention.length > 0) {
-            <div class="dash-attention-list">
-              @for (item of data.attention; track item.id) {
-                <div
-                  class="dash-attention-card"
-                  role="button"
-                  tabindex="0"
-                  [class]="'level-' + item.level.toLowerCase()"
-                  (click)="handleAttentionClick(item)"
-                  (keydown.enter)="handleAttentionClick(item)"
-                >
-                  <div class="attention-icon-box">
-                    <span class="material-icons" aria-hidden="true">
-                      {{
-                        item.level === 'CRITICAL'
-                          ? 'report'
-                          : item.level === 'WARNING'
-                            ? 'warning'
-                            : 'info'
-                      }}
+            <!-- Waiting patients list -->
+            @if (data.today && data.today.waitingPatients.length > 0) {
+              <ul class="waiting-patient-list">
+                @for (wait of data.today.waitingPatients; track wait.appointmentId) {
+                  <li class="waiting-patient-item">
+                    <span class="waiting-patient-avatar">{{ initials(wait.patientName) }}</span>
+                    <div class="waiting-patient-meta">
+                      <a [routerLink]="['/app/patients', wait.patientId]" class="waiting-patient-name">
+                        {{ wait.patientName }}
+                      </a>
+                      <span class="waiting-patient-desc">{{ wait.treatmentLabel || wait.appointmentTypeName }}</span>
+                    </div>
+                    <span class="waiting-time-badge">
+                      <span class="material-icons" aria-hidden="true">hourglass_bottom</span>
+                      <span>{{ wait.waitingMinutes }} min</span>
                     </span>
-                  </div>
-                  <div class="attention-content">
-                    <strong>{{ item.title }}</strong>
-                    <p>{{ item.description }}</p>
-                  </div>
-                  <button type="button" class="btn-attention-action">
-                    <span>{{ item.actionLabel }}</span>
-                    <span class="material-icons" aria-hidden="true">chevron_right</span>
-                  </button>
+                  </li>
+                }
+              </ul>
+            } @else if (!data.today || (data.today.waitingPatients.length === 0 && data.today.latePatients.length === 0)) {
+              <div class="dash-empty-state compact">
+                <span class="material-icons" aria-hidden="true">check_circle_outline</span>
+                <strong>Salle d'attente fluide</strong>
+                <small>Tous les patients accueillis ont été orientés vers les fauteuils.</small>
+              </div>
+            }
+          </div>
+        </section>
+
+        <!-- 2. CLINICAL FOLLOW-UPS -->
+        <section class="dash-card dash-followups-section" aria-labelledby="followups-heading">
+          <div class="dash-card__header">
+            <div class="dash-card__title-group">
+              <span class="dash-card__eyebrow">CONTINUITÉ DES SOINS</span>
+              <h2 id="followups-heading">Suivis &amp; Relances</h2>
+            </div>
+            <a routerLink="/app/follow-ups" class="dash-card__link">
+              <span>Tous les suivis</span>
+              <span class="material-icons" aria-hidden="true">arrow_forward</span>
+            </a>
+          </div>
+
+          @if (data.followUps) {
+            <div class="dash-card-body">
+              <!-- Summary counters -->
+              <div class="dash-sub-pills">
+                <span class="sub-pill overdue">
+                  <strong>{{ data.followUps.summary.overdue }}</strong> en retard
+                </span>
+                <span class="sub-pill pending">
+                  <strong>{{ data.followUps.summary.needsScheduling }}</strong> à fixer
+                </span>
+                <span class="sub-pill scheduled">
+                  <strong>{{ data.followUps.summary.scheduled }}</strong> programmés
+                </span>
+              </div>
+
+              <!-- Urgent Follow-ups Rows -->
+              @if (data.followUps.urgentRows.length > 0) {
+                <ul class="followup-rows-list">
+                  @for (row of data.followUps.urgentRows; track row.patient.id) {
+                    <li class="followup-row-item" [class.is-overdue]="row.state === 'OVERDUE'">
+                      <div class="followup-row-meta">
+                        <div class="followup-row-header">
+                          <a [routerLink]="['/app/patients', row.patient.id]" class="followup-patient-name">
+                            {{ row.patient.fullName }}
+                          </a>
+                          <span
+                            class="dash-status-pill"
+                            [class.overdue]="row.state === 'OVERDUE'"
+                            [class.recommended]="row.state === 'DUE_SOON' || row.state === 'NEEDS_SCHEDULING'"
+                          >
+                            @if (row.state === 'OVERDUE') {
+                              {{ row.daysFromRecommendation }}j de retard
+                            } @else if (row.daysFromRecommendation > 0) {
+                              Dans {{ row.daysFromRecommendation }}j
+                            } @else {
+                              À planifier
+                            }
+                          </span>
+                        </div>
+                        <span class="followup-treatment-sub">{{ row.treatment?.label || 'Traitement actif' }}</span>
+                      </div>
+
+                      <a
+                        [routerLink]="['/app/schedule']"
+                        class="dash-btn-mini-action"
+                        title="Fixer un rendez-vous"
+                      >
+                        <span class="material-icons" aria-hidden="true">calendar_add_on</span>
+                        <span>Planifier</span>
+                      </a>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <div class="dash-empty-state compact">
+                  <span class="material-icons" aria-hidden="true">done_all</span>
+                  <strong>Suivis sous contrôle</strong>
+                  <small>Aucun rappel patient ne nécessite d'intervention prioritaire.</small>
                 </div>
               }
             </div>
           } @else {
             <div class="dash-empty-state compact">
-              <span class="material-icons text-green" aria-hidden="true">check_circle</span>
-              <strong>Tous les indicateurs sont au vert</strong>
-              <small>Aucune anomalie financière ou administrative détectée.</small>
+              <span class="material-icons" aria-hidden="true">event_repeat</span>
+              <strong>Suivis non disponibles</strong>
             </div>
           }
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <!-- ========================================== -->
-      <!-- 6. RECENT ACTIVITY STREAM (6 COLS)        -->
-      <!-- ========================================== -->
-      <section
-        class="dash-card dash-col-6 dash-activity-section"
-        aria-labelledby="activity-heading"
-      >
-        <div class="dash-card__header">
-          <div class="dash-card__title-group">
-            <span class="dash-card__eyebrow">HISTORIQUE RÉCENT</span>
-            <h2 id="activity-heading">Dernières actions au cabinet</h2>
+      <!-- COLUMN B: OPERATIONS, DELEGATION & RECENT FEED (6 COLS) -->
+      <div class="dash-col-6 dash-vertical-stack">
+        <!-- 1. ATTENTION CENTER -->
+        <section class="dash-card dash-attention-section" aria-labelledby="attention-heading">
+          <div class="dash-card__header">
+            <div class="dash-card__title-group">
+              <span class="dash-card__eyebrow">POINTS DE CONTRÔLE</span>
+              <h2 id="attention-heading">Attention requise</h2>
+            </div>
+            @if (data.attention.length > 0) {
+              <span class="dash-count-pill attention">{{ data.attention.length }} à traiter</span>
+            }
           </div>
-        </div>
 
-        <div class="dash-activity-body">
-          @if (data.recentActivity.length > 0) {
-            <ul class="dash-activity-list">
-              @for (act of data.recentActivity; track act.id) {
-                <li class="dash-activity-item">
-                  <div class="act-icon-box" [class]="activityColorClass(act.type)">
-                    <span class="material-icons" aria-hidden="true">{{
-                      activityIcon(act.type)
-                    }}</span>
-                  </div>
-                  <div class="act-content">
-                    <div class="act-title-row">
-                      <strong>{{ act.title }}</strong>
-                      @if (act.amountMinor) {
-                        <span class="act-amount"
-                          >+{{ formatMoney(act.amountMinor, act.currency || 'TND') }}</span
-                        >
-                      }
+          <div class="dash-card-body">
+            @if (data.attention.length > 0) {
+              <div class="attention-items-deck">
+                @for (item of data.attention; track item.id) {
+                  <div
+                    class="attention-triage-card"
+                    role="button"
+                    tabindex="0"
+                    [class]="'level-' + item.level.toLowerCase()"
+                    (click)="handleAttentionClick(item)"
+                    (keydown.enter)="handleAttentionClick(item)"
+                  >
+                    <div class="triage-icon-box" aria-hidden="true">
+                      <span class="material-icons">
+                        {{
+                          item.level === 'CRITICAL'
+                            ? 'report'
+                            : item.level === 'WARNING'
+                              ? 'warning_amber'
+                              : 'info'
+                        }}
+                      </span>
                     </div>
-                    <p class="act-subtitle">{{ act.subtitle }}</p>
+                    <div class="triage-content">
+                      <div class="triage-headline">
+                        <strong class="triage-title">{{ item.title }}</strong>
+                        <span class="triage-level-tag" [class]="'tag-' + item.level.toLowerCase()">
+                          {{ item.level === 'CRITICAL' ? 'Priorité haute' : item.level === 'WARNING' ? 'À régulariser' : 'Information' }}
+                        </span>
+                      </div>
+                      <p class="triage-desc">{{ item.description }}</p>
+                    </div>
+                    <div class="triage-action-pill">
+                      <span>{{ item.actionLabel }}</span>
+                      <span class="material-icons" aria-hidden="true">arrow_forward</span>
+                    </div>
                   </div>
-                  <time class="act-time">{{ formatRelativeTime(act.timestamp) }}</time>
-                </li>
+                }
+              </div>
+            } @else {
+              <div class="dash-empty-state compact">
+                <span class="material-icons text-green" aria-hidden="true">verified</span>
+                <strong>Cabinet parfaitement synchronisé</strong>
+                <small>Toutes les vérifications administratives et financières sont conformes.</small>
+              </div>
+            }
+          </div>
+        </section>
+
+        <!-- 2. TASKS & INTERNAL DELEGATION -->
+        <section class="dash-card dash-tasks-section" aria-labelledby="tasks-heading">
+          <div class="dash-card__header">
+            <div class="dash-card__title-group">
+              <span class="dash-card__eyebrow">COORDINATION D'ÉQUIPE</span>
+              <h2 id="tasks-heading">Tâches du cabinet</h2>
+            </div>
+            <a routerLink="/app/tasks" class="dash-card__link">
+              <span>Gestionnaire</span>
+              <span class="material-icons" aria-hidden="true">arrow_forward</span>
+            </a>
+          </div>
+
+          @if (data.tasks; as taskSection) {
+            <div class="dash-card-body">
+              <div class="dash-sub-pills">
+                <span class="sub-pill" [class.overdue]="taskSection.summary.overdue > 0">
+                  <strong>{{ taskSection.summary.overdue }}</strong> en retard
+                </span>
+                <span class="sub-pill pending">
+                  <strong>{{ taskSection.summary.toDo + taskSection.summary.inProgress }}</strong> en cours
+                </span>
+                <span class="sub-pill scheduled">
+                  <strong>{{ taskSection.summary.completedToday ?? 0 }}</strong> terminées auj.
+                </span>
+              </div>
+
+              @if (((taskSection.topTasks ?? taskSection.myTasks)?.length ?? 0) > 0) {
+                <ul class="task-rows-list">
+                  @for (task of (taskSection.topTasks ?? taskSection.myTasks ?? []); track task.id) {
+                    <li class="task-row-item" [class.is-overdue]="task.isOverdue">
+                      <div class="task-row-meta">
+                        <div class="task-row-title-row">
+                          <a routerLink="/app/tasks" class="task-title-link">{{ task.title }}</a>
+                          <span class="dash-status-pill" [class.overdue]="task.isOverdue">
+                            @if (task.isOverdue) {
+                              En retard
+                            } @else if (task.priority === 'URGENT') {
+                              Urgente
+                            } @else {
+                              {{ task.status === 'IN_PROGRESS' ? 'En cours' : 'À faire' }}
+                            }
+                          </span>
+                        </div>
+                        @if (task.patientName) {
+                          <span class="task-patient-sub">Patient : {{ task.patientName }}</span>
+                        }
+                      </div>
+
+                      <a routerLink="/app/tasks" class="dash-btn-mini-action">
+                        <span class="material-icons" aria-hidden="true">check_circle</span>
+                        <span>Traiter</span>
+                      </a>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <div class="dash-empty-state compact">
+                  <span class="material-icons" aria-hidden="true">task_alt</span>
+                  <strong>Aucune tâche urgente</strong>
+                  <small>L'équipe est à jour sur ses délégations quotidiennes.</small>
+                </div>
               }
-            </ul>
-          } @else {
-            <div class="dash-empty-state compact">
-              <span class="material-icons" aria-hidden="true">history</span>
-              <strong>Aucune activité récente</strong>
-              <small>Les encaissements et consultations enregistrés apparaîtront ici.</small>
             </div>
           }
-        </div>
-      </section>
+        </section>
+
+        <!-- 3. RECENT ACTIVITY STREAM (Quiet luxury feed) -->
+        <section class="dash-card dash-activity-section" aria-labelledby="activity-heading">
+          <div class="dash-card__header">
+            <div class="dash-card__title-group">
+              <span class="dash-card__eyebrow">HISTORIQUE OPÉRATIONNEL</span>
+              <h2 id="activity-heading">Dernières actions</h2>
+            </div>
+          </div>
+
+          <div class="dash-card-body">
+            @if (data.recentActivity.length > 0) {
+              <ul class="activity-stream">
+                @for (act of data.recentActivity; track act.id) {
+                  <li class="activity-entry">
+                    <div class="activity-glyph-box" [class]="activityColorClass(act.type)" aria-hidden="true">
+                      <span class="material-icons">{{ activityIcon(act.type) }}</span>
+                    </div>
+                    <div class="activity-details">
+                      <div class="activity-head">
+                        <span class="activity-label">{{ act.title }}</span>
+                        @if (act.amountMinor) {
+                          <span class="activity-cash">+{{ formatMoney(act.amountMinor, act.currency || 'TND') }}</span>
+                        }
+                      </div>
+                      <span class="activity-sub">{{ act.subtitle }}</span>
+                    </div>
+                    <time class="activity-time">{{ formatRelativeTime(act.timestamp) }}</time>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <div class="dash-empty-state compact">
+                <span class="material-icons" aria-hidden="true">history</span>
+                <strong>Aucune action enregistrée</strong>
+                <small>Les encaissements et validations de soins du jour s'afficheront ici.</small>
+              </div>
+            }
+          </div>
+        </section>
+      </div>
     </main>
   }
 </div>

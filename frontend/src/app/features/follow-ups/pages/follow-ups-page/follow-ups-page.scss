@@ -3,7 +3,7 @@
 }
 
 .follow-ups {
-  max-width: 96rem;
+  max-width: 104rem;
   margin: 0 auto;
   color: var(--color-pine-900, #173f38);
   font-family: var(--font-sans, inherit);
@@ -906,10 +906,10 @@ h1 {
 
 .follow-up-row {
   display: grid;
-  grid-template-columns: minmax(15rem, 1.5fr) 1.2fr 1fr 1.2fr auto;
+  grid-template-columns: minmax(13.5rem, auto) minmax(11rem, auto) minmax(9.5rem, auto) minmax(11.5rem, auto) 1fr;
   align-items: center;
-  gap: 1.25rem;
-  padding: 1.15rem 1.35rem;
+  gap: 1.15rem;
+  padding: 1.15rem 1.4rem;
   border-bottom: 1px solid #e8ecea;
   background: #ffffff;
   transition: all 180ms ease;
@@ -933,7 +933,7 @@ h1 {
   }
 
   &--attention {
-    grid-template-columns: minmax(15rem, 1.5fr) 1.1fr 1.1fr 1.2fr auto;
+    grid-template-columns: minmax(13.5rem, auto) minmax(11rem, auto) minmax(9.5rem, auto) minmax(11.5rem, auto) 1fr;
   }
 }
 
@@ -1243,7 +1243,11 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.55rem;
+  justify-self: end;
+  margin-left: auto;
+  gap: 0.4rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .button {
@@ -1278,60 +1282,65 @@ h1 {
   }
 
   &--schedule {
-    height: 2.25rem;
-    padding: 0 1.05rem;
+    height: 1.55rem;
+    padding: 0 0.55rem;
+    gap: 0.2rem;
     border-radius: 9999px;
-    background: linear-gradient(135deg, #0d5f50 0%, #0f766e 45%, #059669 100%);
-    border: 1px solid rgba(255, 255, 255, 0.24);
-    color: #ffffff !important;
-    font-size: 0.8125rem;
-    font-weight: 750;
-    letter-spacing: 0.015em;
-    box-shadow:
-      inset 0 1px 1px rgba(255, 255, 255, 0.32),
-      0 2px 8px rgba(13, 95, 80, 0.22);
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46 !important;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(6, 95, 70, 0.05);
     position: relative;
-    overflow: hidden;
     cursor: pointer;
 
-    .material-icons {
-      font-size: 1.1rem;
-      color: #a7f3d0;
-      transition: transform 180ms ease, color 180ms ease;
+    .material-icons,
+    .schedule-plus-icon {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #059669;
+      transition: transform 150ms ease, color 150ms ease;
     }
 
     &:hover {
-      background: linear-gradient(135deg, #0f766e 0%, #059669 50%, #10b981 100%);
-      transform: translateY(-1.5px);
-      box-shadow:
-        inset 0 1px 1px rgba(255, 255, 255, 0.4),
-        0 6px 18px rgba(13, 95, 80, 0.32);
+      background: #d1fae5;
+      border-color: #6ee7b7;
+      color: #064e3b !important;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(6, 95, 70, 0.12);
 
-      .material-icons {
-        transform: scale(1.15) rotate(-3deg);
-        color: #ffffff;
+      .material-icons,
+      .schedule-plus-icon {
+        transform: scale(1.1);
+        color: #047857;
       }
     }
 
     &:active {
-      transform: translateY(0) scale(0.98);
-      box-shadow: 0 2px 6px rgba(13, 95, 80, 0.2);
+      transform: translateY(0);
+      box-shadow: 0 1px 2px rgba(6, 95, 70, 0.08);
     }
   }
 
   &--view-appt {
-    height: 2.25rem;
-    padding: 0 0.95rem;
+    height: 1.68rem;
+    padding: 0 0.55rem;
+    gap: 0.25rem;
     border-radius: 9999px;
     background: #ecfdf5;
     border: 1px solid #a7f3d0;
     color: #065f46;
-    font-size: 0.8rem;
-    font-weight: 750;
-    box-shadow: 0 1px 3px rgba(6, 95, 70, 0.08);
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: 0 1px 2px rgba(6, 95, 70, 0.06);
 
     .material-icons {
-      font-size: 1.05rem;
+      font-size: 0.85rem;
       color: #059669;
     }
 
@@ -1340,22 +1349,24 @@ h1 {
       border-color: #6ee7b7;
       color: #064e3b;
       transform: translateY(-1px);
-      box-shadow: 0 3px 8px rgba(6, 95, 70, 0.14);
+      box-shadow: 0 2px 5px rgba(6, 95, 70, 0.1);
     }
   }
 
   &--task {
-    height: 2.25rem;
-    padding: 0 0.85rem;
+    height: 1.68rem;
+    padding: 0 0.55rem;
+    gap: 0.25rem;
     border-radius: 9999px;
     background: #ffffff;
     border: 1px solid #d4deda;
     color: #3b5049;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 700;
+    line-height: 1;
 
     .material-icons {
-      font-size: 1rem;
+      font-size: 0.85rem;
       color: #6b827a;
       transition: color 150ms ease;
     }
@@ -1365,7 +1376,7 @@ h1 {
       border-color: #0d5f50;
       color: #0d5f50;
       transform: translateY(-1px);
-      box-shadow: 0 2px 6px rgba(13, 95, 80, 0.08);
+      box-shadow: 0 2px 5px rgba(13, 95, 80, 0.08);
 
       .material-icons {
         color: #0d5f50;

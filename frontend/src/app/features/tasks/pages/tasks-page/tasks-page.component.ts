@@ -174,14 +174,41 @@ import type { TaskAttachment, TaskDto, TaskScope, TaskStatus } from '../../model
             </button>
           </div>
 
-          <div class="search-box">
-            <span class="material-icons" aria-hidden="true">search</span>
-            <input
-              type="text"
-              [(ngModel)]="searchQuery"
-              (ngModelChange)="onSearchChange($event)"
-              placeholder="Rechercher une tâche, patient..."
-            />
+          <div class="tasks-filter-actions">
+            <div class="search-box">
+              <span class="material-icons" aria-hidden="true">search</span>
+              <input
+                type="text"
+                [(ngModel)]="searchQuery"
+                (ngModelChange)="onSearchChange($event)"
+                placeholder="Rechercher une tâche, patient..."
+              />
+            </div>
+
+            <div class="view-mode-toggle" role="group" aria-label="Mode d'affichage">
+              <button
+                type="button"
+                class="view-mode-btn"
+                [class.is-active]="viewMode() === 'grid'"
+                (click)="viewMode.set('grid')"
+                title="Affichage en boîtes (grille)"
+                aria-label="Affichage en boîtes"
+              >
+                <span class="material-icons" aria-hidden="true">grid_view</span>
+                <span>Cartes</span>
+              </button>
+              <button
+                type="button"
+                class="view-mode-btn"
+                [class.is-active]="viewMode() === 'list'"
+                (click)="viewMode.set('list')"
+                title="Affichage en liste"
+                aria-label="Affichage en liste"
+              >
+                <span class="material-icons" aria-hidden="true">view_list</span>
+                <span>Liste</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -264,10 +291,11 @@ import type { TaskAttachment, TaskDto, TaskScope, TaskStatus } from '../../model
           </div>
         </div>
       } @else {
-        <div class="tasks-list">
+        <div class="tasks-list" [class.is-grid-mode]="viewMode() === 'grid'">
           @for (task of store.items(); track task.id) {
             <article
               class="task-card"
+              [class.is-grid-card]="viewMode() === 'grid'"
               [class.is-overdue]="task.isOverdue"
               [class.is-completed]="task.status === 'COMPLETED'"
               role="button"
@@ -275,20 +303,9 @@ import type { TaskAttachment, TaskDto, TaskScope, TaskStatus } from '../../model
               (click)="store.openDetailDrawer(task)"
               (keydown.enter)="store.openDetailDrawer(task)"
             >
-              <!-- Quick check button -->
-              <button
-                type="button"
-                class="task-card__check-btn"
-                [class.is-checked]="task.status === 'COMPLETED'"
-                [disabled]="task.status === 'CANCELLED'"
-                (click)="$event.stopPropagation(); quickToggleComplete(task)"
-                title="Marquer comme terminée"
-              >
-                <span class="material-icons" aria-hidden="true">check</span>
-              </button>
-
-              <div class="task-card__body">
-                <div class="task-card__header-row">
+              <!-- Card Header Row in Box Mode -->
+              <div class="task-card__top">
+                <div class="task-card__badges">
                   @if (task.isOverdue) {
                     <span class="badge-tag badge-overdue">En retard</span>
                   }
@@ -297,17 +314,30 @@ import type { TaskAttachment, TaskDto, TaskScope, TaskStatus } from '../../model
                   } @else if (task.priority === 'HIGH') {
                     <span class="badge-tag badge-high">Haute</span>
                   }
-
-                  <h3 class="task-card__title">{{ task.title }}</h3>
                 </div>
+
+                <!-- Quick check button -->
+                <button
+                  type="button"
+                  class="task-card__check-btn"
+                  [class.is-checked]="task.status === 'COMPLETED'"
+                  [disabled]="task.status === 'CANCELLED'"
+                  (click)="$event.stopPropagation(); quickToggleComplete(task)"
+                  title="Marquer comme terminée"
+                  aria-label="Marquer comme terminée"
+                >
+                  <span class="material-icons" aria-hidden="true">check</span>
+                </button>
+              </div>
+
+              <div class="task-card__body">
+                <h3 class="task-card__title">{{ task.title }}</h3>
 
                 <div class="task-card__meta-row">
                   @if (task.context) {
                     <span class="task-chip-context">
-                      <span class="material-icons" aria-hidden="true">link</span>
-                      {{
-                        task.context.label || (task.patient ? task.patient.fullName : 'Contexte')
-                      }}
+                      <span class="material-icons" aria-hidden="true">person</span>
+                      {{ task.context.label || (task.patient ? task.patient.fullName : 'Contexte') }}
                     </span>
                   }
 
@@ -319,50 +349,57 @@ import type { TaskAttachment, TaskDto, TaskScope, TaskStatus } from '../../model
                   }
 
                   @if (task.attachments && task.attachments.length > 0) {
-                    <span
-                      class="task-chip-context"
-                      style="background: var(--color-porcelain); color: var(--color-slate);"
-                    >
-                      <span class="material-icons" aria-hidden="true" style="font-size: 0.85rem;"
-                        >attachment</span
-                      >
+                    <span class="task-chip-context task-chip-doc-count">
+                      <span class="material-icons" aria-hidden="true" style="font-size: 0.85rem;">attach_file</span>
                       {{ task.attachments.length }} doc{{ task.attachments.length > 1 ? 's' : '' }}
                     </span>
                   }
                 </div>
 
-                <!-- Attached Images & PDFs thumbnail preview strip -->
+                <!-- Attached Images & PDFs: Rich Big Preview Gallery -->
                 @if (task.attachments && task.attachments.length > 0) {
-                  <div class="task-card__attachments-strip">
+                  <div
+                    class="task-card__media-showcase"
+                    [class.single-item]="task.attachments.length === 1"
+                    [class.multi-items]="task.attachments.length > 1"
+                  >
                     @for (att of task.attachments; track $index) {
-                      <div class="task-card__thumb-badge" [title]="att.name">
+                      <div class="task-media-card" [class.is-image-media]="isImage(att)" [title]="att.name">
                         @if (isImage(att)) {
-                          <img [src]="att.url" [alt]="att.name" class="task-thumb-img" />
+                          <div class="task-image-wrapper">
+                            <img [src]="att.url" [alt]="att.name" class="task-large-img" loading="lazy" />
+                            <div class="task-image-pill-overlay">
+                              <span class="material-icons" aria-hidden="true">visibility</span>
+                              <span class="task-image-pill-name">{{ att.name }}</span>
+                            </div>
+                          </div>
                         } @else {
-                          <span class="material-icons task-thumb-pdf" aria-hidden="true"
-                            >picture_as_pdf</span
-                          >
+                          <div class="task-pdf-wrapper">
+                            <span class="material-icons task-pdf-icon" aria-hidden="true">picture_as_pdf</span>
+                            <div class="task-pdf-meta">
+                              <strong class="task-pdf-filename">{{ att.name }}</strong>
+                              <small class="task-pdf-hint">Document PDF joint</small>
+                            </div>
+                          </div>
                         }
-                        <span class="task-thumb-name">{{ att.name }}</span>
                       </div>
                     }
                   </div>
                 }
               </div>
 
-              <div class="task-card__assignee">
-                <div class="task-card__assignee-text">
-                  <strong>{{ task.assignedTo.displayName }}</strong>
-                  <small>{{ task.assignedTo.role ?? 'Équipe' }}</small>
+              <div class="task-card__footer">
+                <div class="task-card__assignee">
+                  <div class="task-avatar" [title]="task.assignedTo.displayName">
+                    {{ getInitials(task.assignedTo.displayName) }}
+                  </div>
+                  <div class="task-card__assignee-text">
+                    <strong>{{ task.assignedTo.displayName }}</strong>
+                    <small>{{ task.assignedTo.role ?? 'Équipe' }}</small>
+                  </div>
                 </div>
 
-                <div class="task-avatar" [title]="task.assignedTo.displayName">
-                  {{ getInitials(task.assignedTo.displayName) }}
-                </div>
-
-                <span class="material-icons task-card__chevron" aria-hidden="true"
-                  >chevron_right</span
-                >
+                <span class="material-icons task-card__chevron" aria-hidden="true">chevron_right</span>
               </div>
             </article>
           }
@@ -383,6 +420,7 @@ export class TasksPageComponent implements OnInit {
 
   selectedScope = signal<TaskScope>('MINE');
   selectedStatus = signal<TaskStatus | 'ALL' | 'ACTIVE' | 'OVERDUE'>('ACTIVE');
+  viewMode = signal<'grid' | 'list'>('grid');
   searchQuery = '';
 
   readonly canViewTeamTasks = computed(() => this.permissions.can(PERMISSIONS.TASKS_MANAGE));
