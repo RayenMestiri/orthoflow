@@ -9,6 +9,7 @@
     "test": "ng test --watch=false",
     "test:watch": "ng test",
     "lint": "ng lint",
+    "postbuild": "node -e \"const fs=require('fs'); if(fs.existsSync('dist/frontend/browser/index.html')) fs.copyFileSync('dist/frontend/browser/index.html', 'dist/frontend/browser/404.html');\"",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
