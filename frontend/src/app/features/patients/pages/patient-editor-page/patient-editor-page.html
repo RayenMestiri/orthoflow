@@ -248,13 +248,38 @@
 
       <!-- Section 02: Contact & Address Information -->
       <section id="section-contact" class="editor-section" aria-labelledby="contact-heading">
-        <header class="editor-section__header">
+        <header class="editor-section__header editor-section__header--action">
           <div class="editor-section__badge">02</div>
           <div>
             <h2 id="contact-heading">Contact & Location</h2>
             <p>Physical location used for correspondence and clinic notifications.</p>
           </div>
+          <div class="editor-section__action">
+            <button
+              type="button"
+              class="btn-detect-location"
+              [disabled]="locating()"
+              (click)="detectDeviceLocation()"
+              title="Prendre automatiquement l'adresse depuis votre PC ou téléphone"
+            >
+              <span class="material-icons" [class.spin]="locating()">{{ locating() ? 'sync' : 'my_location' }}</span>
+              <span>{{ locating() ? 'Localisation en cours…' : 'Position appareil (PC / Mobile)' }}</span>
+            </button>
+          </div>
         </header>
+
+        @if (locationSuccess()) {
+          <div class="location-feedback location-feedback--success">
+            <span class="material-icons">check_circle</span>
+            <span>{{ locationSuccess() }}</span>
+          </div>
+        }
+        @if (locationError()) {
+          <div class="location-feedback location-feedback--error">
+            <span class="material-icons">error_outline</span>
+            <span>{{ locationError() }}</span>
+          </div>
+        }
 
         <div class="editor-grid">
           <!-- Street Address -->

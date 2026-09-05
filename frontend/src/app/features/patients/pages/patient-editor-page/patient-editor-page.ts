@@ -51,6 +51,9 @@ export class PatientEditorPage {
   readonly submitting = signal(false);
   readonly error = signal<string | null>(null);
   readonly guardianEnabled = signal(false);
+  readonly locating = signal(false);
+  readonly locationError = signal<string | null>(null);
+  readonly locationSuccess = signal<string | null>(null);
   readonly title = computed(() => (this.editing ? 'Edit patient' : 'Add a patient'));
 
   readonly form = new FormGroup({
@@ -348,6 +351,60 @@ export class PatientEditorPage {
       financiallyResponsible: value.financiallyResponsible,
       contactPreference: value.contactPreference,
     };
+  }
+
+  async detectDeviceLocation(): Promise<void> {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      this.locationError.set('La géolocalisation n’est pas supportée par cet appareil.');
+      return;
+    }
+    this.locating.set(true);
+    this.locationError.set(null);
+    this.locationSuccess.set(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`,
+            { headers: { 'Accept-Language': 'fr,en' } },
+          );
+          if (!res.ok) throw new Error('Erreur de géocodage');
+          const data = await res.json();
+          const addr = data.address || {};
+          const streetParts = [addr.house_number, addr.road || addr.street || addr.suburb].filter(Boolean);
+          const line1 = streetParts.length > 0 ? streetParts.join(' ') : (data.name || '');
+          const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
+          const postalCode = addr.postcode || '';
+          const country = addr.country || '';
+
+          this.form.patchValue({
+            line1: line1 || this.form.controls.line1.value,
+            city: city || this.form.controls.city.value,
+            postalCode: postalCode || this.form.controls.postalCode.value,
+            country: country || this.form.controls.country.value,
+          });
+          this.form.markAsDirty();
+          this.locationSuccess.set('Adresse récupérée depuis votre appareil avec succès !');
+          setTimeout(() => this.locationSuccess.set(null), 4000);
+        } catch {
+          this.locationError.set('Impossible de déterminer l’adresse postale à partir de vos coordonnées GPS.');
+        } finally {
+          this.locating.set(false);
+        }
+      },
+      (err) => {
+        this.locating.set(false);
+        if (err.code === 1) {
+          this.locationError.set('Accès à la position refusé. Veuillez autoriser la géolocalisation.');
+        } else {
+          this.locationError.set('Position introuvable ou signal GPS indisponible.');
+        }
+      },
+      { timeout: 10000, enableHighAccuracy: true },
+    );
   }
 }
 

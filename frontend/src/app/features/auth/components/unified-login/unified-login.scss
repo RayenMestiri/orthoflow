@@ -898,53 +898,59 @@
    PORTAL FAMILLE THEME (#C86445 Terracotta Nuances)
    ========================================================================== */
 .unified-auth--portal {
+  .auth-switcher__glider {
+    box-shadow:
+      0 4px 14px rgba(5, 150, 105, 0.18),
+      0 1px 3px rgba(5, 150, 105, 0.08);
+  }
+
   .auth-switcher__tab--active {
-    color: #c86445 !important;
+    color: #065f46 !important;
 
     .auth-switcher__icon {
-      background: #c86445;
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
       color: #ffffff;
-      box-shadow: 0 2px 6px rgba(200, 100, 69, 0.35);
+      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.38);
     }
   }
 
   .form-panel__context-chip {
-    background: #fdf5f2;
-    border-color: #f7d5ca;
-    color: #c86445;
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #047857;
   }
 
   .form-panel__title {
-    color: #2b1712;
+    color: #064e3b;
   }
 
   .auth-control:focus-within {
-    border-color: #c86445;
+    border-color: #059669;
     box-shadow:
-      0 0 0 4px rgba(200, 100, 69, 0.12),
-      0 4px 14px rgba(200, 100, 69, 0.04);
+      0 0 0 4px rgba(5, 150, 105, 0.12),
+      0 4px 14px rgba(5, 150, 105, 0.04);
 
     .auth-control__icon-chip {
-      background: #c86445;
+      background: #059669;
       color: #ffffff;
-      box-shadow: 0 2px 8px rgba(200, 100, 69, 0.25);
+      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.28);
     }
   }
 
   .form-submit-btn {
-    background: linear-gradient(135deg, #a84b30 0%, #c86445 50%, #9c4328 100%);
-    box-shadow: 0 4px 16px rgba(200, 100, 69, 0.28);
+    background: linear-gradient(135deg, #047857 0%, #059669 50%, #0d9488 100%);
+    box-shadow: 0 4px 16px rgba(5, 150, 105, 0.28);
 
     &:hover:not(:disabled) {
-      box-shadow: 0 8px 24px rgba(200, 100, 69, 0.36);
+      box-shadow: 0 8px 24px rgba(5, 150, 105, 0.38);
     }
   }
 
   .form-link {
-    color: #c86445;
+    color: #059669;
 
     &:hover {
-      color: #9c4328;
+      color: #064e3b;
     }
   }
 
@@ -959,8 +965,8 @@
   }
 
   .brand-panel__badge-dot {
-    background: #ffffff;
-    box-shadow: 0 0 8px #ffffff;
+    background: #34d399;
+    box-shadow: 0 0 8px #34d399;
   }
 }
 
@@ -978,9 +984,9 @@
     .unified-auth__brand-panel {
       background:
         radial-gradient(circle at 75% 20%, rgba(255, 255, 255, 0.16), transparent 26rem),
-        linear-gradient(145deg, #7c3520 0%, #9c4328 35%, #c86445 75%, #a84b30 100%);
+        linear-gradient(145deg, #064e3b 0%, #065f46 35%, #047857 75%, #0d9488 100%);
       transform: translateX(100%);
-      box-shadow: -16px 0 44px rgba(124, 53, 32, 0.25);
+      box-shadow: -16px 0 44px rgba(6, 78, 59, 0.25);
     }
 
     .unified-auth__form-panel {

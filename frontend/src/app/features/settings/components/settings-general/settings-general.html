@@ -61,14 +61,33 @@
 
     <!-- Row 3: Full Address -->
     <div class="settings-field settings-field--wide">
-      <label for="clinic-address">Address</label>
+      <div class="settings-field__label-row">
+        <label for="clinic-address">Address</label>
+        @if (canEdit()) {
+          <button
+            type="button"
+            class="btn-detect-location"
+            [disabled]="locating()"
+            (click)="detectDeviceLocation()"
+            title="Prendre l'adresse directement du PC ou téléphone"
+          >
+            <span class="material-icons" [class.spin]="locating()">{{ locating() ? 'sync' : 'my_location' }}</span>
+            <span>{{ locating() ? 'Localisation en cours…' : 'Position appareil (PC / Mobile)' }}</span>
+          </button>
+        }
+      </div>
       <input
         id="clinic-address"
         formControlName="addressLine1"
         autocomplete="street-address"
         placeholder="12 Avenue Habib Bourguiba"
       />
-      <p class="settings-field__error"></p>
+      @if (locationSuccess()) {
+        <p class="settings-field__success">{{ locationSuccess() }}</p>
+      }
+      @if (locationError()) {
+        <p class="settings-field__error">{{ locationError() }}</p>
+      }
     </div>
 
     <!-- Row 4: City + Postal Code -->
